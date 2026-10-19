@@ -1,0 +1,8 @@
+{
+  "id": "bucketdrop",
+  "name": "BucketDrop",
+  "symbol": "tray.and.arrow.up",
+  "entry": "index.html",
+  "order": 55,
+  "height": 230
+}

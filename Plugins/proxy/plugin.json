@@ -1,0 +1,9 @@
+{
+  "id": "proxy",
+  "name": "Proxy",
+  "symbol": "network",
+  "icon": "icon.png",
+  "entry": "index.html",
+  "order": 60,
+  "height": 220
+}

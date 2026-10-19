@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BucketDrop</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-up" viewBox="0 0 20 20"><path d="M10 13V3.5M6 7.5l4-4 4 4M4 12.5v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 20 20"><rect x="5" y="4" width="10" height="13" rx="2"/><path d="M8 4V3h4v1"/></symbol>
+    <symbol id="i-file" viewBox="0 0 20 20"><path d="M6 2.5h5l4 4V16a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 5 16V4a1.5 1.5 0 0 1 1-1.5ZM11 2.5V7h4"/></symbol>
+    <symbol id="i-link" viewBox="0 0 20 20"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.8.8M11.5 8.5a3 3 0 0 0-4.2 0L4.7 11.1a3 3 0 0 0 4.2 4.2l.8-.8"/></symbol>
+    <symbol id="i-open" viewBox="0 0 20 20"><path d="M11 3.5h5.5V9M16.5 3.5 9 11M14 12v3a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 4 15V7.5A1.5 1.5 0 0 1 5.5 6H8"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 20 20"><path d="M4 6h12M8 3.5h4l1 2.5M5.5 6l.7 10.2a1 1 0 0 0 1 .8h5.6a1 1 0 0 0 1-.8L14.5 6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 20 20"><path d="M16 7a6.5 6.5 0 1 0 .2 5M16 3v4h-4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 20 20"><circle cx="8.6" cy="8.6" r="5.4"/><path d="m12.6 12.6 4.2 4.2"/></symbol>
+  </defs></svg>
+
+  <main class="app">
+    <header class="bar">
+      <div class="title"><strong>BucketDrop</strong><span id="where" class="muted">Loading…</span></div>
+      <div class="search"><svg class="icon"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search" spellcheck="false"></div>
+      <button id="pick" class="btn primary" title="Choose files to upload"><svg class="icon"><use href="#i-up"/></svg>Upload</button>
+      <button id="paste" class="btn" title="Upload what's on the clipboard (file or image)"><svg class="icon"><use href="#i-clip"/></svg>Clipboard</button>
+      <button id="refresh" class="icon-btn" title="Refresh"><svg class="icon"><use href="#i-refresh"/></svg></button>
+    </header>
+
+    <div id="status" class="status" hidden></div>
+    <ul id="list" class="list"></ul>
+    <div id="empty" class="empty">Drop files here to upload</div>
+    <div id="drop" class="drop" hidden><svg class="icon"><use href="#i-up"/></svg>Drop to upload</div>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

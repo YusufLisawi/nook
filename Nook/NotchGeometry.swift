@@ -5,9 +5,14 @@ struct NotchGeometry {
     let screen: NSScreen
     let notch: CGRect
 
-    static func preferredScreen(named name: String?) -> NSScreen? {
-        if let name, !name.isEmpty, let match = NSScreen.screens.first(where: { $0.localizedName == name }) { return match }
-        return NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main
+    /// Screens that get a notch: "" = the notched screen, "*" = every screen, otherwise a screen name.
+    static func targetScreens(setting: String?) -> [NSScreen] {
+        let screens = NSScreen.screens
+        switch setting ?? "" {
+        case "*": return screens
+        case "": return [screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main ?? screens[0]]
+        case let name: return [screens.first(where: { $0.localizedName == name }) ?? screens[0]]
+        }
     }
 
     static func forScreen(_ screen: NSScreen) -> NotchGeometry {

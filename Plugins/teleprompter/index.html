@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Teleprompter</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="plugin.js" defer></script>
+</head>
+<body>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-script" viewBox="0 0 20 20"><path d="M4 4.5h12M4 8.2h12M4 11.9h8M4 15.6h10"/></symbol>
+    <symbol id="i-play" viewBox="0 0 20 20"><path d="m7 4 9 6-9 6Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 20 20"><path d="M7 5v10M13 5v10" stroke-width="3"/></symbol>
+    <symbol id="i-back" viewBox="0 0 20 20"><path d="m11.5 5-5 5 5 5"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 20 20"><path d="M5 10h10"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 20 20"><path d="M5 10h10M10 5v10"/></symbol>
+    <symbol id="i-mirror" viewBox="0 0 20 20"><path d="M10 3v14M6.5 5 3 15h3.5ZM13.5 5 17 15h-3.5Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-7.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6.3v4.5M10 13.5h.01"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 20 20"><rect x="3" y="6" width="14" height="10" rx="3"/><path d="m6.5 6 1-2h5l1 2"/><circle cx="10" cy="11" r="2.5"/></symbol>
+  </svg>
+
+  <main id="app" aria-label="Teleprompter">
+    <div id="error" class="error-banner" role="alert" hidden>
+      <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+      <span id="error-message"></span>
+      <button id="retry" type="button">Retry</button>
+    </div>
+
+    <section id="edit-view" class="edit-view" aria-label="Script editor">
+      <div class="editor-card card">
+        <header class="editor-header">
+          <h1><svg class="icon" aria-hidden="true"><use href="#i-script"/></svg>Your script</h1>
+          <span id="save-status" class="save-status" role="status">Loading…</span>
+          <button id="start" class="start-button" type="button" title="Start prompting (Space outside the editor)" disabled>
+            <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Start</span>
+          </button>
+        </header>
+        <textarea id="script" aria-label="Script" placeholder="What would you like to say?&#10;Paste a script, take a breath, and look at the camera." spellcheck="true" disabled></textarea>
+        <footer class="editor-footer">
+          <span id="script-summary">Your next great take starts here.</span>
+          <span class="shortcut-hint"><kbd>space</kbd> to begin</span>
+        </footer>
+      </div>
+
+      <div class="settings card" aria-label="Prompt settings">
+        <label class="slider-setting" for="speed">
+          <span class="setting-label">Pace <output id="speed-value" for="speed">140 <span>wpm</span></output></span>
+          <input id="speed" type="range" min="80" max="260" step="5" value="140" aria-label="Reading speed in words per minute" disabled>
+        </label>
+        <label class="slider-setting" for="font-size">
+          <span class="setting-label">Text size <output id="font-value" for="font-size">28 <span>px</span></output></span>
+          <input id="font-size" type="range" min="18" max="48" step="1" value="28" aria-label="Prompt font size in pixels" disabled>
+        </label>
+        <button id="mirror" class="mirror-button" type="button" aria-pressed="false" title="Mirror the prompt text for a teleprompter display" disabled>
+          <svg class="icon" aria-hidden="true"><use href="#i-mirror"/></svg>
+          <span>Mirror</span><span class="switch" aria-hidden="true"><span></span></span>
+        </button>
+      </div>
+    </section>
+
+    <section id="play-view" class="play-view" aria-label="Prompt playback" hidden>
+      <div id="stage" class="stage card">
+        <div class="stage-header">
+          <span class="camera-hint"><svg class="icon" aria-hidden="true"><use href="#i-camera"/></svg>Eyes up. You’ve got this.</span>
+          <span id="playback-status" class="playback-status" role="status"><span class="status-dot"></span><span id="playback-label">Prompting</span></span>
+        </div>
+        <div id="reading-window" class="reading-window">
+          <div id="prompt-motion" class="prompt-motion"><div id="prompt-text" class="prompt-text" aria-label="Your script"></div></div>
+        </div>
+        <div id="focus-line" class="focus-line" aria-hidden="true"><span></span></div>
+        <div id="progress" class="progress" role="progressbar" aria-label="Script progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
+      </div>
+      <div class="play-controls">
+        <button id="stop" class="subtle-button back-button" type="button" title="Back to edit (Esc)"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Edit <kbd>esc</kbd></button>
+        <span id="time-left" class="time-left">0:00 left</span>
+        <button id="play-pause" class="play-pause" type="button" title="Pause (Space)"><svg class="icon" aria-hidden="true"><use id="play-pause-icon" href="#i-pause"/></svg><span id="play-pause-label">Pause</span></button>
+        <div class="speed-stepper" aria-label="Playback speed">
+          <button id="slower" class="icon-button" type="button" aria-label="Decrease speed by 10 words per minute" title="Slower (↓)"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button>
+          <output id="play-speed" aria-live="polite">140 <span>wpm</span></output>
+          <button id="faster" class="icon-button" type="button" aria-label="Increase speed by 10 words per minute" title="Faster (↑)"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

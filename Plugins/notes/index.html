@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="icon-search" viewBox="0 0 20 20"><circle cx="8.6" cy="8.6" r="5.4"/><path d="m12.6 12.6 4.2 4.2"/></symbol>
+      <symbol id="icon-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></symbol>
+      <symbol id="icon-close" viewBox="0 0 20 20"><path d="m6 6 8 8M14 6l-8 8"/></symbol>
+      <symbol id="icon-pin" viewBox="0 0 20 20"><path d="m7 3 6 0-.7 5 2.6 3v1H5.1v-1l2.6-3L7 3ZM10 12v5"/></symbol>
+      <symbol id="icon-trash" viewBox="0 0 20 20"><path d="M4 6h12M8 3.5h4l1 2.5M5.5 6l.7 10.2a1 1 0 0 0 1 .8h5.6a1 1 0 0 0 1-.8L14.5 6M8.5 9v5M11.5 9v5"/></symbol>
+      <symbol id="icon-note" viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="3"/><path d="M5 8h14M8.5 12h7M8.5 15.5h5"/></symbol>
+      <symbol id="icon-check" viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-7.5"/></symbol>
+      <symbol id="icon-alert" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6.5v4M10 13.5h.01"/></symbol>
+    </defs>
+  </svg>
+
+  <main class="app" aria-label="Quick notes">
+    <div id="error-banner" class="error-banner" role="alert" hidden>
+      <svg class="icon" aria-hidden="true"><use href="#icon-alert"/></svg>
+      <span id="error-message"></span>
+      <button id="retry-button" type="button">Try again</button>
+    </div>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Your notes">
+        <div class="search-field">
+          <svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>
+          <input id="search" type="search" placeholder="Search notes" aria-label="Search notes" autocomplete="off" spellcheck="false" disabled>
+          <button id="clear-search" class="clear-search" type="button" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
+        </div>
+
+        <div class="list-wrap">
+          <ul id="note-list" class="note-list" aria-label="Notes"></ul>
+          <div id="list-empty" class="list-empty"><span id="list-empty-title">Loading notes…</span><span id="list-empty-hint">A moment for your thoughts.</span></div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button id="new-note" class="new-note" type="button" title="New note (⌘N)" disabled><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>New note</span></button>
+          <span id="note-count" class="note-count">⌘N</span>
+        </div>
+      </aside>
+
+      <section class="workspace" aria-label="Note editor">
+        <div id="editor-panel" class="editor-panel" hidden>
+          <div class="editor-toolbar">
+            <span id="edited-date" class="edited-date"></span>
+            <div class="editor-actions">
+              <button id="pin-note" class="icon-button" type="button" aria-label="Pin note" aria-pressed="false" title="Pin note"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg></button>
+              <button id="delete-note" class="icon-button" type="button" aria-label="Delete note" title="Delete note"><svg class="icon" aria-hidden="true"><use href="#icon-trash"/></svg></button>
+            </div>
+          </div>
+          <textarea id="editor" aria-label="Note text" placeholder="A new thought…" spellcheck="true" disabled></textarea>
+          <div class="editor-footer">
+            <div id="editor-details" class="editor-details"><span id="word-count">0 words</span><span id="save-state" class="save-state" role="status"><svg class="icon" aria-hidden="true"><use href="#icon-check"/></svg><span id="save-label">Saved</span></span></div>
+            <div id="delete-confirm" class="delete-confirm" hidden><span>Delete this note?</span><button id="cancel-delete" class="small-button" type="button">Cancel</button><button id="confirm-delete" class="small-button danger" type="button">Delete</button></div>
+          </div>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#icon-note"/></svg></div>
+          <h1 id="empty-title">A place for your thoughts</h1>
+          <p id="empty-description">Quick ideas. Little reminders. Always close.</p>
+          <button id="empty-new-note" class="empty-new-note" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>Create a note</span><kbd>⌘N</kbd></button>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="plugin.js"></script>
+</body>
+</html>

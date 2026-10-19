@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitor</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="icon-arrow-down" viewBox="0 0 16 16"><path d="M8 2v11m-4-4 4 4 4-4"/></symbol>
+    <symbol id="icon-arrow-up" viewBox="0 0 16 16"><path d="M8 14V3m-4 4 4-4 4 4"/></symbol>
+    <symbol id="icon-bolt" viewBox="0 0 16 16"><path d="m9 1-6 8h4l-1 6 7-9H9z"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="icon-thermal" viewBox="0 0 16 16"><path d="M6 9.5V4a2 2 0 0 1 4 0v5.5a3.5 3.5 0 1 1-4 0Z"/><path d="M8 6v6"/></symbol>
+    <symbol id="icon-warning" viewBox="0 0 16 16"><path d="m8 2 6 11H2Z"/><path d="M8 6v3m0 2v.1"/></symbol>
+  </defs></svg>
+  <main class="monitor" aria-label="System monitor">
+    <section class="metrics" aria-label="System usage">
+      <article class="metric" id="cpu-tile">
+        <div class="ring" id="cpu-ring" role="img" aria-label="CPU usage loading">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
+          <span class="ring-label" id="cpu-percent">—</span>
+        </div>
+        <div class="metric-copy"><h2>CPU</h2><strong id="cpu-value">—</strong><span id="cpu-detail">Reading usage</span></div>
+      </article>
+      <article class="metric">
+        <div class="ring" id="memory-ring" role="img" aria-label="Memory usage loading">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
+          <span class="ring-label" id="memory-percent">—</span>
+        </div>
+        <div class="metric-copy"><h2>Memory</h2><strong id="memory-value">—</strong><span id="memory-detail">GB used / total</span></div>
+      </article>
+      <article class="metric">
+        <div class="ring" id="disk-ring" role="img" aria-label="Disk usage loading">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
+          <span class="ring-label" id="disk-percent">—</span>
+        </div>
+        <div class="metric-copy"><h2>Disk</h2><strong id="disk-value">—</strong><span>GB free</span></div>
+      </article>
+      <article class="metric" id="battery-tile">
+        <div class="ring" id="battery-ring" role="img" aria-label="Battery level loading">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
+          <span class="ring-label" id="battery-percent">—</span>
+        </div>
+        <div class="metric-copy"><h2>Battery <svg id="charging-icon" class="icon bolt" hidden aria-label="Charging"><use href="#icon-bolt"/></svg></h2><strong id="battery-value">—</strong><span id="battery-detail">Power status</span></div>
+      </article>
+      <article class="metric" id="uptime-tile" hidden>
+        <div class="uptime-icon"><svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg></div>
+        <div class="metric-copy"><h2>Uptime</h2><strong id="uptime-value">—</strong><span>Since last restart</span></div>
+      </article>
+    </section>
+    <section class="details">
+      <article class="network card">
+        <div class="card-heading"><h2>Network</h2><span class="live" id="live-label"><i></i> Live</span></div>
+        <div class="traffic-row download"><svg class="icon" aria-hidden="true"><use href="#icon-arrow-down"/></svg><span class="traffic-label">Down</span><strong id="download-value">—</strong><canvas id="download-chart" role="img" aria-label="Download speed, last 40 samples"></canvas></div>
+        <div class="traffic-row upload"><svg class="icon" aria-hidden="true"><use href="#icon-arrow-up"/></svg><span class="traffic-label">Up</span><strong id="upload-value">—</strong><canvas id="upload-chart" role="img" aria-label="Upload speed, last 40 samples"></canvas></div>
+        <div class="system-meta" id="system-meta"><span class="load">Load <strong id="load-value">— · — · —</strong></span><span class="thermal" id="thermal-pill"><svg class="icon" aria-hidden="true"><use href="#icon-thermal"/></svg><span id="thermal-value">—</span></span></div>
+        <div class="inline-error" id="system-error" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span></span></div>
+      </article>
+      <article class="processes card">
+        <div class="process-heading"><h2>Top processes</h2><span>CPU</span><span>Memory</span></div>
+        <div class="process-list" id="process-list" aria-label="Five processes using the most CPU"></div>
+        <p class="process-notice" id="process-notice" role="status">Reading processes…</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

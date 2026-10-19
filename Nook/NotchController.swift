@@ -13,29 +13,41 @@ final class NotchController {
     private var ticks = 0
     private var hiddenForFullscreen = false
 
-    init() {
-        let screen = NotchGeometry.preferredScreen(named: UserDefaults.standard.string(forKey: Prefs.preferredScreen)) ?? NSScreen.screens[0]
+    private var screen: NSScreen
+    private var monitors: [Any] = []
+
+    init(screen: NSScreen) {
+        self.screen = screen
         viewModel = NotchViewModel(geometry: .forScreen(screen))
     }
 
     func start() {
         rebuild()
-        viewModel.startServices()
         viewModel.onClose = { [weak self] in self?.dropKeyFocus() }
-        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.rebuild()
-        }
-        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
-            guard let self, self.viewModel.isOpen, !self.viewModel.liveRect.contains(NSEvent.mouseLocation) else { return }
+        let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
+            guard let self, self.viewModel.isOpen, !self.viewModel.pinned, !self.viewModel.liveRect.contains(NSEvent.mouseLocation) else { return }
             self.viewModel.close()
         }
+        if let monitor { monitors.append(monitor) }
         let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }
 
+    func stop() {
+        timer?.invalidate()
+        monitors.forEach(NSEvent.removeMonitor)
+        viewModel.close()
+        panel?.orderOut(nil)
+        panel = nil
+    }
+
+    func update(screen: NSScreen) {
+        self.screen = screen
+        rebuild()
+    }
+
     func rebuild() {
-        guard let screen = NotchGeometry.preferredScreen(named: UserDefaults.standard.string(forKey: Prefs.preferredScreen)) else { return }
         let geometry = NotchGeometry.forScreen(screen)
         viewModel.geometry = geometry
         let size = Self.panelSize
@@ -69,8 +81,8 @@ final class NotchController {
         let inside = viewModel.liveRect.insetBy(dx: -2, dy: -6).contains(mouse)
         panel.ignoresMouseEvents = !inside
 
-        if inside, draggingIn, !viewModel.isOpen, Prefs.bool(Prefs.shelfAutoOpen), viewModel.isEnabled(.shelf) {
-            viewModel.open(tab: .shelf)
+        if inside, draggingIn, !viewModel.isOpen, Prefs.bool(Prefs.shelfAutoOpen), viewModel.isEnabled("shelf") {
+            viewModel.open(tab: "shelf")
         }
 
         // Keep "hovering" while a drag that started inside is still held (e.g. dragging a file out of the shelf).
@@ -115,3 +127,4 @@ final class NotchController {
         panel.orderFrontRegardless()
     }
 }
+

@@ -1,0 +1,8 @@
+{
+  "id": "monitor",
+  "name": "Monitor",
+  "symbol": "gauge.with.dots.needle.67percent",
+  "entry": "index.html",
+  "order": 50,
+  "height": 210
+}

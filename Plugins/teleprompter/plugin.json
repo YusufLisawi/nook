@@ -1,0 +1,8 @@
+{
+  "id": "teleprompter",
+  "name": "Teleprompter",
+  "symbol": "text.alignleft",
+  "entry": "index.html",
+  "order": 70,
+  "height": 230
+}

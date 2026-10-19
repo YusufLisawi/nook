@@ -22,10 +22,13 @@ struct NotchRootView: View {
             }
             .frame(width: size.width + flare * 2, height: size.height)
             .contentShape(Rectangle())
-            .onTapGesture { if !vm.isOpen { vm.open() } }
+            .onTapGesture {
+                guard !vm.isOpen else { return }
+                if case .dictation(.failed) = vm.activity { vm.open(tab: "dictation") } else { vm.open() }
+            }
             .onDrop(of: [.fileURL], isTargeted: $vm.isDropTargeted) { providers in
-                vm.shelf.add(providers)
-                vm.open(tab: .shelf)
+                vm.services.shelf.add(providers)
+                vm.open(tab: "shelf")
                 return true
             }
             Spacer(minLength: 0)
@@ -39,17 +42,25 @@ struct CollapsedView: View {
     @ObservedObject var vm: NotchViewModel
     @ObservedObject private var media: MediaController
     @ObservedObject private var timers: TimerService
+    @ObservedObject private var dictation: DictationService
 
     init(vm: NotchViewModel) {
         self.vm = vm
-        _media = ObservedObject(wrappedValue: vm.media)
-        _timers = ObservedObject(wrappedValue: vm.timers)
+        _media = ObservedObject(wrappedValue: vm.services.media)
+        _timers = ObservedObject(wrappedValue: vm.services.timers)
+        _dictation = ObservedObject(wrappedValue: vm.services.dictation)
     }
 
     var body: some View {
         let height = vm.geometry.notch.height
         HStack {
             switch vm.activity {
+            case let .dictation(phase):
+                dictationSides(phase, height: height)
+            case let .plugin(activity):
+                Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color))
+                Spacer()
+                Text(activity.text).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color)).lineLimit(1)
             case .music:
                 Artwork(image: media.artwork, size: height - 10)
                 Spacer()
@@ -65,6 +76,48 @@ struct CollapsedView: View {
         .padding(.horizontal, 10)
         .frame(height: height)
     }
+
+    @ViewBuilder
+    private func dictationSides(_ phase: DictationService.Phase, height: CGFloat) -> some View {
+        switch phase {
+        case .recording:
+            Circle().fill(Color.red).frame(width: 8, height: 8)
+                .shadow(color: .red.opacity(0.8), radius: 4)
+            Spacer()
+            LevelBars(level: dictation.level).frame(width: 22, height: height * 0.5)
+        case .transcribing:
+            Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            Spacer()
+            ProgressView().controlSize(.mini).tint(.white)
+        case .done:
+            Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            Spacer()
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+        case .failed:
+            Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            Spacer()
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
+        case .idle:
+            EmptyView()
+        }
+    }
+}
+
+/// Live mic bars: centre bars move most.
+struct LevelBars: View {
+    let level: Float
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<5, id: \.self) { i in
+                let weight: Float = [0.5, 0.8, 1, 0.8, 0.5][i]
+                Capsule().fill(Color.white)
+                    .frame(width: 2.5)
+                    .scaleEffect(y: CGFloat(max(0.15, level * weight)))
+            }
+        }
+        .animation(.easeOut(duration: 0.08), value: level)
+    }
 }
 
 struct ExpandedView: View {
@@ -72,54 +125,86 @@ struct ExpandedView: View {
 
     var body: some View {
         let notch = vm.geometry.notch
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             HStack(spacing: 0) {
-                TabDock(vm: vm).frame(maxWidth: .infinity, alignment: .leading)
+                Text(vm.currentTab?.name ?? "")
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 6)
                 Color.clear.frame(width: notch.width)
-                HStack {
+                HStack(spacing: 2) {
                     Spacer()
+                    IconButton(vm.pinned ? "pin.fill" : "pin", size: 12) { vm.pinned.toggle() }
+                        .foregroundStyle(vm.pinned ? Color.orange : Color.white)
+                        .help(vm.pinned ? "Unpin — close when the mouse leaves" : "Pin — keep the notch open")
                     IconButton("gearshape.fill") { (NSApp.delegate as? AppDelegate)?.openSettings() }
                 }
                 .frame(maxWidth: .infinity)
             }
             .frame(height: notch.height)
 
-            Group {
-                switch vm.tab {
-                case .home: HomeTab(media: vm.media, calendar: vm.calendar)
-                case .shelf: ShelfTab(shelf: vm.shelf, isTargeted: vm.isDropTargeted)
-                case .scratch: ScratchTab()
-                case .timers: TimersTab(timers: vm.timers)
-                case .calendar: CalendarTab(calendar: vm.calendar)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            content
+                .frame(maxWidth: .infinity)
+                .frame(height: vm.contentHeight, alignment: .topLeading)
+
+            TabDock(vm: vm).frame(height: NotchViewModel.dockHeight)
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, 14)
+        .padding(.bottom, 10)
         .foregroundStyle(.white)
+    }
+
+    @ViewBuilder private var content: some View {
+        let s = vm.services
+        if let tab = vm.currentTab, let webView = vm.web.view(for: tab) {
+            WebPluginView(webView: webView).id(tab.id)
+        } else {
+            switch vm.tab {
+            case "home": HomeTab(media: s.media, calendar: s.calendar)
+            case "shelf": ShelfTab(shelf: s.shelf, isTargeted: vm.isDropTargeted)
+            case "scratch": ScratchTab()
+            case "timers": TimersTab(timers: s.timers)
+            case "calendar": CalendarTab(calendar: s.calendar)
+            default: EmptyState(symbol: "puzzlepiece.extension", title: "Missing plugin", detail: vm.tab)
+            }
+        }
     }
 }
 
+/// Tab icons along the bottom of the open notch.
 struct TabDock: View {
     @ObservedObject var vm: NotchViewModel
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(vm.enabledTabs) { tab in
+                let selected = vm.tab == tab.id
                 Button {
-                    withAnimation(.snappy(duration: 0.2)) { vm.tab = tab }
+                    withAnimation(.snappy(duration: 0.2)) { vm.tab = tab.id }
                 } label: {
-                    Image(systemName: tab.icon)
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 30, height: 24)
-                        .background(Capsule().fill(Color.white.opacity(vm.tab == tab ? 0.16 : 0)))
-                        .foregroundStyle(vm.tab == tab ? .white : .secondary)
+                    Image(systemName: tab.symbol)
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 34, height: 26)
+                        .background(Capsule().fill(Color.white.opacity(selected ? 0.16 : 0)))
+                        .foregroundStyle(selected ? .white : .secondary)
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help(tab.title)
+                .help(TabHotkeys.get(tab.id).map { "\(tab.name)  \($0.display)" } ?? tab.name)
             }
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(Color.white.opacity(0.05)))
+    }
+}
+
+extension Color {
+    /// "#rrggbb" or a few CSS names; falls back to white.
+    init(css: String) {
+        let named: [String: Color] = ["orange": .orange, "red": .red, "green": .green, "blue": .blue, "yellow": .yellow, "purple": .purple, "pink": .pink, "white": .white]
+        if let color = named[css.lowercased()] { self = color; return }
+        let hex = css.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard hex.count == 6, let value = UInt32(hex, radix: 16) else { self = .white; return }
+        self = Color(red: Double((value >> 16) & 0xFF) / 255, green: Double((value >> 8) & 0xFF) / 255, blue: Double(value & 0xFF) / 255)
     }
 }

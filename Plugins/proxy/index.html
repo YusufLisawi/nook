@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proxy</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="icon-globe" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><ellipse cx="10" cy="10" rx="3.5" ry="7.5"/><path d="M2.5 10h15"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 20 20"><path d="m5 10 3.5 3.5L15 7"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 20 20"><path d="M16 7a6.5 6.5 0 1 0 .2 5M16 3v4h-4"/></symbol>
+    <symbol id="icon-lock" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="8" rx="2"/><path d="M7 9V6a3 3 0 0 1 6 0v3m-3 3v2"/></symbol>
+    <symbol id="icon-trash" viewBox="0 0 20 20"><path d="M3.5 5.5h13M7 5V3.5h6V5M5 6l.8 10.5h8.4L15 6M8 9v4.5m4-4.5v4.5"/></symbol>
+    <symbol id="icon-edit" viewBox="0 0 20 20"><path d="m12.5 4 3.5 3.5M4 16l1-4L13.5 3.5a1.4 1.4 0 0 1 2 0l1 1a1.4 1.4 0 0 1 0 2L8 15z"/></symbol>
+    <symbol id="icon-chevron" viewBox="0 0 20 20"><path d="m7 5 5 5-5 5"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 20 20"><path d="m6 6 8 8M14 6l-8 8"/></symbol>
+    <symbol id="icon-warning" viewBox="0 0 20 20"><path d="m10 3 8 14H2Z"/><path d="M10 8v4m0 2.5v.1"/></symbol>
+  </defs></svg>
+  <main class="proxy-panel" aria-label="System proxy switcher">
+    <header class="header">
+      <div class="connection-copy">
+        <div class="connection-heading"><h1>Connection</h1><span class="status-pill" id="status-pill"><span class="status-dot"></span><span id="connection-name">Loading…</span></span></div>
+        <div class="ip-line" id="ip-line" role="status"><span id="ip-flag" aria-hidden="true"></span><strong id="ip-address">Checking public IP…</strong><span id="ip-location"></span></div>
+      </div>
+      <div class="header-actions"><button class="button disconnect" id="disconnect" hidden>Disconnect</button><button class="icon-button" id="refresh" aria-label="Refresh connection and public IP" title="Refresh connection and public IP"><svg class="icon" aria-hidden="true"><use href="#icon-refresh"/></svg></button></div>
+    </header>
+    <div class="message" id="message" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span id="message-text"></span><button class="icon-button" id="dismiss-message" aria-label="Dismiss message"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+    <section class="proxy-list" id="proxy-list" aria-label="Saved proxies"><div class="empty-state"><span class="spinner" aria-hidden="true"></span><span>Loading saved proxies…</span></div></section>
+    <section class="add-panel">
+      <div class="add-heading"><button class="add-toggle" id="add-toggle" aria-expanded="false" aria-controls="add-form"><svg class="icon chevron" aria-hidden="true"><use href="#icon-chevron"/></svg>Add proxies</button><span id="add-result" role="status"></span></div>
+      <form id="add-form" hidden>
+        <textarea id="proxy-input" rows="2" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Proxy addresses" placeholder="host:port or scheme://user:pass@host:port&#10;Paste multiple proxies, one per line"></textarea>
+        <button class="button add-button" id="add-button" type="submit"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>Add</span></button>
+      </form>
+    </section>
+    <footer>Applies to apps that use the macOS system proxy.</footer>
+  </main>
+</body>
+</html>

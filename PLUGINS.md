@@ -1,0 +1,74 @@
+# Nook plugins
+
+A plugin is a folder. Nook loads it at runtime — no app rebuild.
+
+```
+~/Library/Application Support/Nook/Plugins/<id>/     ← yours (overrides a bundled plugin with the same id)
+Nook.app/Contents/Resources/Plugins/<id>/            ← bundled
+  plugin.json
+  index.html        (plus any .js / .css / images next to it)
+```
+
+Edit a file and Nook reloads the plugin within a second (folder is watched).
+
+## plugin.json
+
+```json
+{
+  "id": "notes",              // unique, folder name
+  "name": "Notes",
+  "symbol": "note.text",      // SF Symbol for the tab dock
+  "icon": "icon.png",         // optional, shown in Settings
+  "entry": "index.html",
+  "order": 40,                // dock position (lower = left)
+  "height": 210               // content height in points when this tab is open (default 210, max 420)
+}
+```
+
+## Runtime
+
+- Rendered in a transparent WKWebView inside the open notch. Content area ≈ **650 × height** points.
+- `body` background must stay transparent; the notch behind is black.
+- Injected CSS variables: `--fg #fff`, `--muted rgba(255,255,255,.55)`, `--card rgba(255,255,255,.06)`, `--card-hover rgba(255,255,255,.1)`,
+  `--border rgba(255,255,255,.08)`, `--accent #ff9f0a`, `--good #30d158`, `--bad #ff453a`, `--radius 14px`. Font: `-apple-system`.
+- No network CDNs; keep everything inline or in the folder. Use `nook.fetch` for HTTP (no CORS).
+- Style: dark, compact, Apple-like. 11–13px text. Cards = `--card` background + `--radius`. No coloured edge stripes on cards.
+- The webview stays alive while the app runs, so timers keep going between tab switches.
+
+## Bridge — `window.nook` (all calls return Promises)
+
+```js
+nook.plugin                                   // { id, name }
+nook.storage.get(key) / set(key, value) / all()   // per-plugin JSON storage, survives restarts
+nook.shell(command, { timeout })              // zsh -lc → { code, stdout, stderr }
+nook.fetch(url, { method, headers, body })    // → { status, headers, body }  (body = text)
+nook.system()                                 // → {
+                                              //   cpu: { usage 0..1, cores },
+                                              //   memory: { used, total }  (bytes),
+                                              //   disk: { used, total, free } (bytes),
+                                              //   network: { downBps, upBps },
+                                              //   battery: { percent, charging, onAC, minutesLeft|null } | null,
+                                              //   load: [1m, 5m, 15m], uptime (s), thermal: "nominal"|"fair"|"serious"|"critical" }
+nook.clipboard.write(text) / read()
+nook.open(url)                                // URL or file path
+nook.notify(title, body)
+nook.activity.set({ text, symbol, color })    // shows on the closed notch (color = css colour)
+nook.activity.clear()
+nook.notch.close()
+nook.notch.pin(true|false)                    // keep the notch open when the mouse leaves
+nook.notch.setHeight(px)                      // resize this tab's content area live
+nook.on(event, cb)                            // 'open' | 'close' | 'show' (tab shown) | 'proxy' | 'dictation'
+
+nook.proxy.list()        // → { proxies: [{ id, name, scheme, host, port, hasAuth }], activeId|null }
+nook.proxy.add(text)     // bulk: newlines/spaces/commas; host:port, host:port:user:pass, user:pass@host:port, scheme://…  → { added, bad }
+nook.proxy.remove(id) / rename(id, name)
+nook.proxy.connect(id) / disconnect()       // whole machine (system proxy via a local forwarder)
+nook.proxy.ip()          // → { ip, city, country, countryCode, flag }   current public IP, through the proxy if on
+
+nook.dictation.history() // → [{ id, date (ISO), status: 'done'|'failed'|'transcribing', text, raw, error, duration (s) }] newest first
+nook.dictation.retry(id) / remove(id) / copy(id) / paste(id) / clear()
+nook.dictation.state()   // → { recording, transcribing, holdShortcut: "⌃⌥", toggleShortcut: "⌥Space", hasKey }
+nook.dictation.toggle()  // start/stop recording
+```
+
+Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`.

@@ -142,12 +142,15 @@ struct ExpandedView: View {
             }
             .frame(height: notch.height)
 
-            content
-                .id(vm.tab)
-                .transition(.push(from: vm.slideEdge))
-                .frame(maxWidth: .infinity)
-                .frame(height: vm.contentHeight, alignment: .topLeading)
-                .clipped()
+            // The clip lives on this fixed container, so sliding tabs never spill past the content area.
+            ZStack {
+                content
+                    .id(vm.tab)
+                    .transition(.push(from: vm.slideEdge))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: vm.contentHeight, alignment: .topLeading)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             TabDock(vm: vm).frame(height: NotchViewModel.dockHeight)
         }

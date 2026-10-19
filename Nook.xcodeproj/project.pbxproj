@@ -537,6 +537,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook.cli;
 				PRODUCT_NAME = "nook-cli";
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -555,6 +556,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook.cli;
 				PRODUCT_NAME = "nook-cli";
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};

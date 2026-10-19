@@ -68,6 +68,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: nook-cli
+        SKIP_INSTALL: YES # embedded in Nook.app; must not become its own archive product
         PRODUCT_BUNDLE_IDENTIFIER: com.yusuf.nook.cli
         CODE_SIGN_IDENTITY: "Nook Local Signing"
         CODE_SIGN_STYLE: Manual

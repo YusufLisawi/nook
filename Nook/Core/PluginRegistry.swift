@@ -31,6 +31,8 @@ final class PluginRegistry: ObservableObject {
     ]
 
     @Published private(set) var tabs: [TabItem] = nativeTabs
+    /// User's drag-and-drop dock order (tab ids). Empty = manifest `order`.
+    @Published private(set) var customOrder: [String] = UserDefaults.standard.stringArray(forKey: "tabOrder") ?? []
     /// Bumps whenever a plugin file changes, so web views reload.
     @Published private(set) var revision = 0
 
@@ -69,6 +71,27 @@ final class PluginRegistry: ObservableObject {
         }
         let native = Self.nativeTabs.filter { byID[$0.id] == nil }
         tabs = (native + byID.values).sorted { ($0.order, $0.id) < ($1.order, $1.id) }
+    }
+
+    /// Tabs in dock order: the user's order first, then any new plugins by manifest order.
+    var orderedTabs: [TabItem] {
+        guard !customOrder.isEmpty else { return tabs }
+        let known = customOrder.compactMap { id in tabs.first { $0.id == id } }
+        return known + tabs.filter { !customOrder.contains($0.id) }
+    }
+
+    func move(_ id: String, to target: String) {
+        var ids = orderedTabs.map(\.id)
+        guard id != target, let from = ids.firstIndex(of: id), let to = ids.firstIndex(of: target) else { return }
+        ids.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        setOrder(ids)
+    }
+
+    func resetOrder() { setOrder([]) }
+
+    private func setOrder(_ ids: [String]) {
+        customOrder = ids
+        UserDefaults.standard.set(ids, forKey: "tabOrder")
     }
 
     /// Force web plugins to reload (e.g. `nook reload`).

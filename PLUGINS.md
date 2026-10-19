@@ -20,7 +20,7 @@ Edit a file and Nook reloads the plugin within a second (folder is watched).
   "symbol": "note.text",      // SF Symbol for the tab dock
   "icon": "icon.png",         // optional, shown in Settings
   "entry": "index.html",
-  "order": 40,                // dock position (lower = left)
+  "order": 40,                // default dock position (lower = left); users can drag icons to reorder
   "height": 210               // content height in points when this tab is open (default 210, min 80, max 400)
 }
 ```

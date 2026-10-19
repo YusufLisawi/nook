@@ -48,7 +48,7 @@ struct SettingsView: View {
                 Toggle("Show a running timer", isOn: $showTimer)
             }
             Section {
-                ForEach(plugins.tabs) { tab in
+                ForEach(plugins.orderedTabs) { tab in
                     Toggle(isOn: enabled(tab.id)) {
                         HStack(spacing: 8) {
                             if let icon = tab.icon, let image = NSImage(contentsOf: icon) {
@@ -66,11 +66,12 @@ struct SettingsView: View {
                 HStack {
                     Button("Open Plugins Folder") { NSWorkspace.shared.open(PluginRegistry.userDir) }
                     Button("Reload") { plugins.reload() }
+                    if !plugins.customOrder.isEmpty { Button("Reset order") { plugins.resetOrder() } }
                 }
             } header: {
                 Text("Tabs & plugins")
             } footer: {
-                Text("Shortcuts open that tab from anywhere (press again to close). Drop a plugin folder into the Plugins folder; it shows up right away, with no rebuild.").font(.caption)
+                Text("Drag tab icons in the notch to reorder them. Shortcuts open that tab from anywhere (press again to close). Drop a plugin folder into the Plugins folder; it shows up right away, with no rebuild.").font(.caption)
             }
             Section("Dictation") {
                 SecureField("Groq API key", text: $groqKey)

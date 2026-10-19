@@ -52,6 +52,7 @@ final class NotchViewModel: ObservableObject {
             .sink { [weak self] activity in withAnimation(Self.spring) { self?.activity = activity } }
             .store(in: &bag)
         s.plugins.$tabs.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        s.plugins.$customOrder.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         s.timers.onFinish = { [weak self] in self?.open(tab: "timers") }
     }
 
@@ -59,7 +60,7 @@ final class NotchViewModel: ObservableObject {
 
     var enabledTabs: [TabItem] {
         let off = Prefs.disabledTabSet
-        return services.plugins.tabs.filter { !off.contains($0.id) }
+        return services.plugins.orderedTabs.filter { !off.contains($0.id) }
     }
 
     var currentTab: TabItem? { enabledTabs.first { $0.id == tab } }

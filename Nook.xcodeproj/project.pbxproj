@@ -1,0 +1,383 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1830C87670856F04FDE26E8B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A708EC61760010B0EA91A3 /* main.swift */; };
+		318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E3F23227270422F28E8EA8 /* SettingsView.swift */; };
+		36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56729F3514AAE0833BA5B921 /* AppDelegate.swift */; };
+		417B30DC9B913FA1DA788859 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FB94566365EE9D32B99E1 /* NotchPanel.swift */; };
+		799A4A3D71F1ECF5BBA417A0 /* Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DB59F92E353F6D2904A53A /* Tabs.swift */; };
+		818E0AA52033914C11B7FE1F /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = AF4BC706384F08798C56F055 /* AppIcon.icns */; };
+		8734562697D96E684C1632B1 /* NotchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1B5102CED61010014BD53B /* NotchViewModel.swift */; };
+		889613576CA3F120014ECCA6 /* MediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A8305528A9B604368F8C25 /* MediaController.swift */; };
+		92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DADCCDD358E9EA34C28C74 /* Prefs.swift */; };
+		9693847AED3AC165044B60F9 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D42A5D5FCF4370A368C56D5 /* Components.swift */; };
+		B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */; };
+		BB148C8EA0E18FBD2336D7C0 /* FileShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = C56F150318FB5BF1029A8DF1 /* FileShelf.swift */; };
+		BB786E698B2BB609FA914BED /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5F69FD803186572DBBE5C69 /* NotchRootView.swift */; };
+		C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */; };
+		C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867998E9B233A6020709500D /* NotchController.swift */; };
+		D151E68959A619D9824D9012 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E25FE7833ADE7338D7590F /* CalendarService.swift */; };
+		D3E46316EDC9B513E855F37E /* TimerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31AA95267FAFBFBDB850E8C /* TimerService.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		022144C0BA47F49B651F7CB0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		18DADCCDD358E9EA34C28C74 /* Prefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prefs.swift; sourceTree = "<group>"; };
+		1D42A5D5FCF4370A368C56D5 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		45E25FE7833ADE7338D7590F /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
+		56729F3514AAE0833BA5B921 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		66A8305528A9B604368F8C25 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
+		6AF31C476DBDFF1170647A72 /* Nook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nook.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
+		867998E9B233A6020709500D /* NotchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchController.swift; sourceTree = "<group>"; };
+		88DB59F92E353F6D2904A53A /* Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tabs.swift; sourceTree = "<group>"; };
+		9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
+		A5F69FD803186572DBBE5C69 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
+		AF4BC706384F08798C56F055 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		B0E3F23227270422F28E8EA8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C31AA95267FAFBFBDB850E8C /* TimerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerService.swift; sourceTree = "<group>"; };
+		C56F150318FB5BF1029A8DF1 /* FileShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelf.swift; sourceTree = "<group>"; };
+		DA1B5102CED61010014BD53B /* NotchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchViewModel.swift; sourceTree = "<group>"; };
+		F8A708EC61760010B0EA91A3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0BB6FA2B1EAFA56051E5EB3F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				45E25FE7833ADE7338D7590F /* CalendarService.swift */,
+				C56F150318FB5BF1029A8DF1 /* FileShelf.swift */,
+				66A8305528A9B604368F8C25 /* MediaController.swift */,
+				C31AA95267FAFBFBDB850E8C /* TimerService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		2EB4817CF8337A5C7465A44A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				1D42A5D5FCF4370A368C56D5 /* Components.swift */,
+				A5F69FD803186572DBBE5C69 /* NotchRootView.swift */,
+				B0E3F23227270422F28E8EA8 /* SettingsView.swift */,
+				88DB59F92E353F6D2904A53A /* Tabs.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		726FFD2802A28B7087BEA2D4 /* Nook */ = {
+			isa = PBXGroup;
+			children = (
+				56729F3514AAE0833BA5B921 /* AppDelegate.swift */,
+				AF4BC706384F08798C56F055 /* AppIcon.icns */,
+				022144C0BA47F49B651F7CB0 /* Info.plist */,
+				F8A708EC61760010B0EA91A3 /* main.swift */,
+				867998E9B233A6020709500D /* NotchController.swift */,
+				6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */,
+				562FB94566365EE9D32B99E1 /* NotchPanel.swift */,
+				9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */,
+				DA1B5102CED61010014BD53B /* NotchViewModel.swift */,
+				18DADCCDD358E9EA34C28C74 /* Prefs.swift */,
+				0BB6FA2B1EAFA56051E5EB3F /* Services */,
+				2EB4817CF8337A5C7465A44A /* Views */,
+			);
+			path = Nook;
+			sourceTree = "<group>";
+		};
+		CC3EFE3504B73EAEEDED18F5 = {
+			isa = PBXGroup;
+			children = (
+				726FFD2802A28B7087BEA2D4 /* Nook */,
+				EF799ADDBCF3DE03D240F860 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EF799ADDBCF3DE03D240F860 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6AF31C476DBDFF1170647A72 /* Nook.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8E7BD5965AE4DD3F52BB8C83 /* Nook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0EF7E3D1B814047D80676E12 /* Build configuration list for PBXNativeTarget "Nook" */;
+			buildPhases = (
+				1BE143C92FA501D5DCD601C2 /* Sources */,
+				95CFB352818574A5B3887ED3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Nook;
+			packageProductDependencies = (
+			);
+			productName = Nook;
+			productReference = 6AF31C476DBDFF1170647A72 /* Nook.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7138A22EF1642B27AC8B891C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					8E7BD5965AE4DD3F52BB8C83 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = DAAFB02242CC68B8589BBFFD /* Build configuration list for PBXProject "Nook" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CC3EFE3504B73EAEEDED18F5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8E7BD5965AE4DD3F52BB8C83 /* Nook */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		95CFB352818574A5B3887ED3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				818E0AA52033914C11B7FE1F /* AppIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1BE143C92FA501D5DCD601C2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
+				D151E68959A619D9824D9012 /* CalendarService.swift in Sources */,
+				9693847AED3AC165044B60F9 /* Components.swift in Sources */,
+				BB148C8EA0E18FBD2336D7C0 /* FileShelf.swift in Sources */,
+				889613576CA3F120014ECCA6 /* MediaController.swift in Sources */,
+				C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */,
+				B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */,
+				417B30DC9B913FA1DA788859 /* NotchPanel.swift in Sources */,
+				BB786E698B2BB609FA914BED /* NotchRootView.swift in Sources */,
+				C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */,
+				8734562697D96E684C1632B1 /* NotchViewModel.swift in Sources */,
+				92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */,
+				318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */,
+				799A4A3D71F1ECF5BBA417A0 /* Tabs.swift in Sources */,
+				D3E46316EDC9B513E855F37E /* TimerService.swift in Sources */,
+				1830C87670856F04FDE26E8B /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3313EE12AC021C4D9AE9FA9D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		7A6C850226CBA973FA870E59 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AC45F5D2BA9AECD737E19F87 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = Nook/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		D80B35B219F56E4A95665AC5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = Nook/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0EF7E3D1B814047D80676E12 /* Build configuration list for PBXNativeTarget "Nook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D80B35B219F56E4A95665AC5 /* Debug */,
+				AC45F5D2BA9AECD737E19F87 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DAAFB02242CC68B8589BBFFD /* Build configuration list for PBXProject "Nook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A6C850226CBA973FA870E59 /* Debug */,
+				3313EE12AC021C4D9AE9FA9D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7138A22EF1642B27AC8B891C /* Project object */;
+}

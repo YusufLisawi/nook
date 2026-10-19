@@ -53,7 +53,7 @@ gh release create "v$VERSION" dist/Nook.dmg --repo YusufLisawi/nook --title "Noo
 git add site/appcast.xml && git commit -qm "Appcast: Nook $VERSION" && git push -q origin main
 coolify deploy uuid c0eavfha70p6pxmafnrj6atc >/dev/null 2>&1 || echo "! redeploy the site in Coolify (nook-landing)"
 # Coolify swaps containers on redeploy; wait until the live feed serves this version before calling it done.
-for i in {1..30}; do
+for i in {1..60}; do
   curl -fs https://nook.motkan.com/appcast.xml | grep -q "<sparkle:shortVersionString>$VERSION<" && break
   sleep 5
 done

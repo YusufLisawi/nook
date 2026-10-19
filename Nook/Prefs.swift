@@ -15,7 +15,7 @@ enum Prefs {
         UserDefaults.standard.register(defaults: [
             openOnHover: true, haptics: true, hideInFullscreen: true,
             showMusic: true, showTimer: true, shelfAutoOpen: true,
-            preferredScreen: "", disabledTabs: "",
+            preferredScreen: "*", disabledTabs: "", // every screen by default
         ])
     }
 

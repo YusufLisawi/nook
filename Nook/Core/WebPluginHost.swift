@@ -96,10 +96,20 @@ final class WebPluginHost: NSObject {
         case "notch.setHeight":
             if let h = arg(0) as? Double { withAnimation(NotchViewModel.spring) { vm?.heightOverrides[pluginID] = CGFloat(h) } }
             ok()
+        case "timer.start":
+            s.timers.set(minutes: max(1, arg(0) as? Int ?? 25))
+            s.timers.start()
+            reply(timerState(s.timers), nil)
+        case "timer.stop": s.timers.reset(); reply(timerState(s.timers), nil)
+        case "timer.state": reply(timerState(s.timers), nil)
         case let f where f.hasPrefix("proxy."): s.proxy.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default: reply(nil, "Unknown nook call: \(fn)")
         }
+    }
+
+    private func timerState(_ t: TimerService) -> [String: Any] {
+        ["running": t.isRunning, "mode": t.mode == .countdown ? "timer" : "stopwatch", "remaining": t.value, "text": t.displayText]
     }
 
     private static func bridgeJS(pluginInfo: String) -> String {
@@ -119,6 +129,7 @@ final class WebPluginHost: NSObject {
             activity: { set: a => call('activity.set', a || {}), clear: () => call('activity.clear') },
             notch: { close: () => call('notch.close'), pin: p => call('notch.pin', !!p), setHeight: h => call('notch.setHeight', Number(h)) },
             proxy: Object.fromEntries(['list','add','remove','rename','connect','disconnect','ip'].map(n => [n, (...a) => call('proxy.' + n, ...a)])),
+            timer: { start: m => call('timer.start', Number(m)), stop: () => call('timer.stop'), state: () => call('timer.state') },
             dictation: Object.fromEntries(['history','retry','remove','copy','paste','clear','state','toggle'].map(n => [n, (...a) => call('dictation.' + n, ...a)])),
             on: (e, cb) => { (listeners[e] = listeners[e] || []).push(cb); },
             _emit: (e, d) => (listeners[e] || []).forEach(cb => { try { cb(d); } catch (err) { console.error(err); } }),

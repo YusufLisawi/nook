@@ -34,7 +34,7 @@ struct SettingsView: View {
             }
             Section("Display") {
                 Picker("Show the notch on", selection: $screenSetting) {
-                    Text("The notched screen").tag("")
+                    Text("The notched screen only").tag("")
                     Text("All screens").tag("*")
                     Divider()
                     ForEach(NSScreen.screens, id: \.localizedName) { Text($0.localizedName).tag($0.localizedName) }

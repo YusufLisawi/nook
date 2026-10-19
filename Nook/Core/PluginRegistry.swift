@@ -24,7 +24,7 @@ final class PluginRegistry: ObservableObject {
     static var bundledDir: URL? { Bundle.main.resourceURL?.appendingPathComponent("Plugins", isDirectory: true) }
 
     static let nativeTabs: [TabItem] = [
-        TabItem(id: "home", name: "Home", symbol: "house.fill", order: 10, height: defaultHeight, kind: .native, icon: nil),
+        TabItem(id: "media", name: "Now Playing", symbol: "music.note", order: 20, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "shelf", name: "Shelf", symbol: "tray.full.fill", order: 30, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "scratch", name: "Scratch", symbol: "square.and.pencil", order: 35, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "timers", name: "Timers", symbol: "timer", order: 80, height: defaultHeight, kind: .native, icon: nil),

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var controllers: [NotchController] = []
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
@@ -44,11 +44,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = NSImage(systemSymbolName: "rectangle.topthird.inset.filled", accessibilityDescription: "Nook")
         let menu = NSMenu()
+        menu.delegate = self
         menu.addItem(withTitle: "Open Nook", action: #selector(openNotch), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Nook", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
+    }
+
+    /// Shortcuts + dictation need Accessibility; show a fix-it item when it's off.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        let tag = 42
+        menu.item(withTag: tag).map(menu.removeItem)
+        guard !AXIsProcessTrusted() else { return }
+        let item = NSMenuItem(title: "⚠︎ Allow Accessibility for shortcuts…", action: #selector(openAccessibility), keyEquivalent: "")
+        item.target = self
+        item.tag = tag
+        menu.insertItem(item, at: 0)
+    }
+
+    @objc private func openAccessibility() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
     @objc private func openNotch() { notchUnderMouse()?.viewModel.open() }

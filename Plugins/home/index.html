@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Home</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-check" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 20 20"><path d="m6 6 8 8M14 6l-8 8"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 20 20"><circle cx="10" cy="11" r="6"/><path d="M10 8v3l2 1.5M8 2.5h4"/></symbol>
+  </defs></svg>
+
+  <main class="app">
+    <section class="todos">
+      <form id="add" class="add" autocomplete="off">
+        <svg class="icon"><use href="#i-plus"/></svg>
+        <input id="new" placeholder="Add a to-do" spellcheck="true">
+      </form>
+      <ul id="list" class="list"></ul>
+      <div id="empty" class="empty">Nothing to do. Enjoy it.</div>
+      <footer class="foot"><span id="count"></span><button id="clear" type="button" hidden>Clear done</button></footer>
+    </section>
+
+    <aside class="side">
+      <div class="stats">
+        <div class="stat"><span>CPU</span><div class="bar"><i id="cpu-bar"></i></div><b id="cpu">–</b></div>
+        <div class="stat"><span>Memory</span><div class="bar"><i id="mem-bar"></i></div><b id="mem">–</b></div>
+        <div class="stat"><span>Disk</span><div class="bar"><i id="disk-bar"></i></div><b id="disk">–</b></div>
+      </div>
+      <div class="timer">
+        <div class="timer-head"><svg class="icon"><use href="#i-timer"/></svg><span id="timer-text">Focus timer</span>
+          <button id="timer-stop" class="stop" type="button" title="Stop timer" hidden><svg class="icon"><use href="#i-x"/></svg></button></div>
+        <div class="chips">
+          <button type="button" data-min="15">15m</button>
+          <button type="button" data-min="30">30m</button>
+          <button type="button" data-min="60">1h</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

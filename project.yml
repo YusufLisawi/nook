@@ -34,7 +34,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yusuf.nook
-        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_IDENTITY: "Nook Local Signing"
+        OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: ""
         ENABLE_HARDENED_RUNTIME: NO

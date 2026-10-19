@@ -159,7 +159,7 @@ struct ExpandedView: View {
             WebPluginView(webView: webView).id(tab.id)
         } else {
             switch vm.tab {
-            case "home": HomeTab(media: s.media, calendar: s.calendar)
+            case "media": HomeTab(media: s.media, calendar: s.calendar)
             case "shelf": ShelfTab(shelf: s.shelf, isTargeted: vm.isDropTargeted)
             case "scratch": ScratchTab()
             case "timers": TimersTab(timers: s.timers)

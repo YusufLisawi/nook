@@ -19,6 +19,7 @@
 		70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */; };
 		799A4A3D71F1ECF5BBA417A0 /* Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DB59F92E353F6D2904A53A /* Tabs.swift */; };
 		818E0AA52033914C11B7FE1F /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = AF4BC706384F08798C56F055 /* AppIcon.icns */; };
+		864E1DCD0564607BE5F16D0C /* DictationShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02492F02F9E93673FFF9F475 /* DictationShortcut.swift */; };
 		8734562697D96E684C1632B1 /* NotchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1B5102CED61010014BD53B /* NotchViewModel.swift */; };
 		889613576CA3F120014ECCA6 /* MediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A8305528A9B604368F8C25 /* MediaController.swift */; };
 		92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DADCCDD358E9EA34C28C74 /* Prefs.swift */; };
@@ -37,6 +38,7 @@
 
 /* Begin PBXFileReference section */
 		022144C0BA47F49B651F7CB0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		02492F02F9E93673FFF9F475 /* DictationShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationShortcut.swift; sourceTree = "<group>"; };
 		03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyMonitor.swift; sourceTree = "<group>"; };
 		0ED7F0CE539625E9216FFC57 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		18DADCCDD358E9EA34C28C74 /* Prefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prefs.swift; sourceTree = "<group>"; };
@@ -84,6 +86,7 @@
 			isa = PBXGroup;
 			children = (
 				D1B9712B528BBE65144FFBCE /* DictationService.swift */,
+				02492F02F9E93673FFF9F475 /* DictationShortcut.swift */,
 				FFD88336361791E70385D715 /* Groq.swift */,
 				03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */,
 			);
@@ -224,6 +227,7 @@
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
 				9693847AED3AC165044B60F9 /* Components.swift in Sources */,
 				E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */,
+				864E1DCD0564607BE5F16D0C /* DictationShortcut.swift in Sources */,
 				BB148C8EA0E18FBD2336D7C0 /* FileShelf.swift in Sources */,
 				31C2915681CE1780B2E4A3F3 /* Groq.swift in Sources */,
 				66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */,

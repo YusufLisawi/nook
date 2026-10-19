@@ -1,7 +1,12 @@
 import AppKit
 
-/// FreeFlow's default shortcuts: hold ⌃⌥ to talk, ⌥Space to toggle. Needs Accessibility (an active event tap swallows ⌥Space).
+/// Global shortcuts via an active event tap (needs Accessibility; it can swallow keys).
+/// Hold: record while held. Toggle: press to start, press again to stop and transcribe. Both are configurable.
 final class HotkeyMonitor {
+    var hold: DictationShortcut? = .defaultHold
+    var toggle: DictationShortcut? = .defaultToggle
+    var paused = false
+
     var onHoldStart: () -> Void = {}
     var onHoldEnd: () -> Void = {}
     var onHoldCancel: () -> Void = {}
@@ -10,10 +15,11 @@ final class HotkeyMonitor {
     var onShortcut: (Int64, CGEventFlags) -> Bool = { _, _ in false }
 
     private var tap: CFMachPort?
-    private var holding = false
     private var retryTimer: Timer?
-    private static let modifiers: CGEventFlags = [.maskControl, .maskAlternate, .maskCommand, .maskShift]
-    private static let spaceKey: Int64 = 49
+    private var holding = false
+    private var holdByKey = false
+    private var toggleArmed = false
+    private var swallowedKey: Int64?
 
     var isTrusted: Bool { AXIsProcessTrusted() }
 
@@ -55,34 +61,73 @@ final class HotkeyMonitor {
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
             return Unmanaged.passUnretained(event)
         }
-        let mods = event.flags.intersection(Self.modifiers)
+        guard !paused else { return Unmanaged.passUnretained(event) }
+        let mods = event.flags.intersection(Modifiers.all)
+        let keyMods = mods.subtracting(.maskSecondaryFn) // arrows/F-keys carry fn; ignore it for key combos
+
         switch type {
         case .flagsChanged:
-            let wantHold = mods == [.maskControl, .maskAlternate]
-            if wantHold, !holding {
-                holding = true
-                onHoldStart()
-            } else if !wantHold, holding {
-                holding = false
-                onHoldEnd()
+            if let hold, hold.keyCode == nil {
+                let want = mods == hold.flags
+                if want, !holding {
+                    holding = true
+                    onHoldStart()
+                } else if !want, holding, !holdByKey {
+                    holding = false
+                    onHoldEnd()
+                }
             }
+            // Modifier-only toggle fires on release, if no other key was pressed in between.
+            if let toggle, toggle.keyCode == nil {
+                if mods == toggle.flags {
+                    toggleArmed = true
+                } else if mods.isEmpty, toggleArmed {
+                    toggleArmed = false
+                    onToggle()
+                } else if !mods.isSubset(of: toggle.flags) {
+                    toggleArmed = false
+                }
+            }
+
         case .keyDown:
+            toggleArmed = false
             let key = event.getIntegerValueField(.keyboardEventKeycode)
-            if key == Self.spaceKey, mods == [.maskAlternate] {
-                if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 { onToggle() }
+            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            if let toggle, toggle.keyCode.map(Int64.init) == key, keyMods == toggle.flags {
+                if !isRepeat { onToggle() }
+                swallowedKey = key
                 return nil
             }
-            if !mods.intersection([.maskControl, .maskAlternate, .maskCommand]).isEmpty,
-               event.getIntegerValueField(.keyboardEventAutorepeat) == 0, onShortcut(key, mods) {
-                if holding { holding = false; onHoldCancel() }
+            if let hold, hold.keyCode.map(Int64.init) == key, keyMods == hold.flags {
+                if !isRepeat, !holding {
+                    holding = true
+                    holdByKey = true
+                    onHoldStart()
+                }
+                swallowedKey = key
                 return nil
             }
-            if holding { // ⌃⌥ + another key is a normal shortcut, not dictation
+            if !keyMods.intersection([.maskControl, .maskAlternate, .maskCommand]).isEmpty, !isRepeat, onShortcut(key, keyMods) {
+                if holding, !holdByKey { holding = false; onHoldCancel() }
+                return nil
+            }
+            if holding, !holdByKey { // modifier hold + another key is a normal shortcut, not dictation
                 holding = false
                 onHoldCancel()
             }
+
         case .keyUp:
-            if event.getIntegerValueField(.keyboardEventKeycode) == Self.spaceKey, mods == [.maskAlternate] { return nil }
+            let key = event.getIntegerValueField(.keyboardEventKeycode)
+            if key == swallowedKey {
+                swallowedKey = nil
+                if holdByKey, holding {
+                    holding = false
+                    holdByKey = false
+                    onHoldEnd()
+                }
+                return nil
+            }
+
         default:
             break
         }

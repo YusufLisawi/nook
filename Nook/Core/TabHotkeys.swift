@@ -69,6 +69,7 @@ struct HotkeyRecorder: View {
 
     private func start() {
         recording = true
+        Services.shared.dictation.hotkeys.paused = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             switch event.keyCode {
             case 53: break // Esc
@@ -89,5 +90,6 @@ struct HotkeyRecorder: View {
         recording = false
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        Services.shared.dictation.hotkeys.paused = false
     }
 }

@@ -75,7 +75,14 @@ struct SettingsView: View {
             Section("Dictation") {
                 SecureField("Groq API key", text: $groqKey)
                     .onChange(of: groqKey) { _, key in Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) }
-                LabeledContent("Shortcuts", value: "Hold ⌃⌥ to talk · ⌥Space to toggle")
+                LabeledContent("Hold to talk") {
+                    DictationShortcutField(storageKey: DictationService.Keys.holdShortcut, fallback: .defaultHold)
+                }
+                LabeledContent("Press to start, press again to transcribe") {
+                    DictationShortcutField(storageKey: DictationService.Keys.toggleShortcut, fallback: .defaultToggle)
+                }
+                Text("Click a shortcut, then press keys. Hold just modifiers (like ⌃⌥ or fn) and let go for a modifier-only shortcut. ⌫ turns it off, Esc cancels.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle("Clean up text with AI", isOn: $cleanup)
                 Toggle("Sounds", isOn: $sounds)
                 TextField("Vocabulary (one per line)", text: $vocabulary, axis: .vertical).lineLimit(2...4)

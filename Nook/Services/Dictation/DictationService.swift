@@ -21,6 +21,8 @@ final class DictationService: ObservableObject {
         static let cleanup = "dictationCleanup"
         static let sounds = "dictationSounds"
         static let groqSecret = "groq_api_key"
+        static let holdShortcut = "dictationHoldShortcut"
+        static let toggleShortcut = "dictationToggleShortcut"
     }
 
     static let defaultPrompt = "You are a literal dictation cleanup layer. Fix punctuation, capitalisation and obvious transcription mistakes. Remove filler words. Keep the speaker's wording and language. Return only the cleaned text."
@@ -57,6 +59,7 @@ final class DictationService: ObservableObject {
         hotkeys.onHoldEnd = { [weak self] in self?.finish() }
         hotkeys.onHoldCancel = { [weak self] in self?.finish(cancel: true) }
         hotkeys.onToggle = { [weak self] in self?.toggle() }
+        reloadShortcuts()
         hotkeys.start()
     }
 
@@ -78,6 +81,12 @@ final class DictationService: ObservableObject {
                 defaults.set(vocab.replacingOccurrences(of: "\\n", with: "\n"), forKey: Keys.vocabulary)
             }
         }
+    }
+
+    func reloadShortcuts() {
+        hotkeys.hold = DictationShortcut.load(Keys.holdShortcut, fallback: .defaultHold)
+        hotkeys.toggle = DictationShortcut.load(Keys.toggleShortcut, fallback: .defaultToggle)
+        PluginEvents.emit("dictation", historyPayload())
     }
 
     // MARK: Recording
@@ -269,7 +278,7 @@ final class DictationService: ObservableObject {
 
     func statePayload() -> [String: Any] {
         ["recording": phase == .recording, "transcribing": phase == .transcribing,
-         "holdShortcut": "⌃⌥", "toggleShortcut": "⌥Space", "hasKey": apiKey != nil,
+         "holdShortcut": hotkeys.hold?.display ?? "Off", "toggleShortcut": hotkeys.toggle?.display ?? "Off", "hasKey": apiKey != nil,
          "accessibility": hotkeys.isTrusted]
     }
 }

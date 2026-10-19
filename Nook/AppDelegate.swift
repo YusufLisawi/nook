@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         setupStatusItem()
         setupEditMenu()
+        handleTerminationSignals()
     }
 
     /// Hidden main menu so ⌘A/⌘C/⌘V/⌘Z work in the Settings window (Nook has no visible menu bar).
@@ -53,6 +54,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case "settings": openSettings()
             default: break
             }
+        }
+    }
+
+    /// `kill`/`pkill` skip applicationWillTerminate. Without this the Mac stays pointed at a closed proxy port (no internet).
+    private var signalSources: [DispatchSourceSignal] = []
+    private func handleTerminationSignals() {
+        for sig in [SIGTERM, SIGINT, SIGHUP] {
+            signal(sig, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
+            source.setEventHandler {
+                Services.shared.shutdown()
+                exit(0)
+            }
+            source.resume()
+            signalSources.append(source)
         }
     }
 

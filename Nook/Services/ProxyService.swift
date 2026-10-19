@@ -44,14 +44,14 @@ final class ProxyService: ObservableObject {
         if let active {
             connect(active.id) { _ in }
         } else {
-            queue.async { Self.setSystemProxy(nil) }
+            queue.async { Self.setSystemProxy(nil, services: Self.allServiceNames()) }
         }
     }
 
     /// Must run before quitting, or the Mac is left pointing at a closed local port.
     func shutdown() {
         guard activeID != nil else { return }
-        Self.setSystemProxy(nil)
+        Self.setSystemProxy(nil, services: Self.allServiceNames())
         forwarder.stop()
     }
 
@@ -60,6 +60,9 @@ final class ProxyService: ObservableObject {
     func connect(_ id: String, completion: @escaping (String?) -> Void) {
         guard let proxy = proxies.first(where: { $0.id == id }) else { return completion("Unknown proxy") }
         let isSOCKS = proxy.scheme.hasPrefix("socks")
+        // Already routing through our forwarder? Switching is just a new upstream — no system changes, instant.
+        let viaForwarder = { (p: Proxy?) in p.map { !$0.scheme.hasPrefix("socks") } ?? false }
+        let systemAlreadySet = viaForwarder(active) && !isSOCKS && forwarder.isRunning
         do {
             if isSOCKS {
                 forwarder.stop()
@@ -73,6 +76,10 @@ final class ProxyService: ObservableObject {
         }
         activeID = id
         save()
+        if systemAlreadySet {
+            broadcast()
+            return completion(nil)
+        }
         queue.async {
             Self.setSystemProxy(isSOCKS ? .socks(proxy.host, proxy.port) : .http("127.0.0.1", Int(Self.localPort)))
             DispatchQueue.main.async {
@@ -86,12 +93,13 @@ final class ProxyService: ObservableObject {
         activeID = nil
         save()
         queue.async {
-            Self.setSystemProxy(nil)
+            Self.setSystemProxy(nil) // the services in use — fast
             DispatchQueue.main.async {
                 self.forwarder.stop()
                 self.broadcast()
                 completion()
             }
+            Self.setSystemProxy(nil, services: Self.allServiceNames()) // then sweep the rest
         }
     }
 
@@ -203,13 +211,14 @@ final class ProxyService: ObservableObject {
         case socks(String, Int)
     }
 
-    private static func setSystemProxy(_ target: SystemProxy?) {
-        for service in networkServices() {
+    /// `networksetup` commits one change at a time and fails if run in parallel, so keep it sequential —
+    /// and only touch services that are actually up (usually just Wi-Fi), which makes it ~0.5 s instead of seconds.
+    private static func setSystemProxy(_ target: SystemProxy?, services: [String]? = nil) {
+        for service in services ?? activeServices() {
             switch target {
             case let .http(host, port):
                 networksetup("-setwebproxy", service, host, String(port), "off")
                 networksetup("-setsecurewebproxy", service, host, String(port), "off")
-                networksetup("-setsocksfirewallproxystate", service, "off")
                 networksetup(["-setproxybypassdomains", service] + bypass)
             case let .socks(host, port):
                 networksetup("-setwebproxystate", service, "off")
@@ -224,38 +233,54 @@ final class ProxyService: ObservableObject {
         }
     }
 
+    /// Services whose interface is currently up (from `scutil --nwi`); falls back to all of them.
+    private static func activeServices() -> [String] {
+        let up = Set((run("/usr/sbin/scutil", ["--nwi"]).components(separatedBy: "\n")
+            .first { $0.hasPrefix("Network interfaces:") }?
+            .dropFirst("Network interfaces:".count)
+            .split(separator: " ").map(String.init)) ?? [])
+        let all = networkServices()
+        let active = all.filter { up.contains($0.device) }.map(\.name)
+        return active.isEmpty ? all.map(\.name) : active
+    }
+
+    /// Every service that has a proxy pointing at our forwarder or is on — used to clean up fully.
+    private static func allServiceNames() -> [String] { networkServices().map(\.name) }
+
     /// Enabled hardware services (skips disabled "*" ones and VPN entries, which have no proxy settings).
-    private static func networkServices() -> [String] {
-        let list = networksetup("-listnetworkserviceorder")
-        var services: [String] = []
+    private static func networkServices() -> [(name: String, device: String)] {
+        var services: [(String, String)] = []
         var name: String?
-        for line in list.components(separatedBy: "\n") {
+        for line in networksetup("-listnetworkserviceorder").components(separatedBy: "\n") {
             if let r = line.range(of: #"^\(\d+\) "#, options: .regularExpression) {
                 name = String(line[r.upperBound...])
-            } else if let n = name, line.contains("Device: "), !line.contains("Device: )") {
-                services.append(n)
+            } else if let n = name, let r = line.range(of: #"Device: ([^)]+)\)"#, options: .regularExpression) {
+                let device = line[r].dropFirst("Device: ".count).dropLast()
+                services.append((n, String(device)))
                 name = nil
             }
         }
         return services
     }
 
-    @discardableResult
-    private static func networksetup(_ args: String...) -> String { networksetup(args) }
-
-    @discardableResult
-    private static func networksetup(_ args: [String]) -> String {
+    private static func run(_ path: String, _ args: [String]) -> String {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+        process.executableURL = URL(fileURLWithPath: path)
         process.arguments = args
         let pipe = Pipe()
         process.standardOutput = pipe
-        process.standardError = Pipe()
+        process.standardError = FileHandle.nullDevice
         guard (try? process.run()) != nil else { return "" }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         return String(decoding: data, as: UTF8.self)
     }
+
+    @discardableResult
+    private static func networksetup(_ args: String...) -> String { networksetup(args) }
+
+    @discardableResult
+    private static func networksetup(_ args: [String]) -> String { run("/usr/sbin/networksetup", args) }
 }
 
 /// Minimal HTTP proxy on 127.0.0.1 that forwards every connection to the upstream proxy with Proxy-Authorization added.
@@ -272,6 +297,7 @@ final class ProxyForwarder {
     }
 
     var upstream: Upstream?
+    var isRunning: Bool { listener != nil }
     private var listener: NWListener?
     private var sessions: [ObjectIdentifier: Session] = [:]
     private let queue = DispatchQueue(label: "nook.proxy.forwarder")

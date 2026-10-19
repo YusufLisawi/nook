@@ -168,6 +168,9 @@ final class DropWebView: WKWebView {
     var onFiles: ((String, Any) -> Void)?
     private var fileDrag = false
 
+    /// The notch panel isn't key until clicked; without this the first click only focuses it.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     private func paths(_ info: NSDraggingInfo) -> [String] {
         let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]
         return (urls ?? []).map(\.path)

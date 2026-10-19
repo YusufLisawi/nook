@@ -1,4 +1,17 @@
 (() => {
+  /** Totals over finished dictations: talking time vs. typing the same words at 40 wpm. */
+  function dictationStats(list) {
+    let words = 0, seconds = 0;
+    for (const e of list || []) {
+      if (e.status !== 'done' || !e.text) continue;
+      words += e.text.trim().split(/\s+/).filter(Boolean).length;
+      seconds += Number(e.duration) || 0;
+    }
+    const savedSeconds = Math.max(0, (words / 40) * 60 - seconds);
+    const fmt = (s) => s < 60 ? `${Math.round(s)}s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.floor(s / 3600)}h ${Math.round((s % 3600) / 60)}m`;
+    return { words, spoken: fmt(seconds), saved: fmt(savedSeconds) };
+  }
+
   'use strict';
   const $ = id => document.getElementById(id);
   const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -207,7 +220,9 @@
     } : null;
     const query = $('search').value.trim().toLocaleLowerCase();
     const entries = history.filter(entry => !query || [entry.text, entry.raw, entry.error].map(text).join(' ').toLocaleLowerCase().includes(query));
-    $('history-count').textContent = !historyLoaded ? '—' : query ? `${entries.length} of ${history.length}` : `${history.length} ${history.length === 1 ? 'entry' : 'entries'}`;
+    const stats = dictationStats(history);
+    $('history-count').textContent = !historyLoaded ? '—' : query ? `${entries.length} of ${history.length}` : (stats.words ? `${stats.spoken} spoken · ${stats.saved} saved` : `${history.length} ${history.length === 1 ? 'entry' : 'entries'}`);
+    $('history-count').title = stats.words ? `${stats.words.toLocaleString()} words dictated. Saved = time to type them at 40 wpm minus time spent talking.` : '';
     const rows = entries.map(buildRow);
     if (!rows.length) {
       const empty = document.createElement('div');

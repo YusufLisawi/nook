@@ -87,7 +87,13 @@ struct CollapsedView: View {
             Circle().fill(Color.red).frame(width: 8, height: 8)
                 .shadow(color: .red.opacity(0.8), radius: 4)
             Spacer()
-            LevelBars(level: dictation.level).frame(width: 22, height: height * 0.5)
+            // How long you've been talking (replaces the level meter).
+            TimelineView(.periodic(from: .now, by: 0.5)) { context in
+                let seconds = Int(context.date.timeIntervalSince(dictation.recordingStartedAt ?? context.date))
+                Text(String(format: "%d:%02d", seconds / 60, seconds % 60))
+                    .font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(.red)
+            }
         case .transcribing:
             Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
             Spacer()

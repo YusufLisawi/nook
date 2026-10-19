@@ -31,6 +31,8 @@ final class DictationService: ObservableObject {
 
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var level: Float = 0
+    /// When the current recording started (drives the timer on the closed notch).
+    @Published private(set) var recordingStartedAt: Date?
     @Published private(set) var history: [Entry] = []
 
     let hotkeys = HotkeyMonitor()
@@ -133,6 +135,7 @@ final class DictationService: ObservableObject {
         }
         recording = true
         current = (id, url, Date())
+        recordingStartedAt = current?.started
         idleWork?.cancel()
         phase = .recording
         sound("Tink")
@@ -146,6 +149,7 @@ final class DictationService: ObservableObject {
         guard phase == .recording, recording, let current else { return }
         let duration = mic.stop()
         recording = false
+        recordingStartedAt = nil
         meterTimer?.invalidate()
         self.current = nil
         level = 0

@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.2.2</title>
+  <pubDate>Mon, 19 Oct 2026 20:44:32 GMT</pubDate>
+  <sparkle:version>6</sparkle:version>
+  <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<p>Nook 1.2.2 — fixes the Mixer interrupting microphone recordings in other apps.</p><li>Per-app volume no longer causes &quot;microphone disconnected&quot; in browser recorders (BB, Meet…)</li><li>The Mixer only taps the parts of an app that play sound, and waits while an app is recording</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.2.2/Nook.dmg" type="application/octet-stream" sparkle:edSignature="iL0AntpJO0mjEDKMYcEsOtdOho+LQq7PUtVtGrjBhEee8l/OjZEcPDZK7p7HohaQyYCxPu5qbrlOI822a/KQCg==" length="6156331"/>
+</item>
+<item>
   <title>Nook 1.2.1</title>
   <pubDate>Mon, 19 Oct 2026 20:21:14 GMT</pubDate>
   <sparkle:version>5</sparkle:version>

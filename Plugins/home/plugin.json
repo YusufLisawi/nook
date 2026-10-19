@@ -4,5 +4,38 @@
   "symbol": "house.fill",
   "entry": "index.html",
   "order": 10,
-  "height": 210
+  "height": 210,
+  "settings": [
+    {
+      "key": "showStats",
+      "label": "Show CPU / memory / disk",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "showTimer",
+      "label": "Show focus timer",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "timerPresets",
+      "label": "Timer presets (minutes)",
+      "type": "text",
+      "default": "15, 30, 60",
+      "help": "Up to 4, separated by commas"
+    },
+    {
+      "key": "hideDone",
+      "label": "Hide finished to-dos",
+      "type": "toggle",
+      "default": false
+    },
+    {
+      "key": "emptyText",
+      "label": "Empty list message",
+      "type": "text",
+      "default": "Nothing to do. Enjoy it."
+    }
+  ]
 }

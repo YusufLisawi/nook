@@ -21,9 +21,39 @@ Edit a file and Nook reloads the plugin within a second (folder is watched).
   "icon": "icon.png",         // optional, shown in Settings
   "entry": "index.html",
   "order": 40,                // default dock position (lower = left); users can drag icons to reorder
-  "height": 210               // content height in points when this tab is open (default 210, min 80, max 400)
+  "height": 210,              // content height in points when this tab is open (default 210, min 80, max 400)
+  "settings": [               // optional: user options — Nook builds the form for you (see "Settings" below)
+    { "key": "showStats", "label": "Show stats", "type": "toggle", "default": true }
+  ]
 }
 ```
+
+## Settings (user customisation, no code)
+
+Declare options in `plugin.json`; Nook renders the form (notch header **sliders** button, and Settings → Tabs & plugins).
+Values are saved per plugin and pushed to the plugin live.
+
+| `type` | Control | Extra fields |
+|---|---|---|
+| `toggle` | switch | — |
+| `text` / `secret` / `textarea` | text box / hidden text / multi-line | — |
+| `number` | slider if `min`+`max`, else a number box | `min`, `max`, `step` |
+| `select` | dropdown | `options: ["a", "b"]` |
+| `color` | colour well → `"#rrggbb"` | — |
+
+Every entry: `key`, `label`, `type`, optional `default` and `help` (one muted line under the control).
+
+```js
+let settings = await nook.settings.get();          // defaults merged with what the user saved
+nook.on('settings', (s) => { settings = s; apply(); });   // fires as the user edits — apply live, no reload
+nook.settings.set('showStats', false);             // rarely needed; the form does this
+nook.settings.open();                              // open this plugin's form in the notch
+```
+
+Saved values live in `~/Library/Application Support/Nook/Data/<id>.settings.json`.
+
+**Code-level customisation:** the same form has **Edit code…** — for a built-in plugin it copies the folder to your
+Plugins folder (your copy wins) and reveals it; **Revert to built-in** trashes your copy. CLI equivalent: `nook eject <id>`.
 
 ## Runtime
 
@@ -39,6 +69,7 @@ Edit a file and Nook reloads the plugin within a second (folder is watched).
 
 ```js
 nook.plugin                                   // { id, name }
+nook.settings.get() / set(key, value) / open()  // user options declared in plugin.json (see Settings)
 nook.storage.get(key) / set(key, value) / all()   // per-plugin JSON storage, survives restarts
 nook.shell(command, { timeout })              // zsh -lc → { code, stdout, stderr }
 nook.fetch(url, { method, headers, body })    // → { status, headers, body }  (body = text)
@@ -57,7 +88,7 @@ nook.activity.clear()
 nook.notch.close()
 nook.notch.pin(true|false)                    // keep the notch open when the mouse leaves
 nook.notch.setHeight(px)                      // resize this tab's content area live
-nook.on(event, cb)                            // 'open' | 'close' | 'show' (tab shown) | 'proxy' | 'dictation'
+nook.on(event, cb)                            // 'open' | 'close' | 'show' (tab shown) | 'settings' | 'proxy' | 'dictation'
                                               // 'dragenter' | 'dragleave' | 'drop' (paths: real file/folder paths dropped on this tab)
 
 nook.proxy.list()        // → { proxies: [{ id, name, scheme, host, port, hasAuth }], activeId|null }

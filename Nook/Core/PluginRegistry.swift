@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 struct TabItem: Identifiable, Equatable {
     enum Kind: Equatable {
@@ -13,6 +13,10 @@ struct TabItem: Identifiable, Equatable {
     let height: CGFloat
     let kind: Kind
     let icon: URL?
+    var settings: [PluginSetting] = []
+
+    var isWeb: Bool { if case .web = kind { true } else { false } }
+    var dir: URL? { if case let .web(dir, _) = kind { dir } else { nil } }
 }
 
 /// Lists native tabs plus folder plugins (bundled + ~/Library/Application Support/Nook/Plugins), and hot-reloads on change.
@@ -46,6 +50,7 @@ final class PluginRegistry: ObservableObject {
         var entry: String?
         var order: Int?
         var height: Double?
+        var settings: [PluginSetting]?
     }
 
     func start() {
@@ -65,7 +70,8 @@ final class PluginRegistry: ObservableObject {
                     id: m.id, name: m.name, symbol: m.symbol ?? "puzzlepiece.extension.fill", order: m.order ?? 100,
                     height: min(Self.maxHeight, CGFloat(m.height ?? Double(Self.defaultHeight))),
                     kind: .web(dir: dir, entry: m.entry ?? "index.html"),
-                    icon: m.icon.map { dir.appendingPathComponent($0) }
+                    icon: m.icon.map { dir.appendingPathComponent($0) },
+                    settings: m.settings ?? []
                 )
             }
         }
@@ -92,6 +98,42 @@ final class PluginRegistry: ObservableObject {
     private func setOrder(_ ids: [String]) {
         customOrder = ids
         UserDefaults.standard.set(ids, forKey: "tabOrder")
+    }
+
+    // MARK: Code-level customisation
+
+    func isBundled(_ tab: TabItem) -> Bool {
+        guard let dir = tab.dir, let bundled = Self.bundledDir else { return false }
+        return dir.standardizedFileURL.path.hasPrefix(bundled.standardizedFileURL.path)
+    }
+
+    /// A user plugin that replaces a bundled one with the same id.
+    func overridesBundled(_ tab: TabItem) -> Bool {
+        guard !isBundled(tab), let bundled = Self.bundledDir else { return false }
+        return FileManager.default.fileExists(atPath: bundled.appendingPathComponent(tab.id).path)
+    }
+
+    /// Bundled → copy into the user folder (the copy then wins). Either way, open the folder.
+    func customize(_ tab: TabItem) {
+        guard let dir = tab.dir else { return }
+        var target = dir
+        if isBundled(tab) {
+            target = Self.userDir.appendingPathComponent(tab.id, isDirectory: true)
+            if !FileManager.default.fileExists(atPath: target.path) {
+                try? FileManager.default.copyItem(at: dir, to: target)
+            }
+            reload()
+            touch()
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([target.appendingPathComponent("plugin.json")])
+    }
+
+    /// Drop the user's copy (to the Trash) so the bundled plugin is used again.
+    func revert(_ tab: TabItem) {
+        guard overridesBundled(tab), let dir = tab.dir else { return }
+        try? FileManager.default.trashItem(at: dir, resultingItemURL: nil)
+        reload()
+        touch()
     }
 
     /// Force web plugins to reload (e.g. `nook reload`).

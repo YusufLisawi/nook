@@ -100,7 +100,13 @@ Wrap **every** `nook.*` call in try/catch; a failed call is a state, not a crash
 - Don't steal the notch: never call `nook.notch.pin(true)` unless the user started something that needs it, and unpin after.
 - Drag & drop: listen to `dragenter`/`drop` events (real file paths) — highlight the drop zone with a dashed `--border` outline.
 
-## 9. Don'ts (these break the vibe)
+## 9. Customisation
+
+- Anything a user might want different (what's shown, labels, presets, refresh rate, colours) is a **setting in plugin.json**, not a hard-coded constant. Nook draws the form.
+- Apply changes live in `nook.on('settings')` — never ask the user to reload.
+- Defaults should be good enough that most people never open the form.
+
+## 10. Don'ts (these break the vibe)
 
 - ❌ White, grey or coloured page backgrounds · ❌ page scrollbars
 - ❌ Coloured edge stripes on cards (`border-left: 4px solid …`) — tint the background + use an icon instead
@@ -110,9 +116,10 @@ Wrap **every** `nook.*` call in try/catch; a failed call is a state, not a crash
 - ❌ Text under 10 px or over 2 lines in list rows (ellipsis instead)
 - ❌ Long-running polling faster than 1 s unless it's visibly live (and stop it on `close`)
 
-## 10. Checklist before you ship
+## 11. Checklist before you ship
 
 - [ ] `nook validate <id>` passes
+- [ ] User-tweakable choices are `settings` in plugin.json and apply live
 - [ ] Looks right at the plugin's height with 0 items, 3 items and 300 items
 - [ ] Loading, empty, error and ready states all exist
 - [ ] Only `nk-*` + tokens for colour; one accent

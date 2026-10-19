@@ -4,5 +4,8 @@
   "symbol": "__SYMBOL__",
   "entry": "index.html",
   "order": __ORDER__,
-  "height": __HEIGHT__
+  "height": __HEIGHT__,
+  "settings": [
+    { "key": "placeholder", "label": "Input placeholder", "type": "text", "default": "Add an item…" }
+  ]
 }

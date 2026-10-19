@@ -14,7 +14,7 @@ final class WebPluginHost: NSObject {
         super.init()
         NotificationCenter.default.addObserver(forName: .nookPluginEvent, object: nil, queue: .main) { [weak self] note in
             guard let event = note.userInfo?["event"] as? String else { return }
-            self?.emit(event, note.userInfo?["payload"] ?? NSNull())
+            self?.emit(event, note.userInfo?["payload"] ?? NSNull(), to: note.userInfo?["plugin"] as? String)
         }
     }
 
@@ -66,6 +66,13 @@ final class WebPluginHost: NSObject {
         case "storage.get": reply(PluginStorage(pluginID).get(str(0)) ?? NSNull(), nil)
         case "storage.set": PluginStorage(pluginID).set(str(0), arg(1)); ok()
         case "storage.all": reply(PluginStorage(pluginID).all(), nil)
+        case "settings.get":
+            let tab = s.plugins.tabs.first { $0.id == pluginID }
+            reply(tab.map { PluginSettingsStore.values(for: $0).mapValues(\.any) } ?? [:], nil)
+        case "settings.set":
+            if let tab = s.plugins.tabs.first(where: { $0.id == pluginID }) { PluginSettingsStore.set(tab, str(0), JSONValue(any: arg(1))) }
+            ok()
+        case "settings.open": vm?.showingSettings = true; ok()
         case "shell":
             let timeout = (arg(1) as? [String: Any])?["timeout"] as? Double ?? 15
             Shell.run(str(0), timeout: timeout) { reply($0, nil) }
@@ -135,6 +142,7 @@ final class WebPluginHost: NSObject {
           const listeners = {};
           window.nook = {
             plugin: \(pluginInfo),
+            settings: { get: () => call('settings.get'), set: (k, v) => call('settings.set', k, v), open: () => call('settings.open') },
             storage: { get: k => call('storage.get', k), set: (k, v) => call('storage.set', k, v === undefined ? null : v), all: () => call('storage.all') },
             shell: (c, o) => call('shell', c, o || {}),
             fetch: (u, o) => call('fetch', u, o || {}),

@@ -20,7 +20,11 @@ final class NotchViewModel: ObservableObject {
 
     @Published var state: NotchState = .closed
     @Published var tab: String = "home" {
-        didSet { if tab != oldValue { web.emit("show", tab) } }
+        didSet {
+            guard tab != oldValue else { return }
+            showingSettings = false
+            web.emit("show", tab)
+        }
     }
     @Published var geometry: NotchGeometry
     @Published var isHovering = false
@@ -28,6 +32,8 @@ final class NotchViewModel: ObservableObject {
     @Published var pinned = false
     @Published var heightOverrides: [String: CGFloat] = [:]
     @Published var slideEdge: Edge = .trailing
+    /// The current tab's settings are showing in place of its content.
+    @Published var showingSettings = false
     @Published private(set) var activity: Activity?
 
     let services = Services.shared
@@ -147,6 +153,7 @@ final class NotchViewModel: ObservableObject {
     func close() {
         guard isOpen else { return }
         pinned = false
+        showingSettings = false
         withAnimation(Self.spring) { state = .closed }
         web.emit("close", tab)
         onClose?()

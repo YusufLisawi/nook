@@ -133,6 +133,13 @@ struct ExpandedView: View {
                 Color.clear.frame(width: notch.width)
                 HStack(spacing: 2) {
                     Spacer()
+                    if vm.currentTab?.isWeb == true || vm.currentTab?.settings.isEmpty == false {
+                        IconButton(vm.showingSettings ? "slider.horizontal.3" : "slider.horizontal.3", size: 12) {
+                            withAnimation(.snappy(duration: 0.2)) { vm.showingSettings.toggle() }
+                        }
+                        .foregroundStyle(vm.showingSettings ? Color.orange : Color.white)
+                        .help("Customize \(vm.currentTab?.name ?? "")")
+                    }
                     IconButton(vm.pinned ? "pin.fill" : "pin", size: 12) { vm.pinned.toggle() }
                         .foregroundStyle(vm.pinned ? Color.orange : Color.white)
                         .help(vm.pinned ? "Unpin — close when the mouse leaves" : "Pin — keep the notch open")
@@ -147,6 +154,15 @@ struct ExpandedView: View {
                 content
                     .id(vm.tab)
                     .transition(.push(from: vm.slideEdge))
+                if vm.showingSettings, let tab = vm.currentTab {
+                    ScrollView {
+                        PluginSettingsForm(tab: tab, compact: true) { withAnimation(.snappy(duration: 0.2)) { vm.showingSettings = false } }
+                            .padding(14)
+                    }
+                    .scrollIndicators(.hidden)
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(white: 0.09)))
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                }
             }
             .frame(maxWidth: .infinity)
             .frame(height: vm.contentHeight, alignment: .topLeading)

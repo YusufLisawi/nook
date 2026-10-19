@@ -46,8 +46,11 @@ extension Notification.Name {
 }
 
 enum PluginEvents {
-    static func emit(_ event: String, _ payload: Any) {
-        NotificationCenter.default.post(name: .nookPluginEvent, object: nil, userInfo: ["event": event, "payload": payload])
+    /// `to`: only this plugin id receives it (nil = every plugin).
+    static func emit(_ event: String, _ payload: Any, to pluginID: String? = nil) {
+        var info: [String: Any] = ["event": event, "payload": payload]
+        if let pluginID { info["plugin"] = pluginID }
+        NotificationCenter.default.post(name: .nookPluginEvent, object: nil, userInfo: info)
     }
 }
 

@@ -46,5 +46,10 @@ $('add').addEventListener('submit', (e) => {
   save([...items, { text, at: Date.now() }]);
 });
 
+// User options from plugin.json → "settings" (edited via the notch's sliders button). Apply live.
+function applySettings(s = {}) { $('text').placeholder = s.placeholder || 'Add an item…'; }
+nook.settings.get().then(applySettings).catch(() => {});
+nook.on('settings', applySettings);
+
 nook.on('show', (tab) => { if (tab === nook.plugin.id) $('text').focus(); });
 load();

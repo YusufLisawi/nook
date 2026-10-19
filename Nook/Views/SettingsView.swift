@@ -59,6 +59,7 @@ struct SettingsView: View {
                             Text(tab.name)
                             if case .web = tab.kind { Text("plugin").font(.caption2).foregroundStyle(.secondary) }
                             Spacer()
+                            CustomizeButton(tab: tab)
                             HotkeyRecorder(tabID: tab.id)
                         }
                     }
@@ -103,5 +104,24 @@ struct SettingsView: View {
                 disabledTabs = off.sorted().joined(separator: ",")
             }
         )
+    }
+}
+
+/// Opens a plugin's options (and Edit code / Revert) in a popover.
+private struct CustomizeButton: View {
+    let tab: TabItem
+    @State private var open = false
+
+    var body: some View {
+        if tab.isWeb || !tab.settings.isEmpty {
+            Button { open.toggle() } label: { Image(systemName: "slider.horizontal.3") }
+                .buttonStyle(.borderless)
+                .help("Customize \(tab.name)")
+                .popover(isPresented: $open, arrowEdge: .trailing) {
+                    PluginSettingsForm(tab: tab) { open = false }
+                        .padding(16)
+                        .frame(width: 340)
+                }
+        }
     }
 }

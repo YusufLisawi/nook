@@ -25,6 +25,7 @@
 		889613576CA3F120014ECCA6 /* MediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A8305528A9B604368F8C25 /* MediaController.swift */; };
 		92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DADCCDD358E9EA34C28C74 /* Prefs.swift */; };
 		9693847AED3AC165044B60F9 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D42A5D5FCF4370A368C56D5 /* Components.swift */; };
+		A9529D4BD2578A4547009C93 /* PluginSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7571D9D06CBA91960D5C4995 /* PluginSettings.swift */; };
 		B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */; };
 		BB148C8EA0E18FBD2336D7C0 /* FileShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = C56F150318FB5BF1029A8DF1 /* FileShelf.swift */; };
 		BB786E698B2BB609FA914BED /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5F69FD803186572DBBE5C69 /* NotchRootView.swift */; };
@@ -54,6 +55,7 @@
 		6AF31C476DBDFF1170647A72 /* Nook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
 		6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginRegistry.swift; sourceTree = "<group>"; };
+		7571D9D06CBA91960D5C4995 /* PluginSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettings.swift; sourceTree = "<group>"; };
 		867998E9B233A6020709500D /* NotchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchController.swift; sourceTree = "<group>"; };
 		88DB59F92E353F6D2904A53A /* Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tabs.swift; sourceTree = "<group>"; };
 		9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */,
+				7571D9D06CBA91960D5C4995 /* PluginSettings.swift */,
 				0ED7F0CE539625E9216FFC57 /* Services.swift */,
 				3DB8B9DC39F1086191974395 /* TabHotkeys.swift */,
 				C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */,
@@ -243,6 +246,7 @@
 				C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */,
 				8734562697D96E684C1632B1 /* NotchViewModel.swift in Sources */,
 				70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */,
+				A9529D4BD2578A4547009C93 /* PluginSettings.swift in Sources */,
 				92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */,
 				DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */,
 				3EC534324EA0668F89733786 /* Services.swift in Sources */,

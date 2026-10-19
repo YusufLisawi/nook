@@ -15,7 +15,7 @@
 
   function render() {
     // Open items first (newest on top), done items after.
-    const sorted = [...todos].sort((a, b) => Number(a.done) - Number(b.done) || b.created - a.created);
+    const sorted = [...todos].filter((t) => !(settings?.hideDone && t.done)).sort((a, b) => Number(a.done) - Number(b.done) || b.created - a.created);
     ui.list.replaceChildren(...sorted.map((t) => {
       const li = document.createElement('li');
       li.className = `item${t.done ? ' done' : ''}`;
@@ -46,7 +46,7 @@
     }));
     const open = todos.filter((t) => !t.done).length;
     const done = todos.length - open;
-    ui.empty.hidden = todos.length > 0;
+    ui.empty.hidden = sorted.length > 0;
     ui.count.textContent = todos.length ? `${open} left` : '';
     ui.clear.hidden = done === 0;
   }
@@ -108,6 +108,31 @@
   nook.on('show', (tab) => { visible = tab === nook.plugin.id; tick(); });
   nook.on('close', () => { visible = false; });
   setInterval(tick, 1000);
+
+  // ---- Settings (declared in plugin.json, edited from the notch's sliders button) ----
+
+  var settings = { showStats: true, showTimer: true, timerPresets: '15, 30, 60', hideDone: false, emptyText: 'Nothing to do. Enjoy it.' };
+
+  function applySettings(next) {
+    settings = { ...settings, ...(next || {}) };
+    document.querySelector('.stats').hidden = !settings.showStats;
+    ui.timer.hidden = !settings.showTimer;
+    document.querySelector('.side').hidden = !settings.showStats && !settings.showTimer;
+    document.querySelector('.app').classList.toggle('solo', !settings.showStats && !settings.showTimer);
+    $('empty').textContent = settings.emptyText || 'Nothing to do.';
+    const minutes = String(settings.timerPresets).split(/[,\s]+/).map(Number).filter((n) => n > 0 && n <= 600).slice(0, 4);
+    const chips = document.querySelector('.chips');
+    chips.replaceChildren(...(minutes.length ? minutes : [15, 30, 60]).map((m) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = m % 60 === 0 ? `${m / 60}h` : `${m}m`;
+      b.onclick = async () => showTimer(await nook.timer.start(m));
+      return b;
+    }));
+    render();
+  }
+  nook.on('settings', applySettings);
+  nook.settings.get().then(applySettings).catch(() => applySettings());
 
   nook.storage.get('todos').then((saved) => {
     todos = Array.isArray(saved) ? saved : [];

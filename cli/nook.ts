@@ -64,6 +64,21 @@ function validate(p: Plugin): { errors: string[]; warnings: string[] } {
   if (m.height !== undefined && (typeof m.height !== "number" || m.height < 80 || m.height > MAX_HEIGHT)) errors.push(`height must be a number between 80 and ${MAX_HEIGHT}`);
   if (!m.symbol) warnings.push(`no "symbol" — the dock will show a puzzle piece. Pick an SF Symbol name (e.g. "sparkles")`);
   if (m.icon && !existsSync(join(p.dir, m.icon))) errors.push(`icon "${m.icon}" is missing`);
+  const types = ["toggle", "text", "secret", "textarea", "number", "select", "color"];
+  const keys = new Set<string>();
+  for (const [i, st] of (Array.isArray(m.settings) ? m.settings : m.settings ? [null] : []).entries()) {
+    if (!st || typeof st !== "object") { errors.push(`settings must be an array of objects`); break; }
+    const where = `settings[${i}]${st.key ? ` (${st.key})` : ""}`;
+    if (!st.key || !st.label) errors.push(`${where} needs "key" and "label"`);
+    if (!types.includes(st.type)) errors.push(`${where} type must be one of ${types.join(", ")}`);
+    if (st.type === "select" && !(Array.isArray(st.options) && st.options.length)) errors.push(`${where} select needs "options"`);
+    if (keys.has(st.key)) errors.push(`${where} duplicate key`);
+    keys.add(st.key);
+  }
+  if (keys.size) {
+    const code = readdirSync(p.dir).filter((f) => /\.(js|mjs|html)$/.test(f)).map((f) => readFileSync(join(p.dir, f), "utf8")).join("\n");
+    if (!/nook\.settings\.get|nook\.on\(\s*['"]settings/.test(code)) warnings.push(`declares settings but never reads them (nook.settings.get / nook.on('settings'))`);
+  }
   const files = readdirSync(p.dir).filter((f) => /\.(html|css|js|mjs)$/.test(f));
   for (const f of files) {
     const text = readFileSync(join(p.dir, f), "utf8");
@@ -92,6 +107,7 @@ const help = `nook — build and drive Nook plugins (no app rebuild needed)
   nook close | reload | settings  close notches · reload all plugins · open Settings
   nook logs [id] [-f]             plugin console.log / errors (-f to follow)
   nook storage <id> [key]         read a plugin's saved data
+  nook prefs <id>                 a plugin's settings: declared options + current values
   nook path [id]                  where plugins live (or one plugin's folder)
   nook api                        the window.nook bridge reference
   nook guide                      UI guidelines + patterns (the notch vibe)
@@ -169,6 +185,15 @@ switch (cmd) {
       const lines = readFileSync(LOG, "utf8").trim().split("\n").filter((l) => !id || l.includes(`[${id}]`));
       console.log(lines.slice(-50).join("\n") || "No logs for that plugin.");
     }
+    break;
+  }
+
+  case "prefs": {
+    const p = findPlugin(args[0]);
+    const saved = existsSync(join(DATA, `${p.id}.settings.json`)) ? readJSON(join(DATA, `${p.id}.settings.json`)) : {};
+    const decl: any[] = readJSON(join(p.dir, "plugin.json")).settings ?? [];
+    if (!decl.length) { console.log(`${p.id} declares no settings`); break; }
+    for (const st of decl) console.log(`${st.key.padEnd(18)} ${String(st.key in saved ? JSON.stringify(saved[st.key]) : JSON.stringify(st.default ?? null) + " (default)").padEnd(28)} ${st.type.padEnd(8)} ${st.label}`);
     break;
   }
 

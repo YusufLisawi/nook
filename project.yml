@@ -26,11 +26,7 @@ targets:
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSAppleEventsUsageDescription: Nook reads what's playing in Music and Spotify and controls playback.
-        NSCalendarsUsageDescription: Nook shows your next meeting in the notch.
-        NSCalendarsFullAccessUsageDescription: Nook shows your next meeting in the notch.
-        NSRemindersUsageDescription: Nook lists your reminders so you can tick them off.
         NSMicrophoneUsageDescription: Nook records your voice for dictation.
-        NSRemindersFullAccessUsageDescription: Nook lists your reminders so you can tick them off.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yusuf.nook

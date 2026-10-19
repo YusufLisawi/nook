@@ -7,6 +7,7 @@ struct SettingsView: View {
     @ObservedObject private var plugins = Services.shared.plugins
     @AppStorage(Prefs.openOnHover) private var openOnHover = true
     @AppStorage(Prefs.haptics) private var haptics = true
+    @AppStorage(Prefs.swipes) private var swipes = true
     @AppStorage(Prefs.hideInFullscreen) private var hideInFullscreen = true
     @AppStorage(Prefs.shelfAutoOpen) private var shelfAutoOpen = true
     @AppStorage(Prefs.showMusic) private var showMusic = true
@@ -25,6 +26,7 @@ struct SettingsView: View {
             Section("Behaviour") {
                 Toggle("Open on hover", isOn: $openOnHover)
                 Toggle("Haptic feedback", isOn: $haptics)
+                Toggle("Trackpad swipes (two fingers: ← → tabs, ↓ open, ↑ on the top bar close)", isOn: $swipes)
                 Toggle("Hide when an app is full screen", isOn: $hideInFullscreen)
                 Toggle("Open the shelf when dragging files onto the notch", isOn: $shelfAutoOpen)
                 Toggle("Launch at login", isOn: $launchAtLogin)

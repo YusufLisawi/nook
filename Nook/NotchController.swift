@@ -15,6 +15,10 @@ final class NotchController {
 
     private var screen: NSScreen
     private var monitors: [Any] = []
+    private var swipe = CGPoint.zero
+    private var swipeAxis: Swipe = .undecided
+    private var swipeFired = false
+    private enum Swipe { case undecided, horizontal, vertical }
 
     init(screen: NSScreen) {
         self.screen = screen
@@ -29,6 +33,9 @@ final class NotchController {
             self.viewModel.close()
         }
         if let monitor { monitors.append(monitor) }
+        if let scroll = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] event in
+            self?.handleScroll(event) ?? event
+        }) { monitors.append(scroll) }
         let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
@@ -91,6 +98,43 @@ final class NotchController {
             lastHover = hover
             hover ? viewModel.hoverBegan() : viewModel.hoverEnded()
         }
+    }
+
+    /// Two-finger trackpad swipes over this notch. Mouse wheels (no gesture phase) pass straight through.
+    private func handleScroll(_ event: NSEvent) -> NSEvent? {
+        guard event.window === panel, event.hasPreciseScrollingDeltas, Prefs.bool(Prefs.swipes) else { return event }
+        if event.momentumPhase != [] { return swipeAxis == .horizontal ? nil : event }
+        guard event.phase != [] else { return event }
+        if event.phase == .began {
+            swipe = .zero
+            swipeAxis = .undecided
+            swipeFired = false
+        }
+        // Finger direction, whatever the "natural scrolling" setting: +x right, +y down.
+        let sign: CGFloat = event.isDirectionInvertedFromDevice ? 1 : -1
+        swipe.x += event.scrollingDeltaX * sign
+        swipe.y += event.scrollingDeltaY * sign
+        if swipeAxis == .undecided, hypot(swipe.x, swipe.y) > 8 {
+            swipeAxis = abs(swipe.x) > abs(swipe.y) ? .horizontal : .vertical
+        }
+        let vm = viewModel
+        if !swipeFired {
+            switch swipeAxis {
+            case .horizontal where vm.isOpen && abs(swipe.x) > 50:
+                swipeFired = true
+                vm.step(swipe.x < 0 ? 1 : -1) // fingers left → next tab, like flipping pages
+            case .vertical where !vm.isOpen && swipe.y > 25:
+                swipeFired = true
+                vm.open()
+            case .vertical where vm.isOpen && swipe.y < -40 && NSEvent.mouseLocation.y > vm.liveRect.maxY - vm.geometry.notch.height - 6:
+                swipeFired = true
+                vm.close()
+            default: break
+            }
+        }
+        let consumed = swipeAxis == .horizontal || (swipeAxis == .vertical && (!vm.isOpen || swipeFired))
+        if event.phase == .ended || event.phase == .cancelled { swipeAxis = consumed && swipeAxis == .horizontal ? .horizontal : .undecided }
+        return consumed ? nil : event
     }
 
     private func updateFullscreenVisibility() {

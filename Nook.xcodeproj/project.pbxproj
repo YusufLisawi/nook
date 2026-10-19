@@ -29,7 +29,6 @@
 		C0E7576DF5224D2452C29BCE /* WebPluginHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */; };
 		C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */; };
 		C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867998E9B233A6020709500D /* NotchController.swift */; };
-		D151E68959A619D9824D9012 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E25FE7833ADE7338D7590F /* CalendarService.swift */; };
 		D3E46316EDC9B513E855F37E /* TimerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31AA95267FAFBFBDB850E8C /* TimerService.swift */; };
 		DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD70FF370E94556B10546FF6 /* ProxyService.swift */; };
 		E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B9712B528BBE65144FFBCE /* DictationService.swift */; };
@@ -44,7 +43,6 @@
 		1D42A5D5FCF4370A368C56D5 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		23055D40A8B72A840805201E /* SystemStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStats.swift; sourceTree = "<group>"; };
 		3DB8B9DC39F1086191974395 /* TabHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabHotkeys.swift; sourceTree = "<group>"; };
-		45E25FE7833ADE7338D7590F /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
 		511F04655A88E65837A89A02 /* Plugins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Plugins; sourceTree = SOURCE_ROOT; };
 		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		56729F3514AAE0833BA5B921 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -72,7 +70,6 @@
 		0BB6FA2B1EAFA56051E5EB3F /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				45E25FE7833ADE7338D7590F /* CalendarService.swift */,
 				C56F150318FB5BF1029A8DF1 /* FileShelf.swift */,
 				66A8305528A9B604368F8C25 /* MediaController.swift */,
 				FD70FF370E94556B10546FF6 /* ProxyService.swift */,
@@ -225,7 +222,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
-				D151E68959A619D9824D9012 /* CalendarService.swift in Sources */,
 				9693847AED3AC165044B60F9 /* Components.swift in Sources */,
 				E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */,
 				BB148C8EA0E18FBD2336D7C0 /* FileShelf.swift in Sources */,

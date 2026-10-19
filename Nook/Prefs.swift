@@ -10,11 +10,12 @@ enum Prefs {
     static let preferredScreen = "preferredScreenName"
     static let disabledTabs = "disabledTabs"
     static let scratch = "scratch"
+    static let swipes = "trackpadSwipes"
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
             openOnHover: true, haptics: true, hideInFullscreen: true,
-            showMusic: true, showTimer: true, shelfAutoOpen: true,
+            showMusic: true, showTimer: true, shelfAutoOpen: true, swipes: true,
             preferredScreen: "*", disabledTabs: "", // every screen by default
         ])
     }

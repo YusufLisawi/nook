@@ -1,17 +1,12 @@
-import EventKit
 import SwiftUI
 
 // MARK: Home
 
 struct HomeTab: View {
     @ObservedObject var media: MediaController
-    @ObservedObject var calendar: CalendarService
 
     var body: some View {
-        HStack(spacing: 10) {
-            NowPlayingCard(media: media).card()
-            UpNextCard(calendar: calendar).card().frame(width: 230)
-        }
+        NowPlayingCard(media: media).card()
     }
 }
 
@@ -55,44 +50,6 @@ struct NowPlayingCard: View {
         } else {
             EmptyState(symbol: "music.note", title: "Nothing playing", detail: "Play something in Music or Spotify")
         }
-    }
-}
-
-struct UpNextCard: View {
-    @ObservedObject var calendar: CalendarService
-
-    var body: some View {
-        if !calendar.eventsAccess {
-            EmptyState(symbol: "calendar", title: "Calendar is off", detail: "Allow Nook in System Settings → Privacy → Calendars")
-        } else if let event = calendar.nextEvent {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("UP NEXT").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
-                Text(event.title ?? "Untitled").font(.system(size: 14, weight: .semibold)).lineLimit(2)
-                Text(event.startDate.formatted(date: .omitted, time: .shortened) + " – " + event.endDate.formatted(date: .omitted, time: .shortened))
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-                TimelineView(.periodic(from: .now, by: 30)) { context in
-                    Text(relative(event, now: context.date)).font(.system(size: 12, weight: .medium)).foregroundStyle(.orange)
-                }
-                Spacer(minLength: 0)
-                if let url = CalendarService.meetingURL(for: event) {
-                    Button { NSWorkspace.shared.open(url) } label: {
-                        Label("Join", systemImage: "video.fill").font(.system(size: 12, weight: .semibold))
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(Capsule().fill(Color.white.opacity(0.14)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        } else {
-            EmptyState(symbol: "checkmark.circle", title: "All clear", detail: "No more meetings this week")
-        }
-    }
-
-    private func relative(_ event: EKEvent, now: Date) -> String {
-        if event.startDate <= now { return "Happening now" }
-        let minutes = Int(event.startDate.timeIntervalSince(now) / 60)
-        if minutes < 60 { return "In \(max(minutes, 1)) min" }
-        return event.startDate.formatted(.relative(presentation: .named))
     }
 }
 
@@ -203,81 +160,5 @@ struct TimersTab: View {
             }
         }
         .card()
-    }
-}
-
-// MARK: Calendar
-
-struct CalendarTab: View {
-    @ObservedObject var calendar: CalendarService
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            agenda.card()
-            reminders.card().frame(width: 230)
-        }
-    }
-
-    @ViewBuilder private var agenda: some View {
-        if !calendar.eventsAccess {
-            EmptyState(symbol: "calendar", title: "Calendar is off", detail: "Allow Nook in System Settings → Privacy → Calendars")
-        } else if calendar.events.isEmpty {
-            EmptyState(symbol: "calendar", title: "Nothing this week", detail: "Enjoy the quiet")
-        } else {
-            let days = Dictionary(grouping: calendar.events) { Calendar.current.startOfDay(for: $0.startDate) }
-            ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 6) {
-                    ForEach(days.keys.sorted(), id: \.self) { day in
-                        Text(dayTitle(day)).font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary).padding(.top, 2)
-                        ForEach(days[day] ?? [], id: \.self) { EventRow(event: $0) }
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var reminders: some View {
-        if !calendar.remindersAccess {
-            EmptyState(symbol: "checklist", title: "Reminders are off", detail: "Allow Nook in System Settings → Privacy → Reminders")
-        } else if calendar.reminders.isEmpty {
-            EmptyState(symbol: "checkmark.circle", title: "All done", detail: "No open reminders")
-        } else {
-            ScrollView(showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(calendar.reminders, id: \.self) { reminder in
-                        HStack(alignment: .top, spacing: 8) {
-                            Button { withAnimation { calendar.complete(reminder) } } label: {
-                                Image(systemName: "circle").font(.system(size: 13))
-                            }
-                            .buttonStyle(.plain)
-                            Text(reminder.title ?? "").font(.system(size: 12)).lineLimit(2)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func dayTitle(_ day: Date) -> String {
-        if Calendar.current.isDateInToday(day) { return "TODAY" }
-        if Calendar.current.isDateInTomorrow(day) { return "TOMORROW" }
-        return day.formatted(.dateTime.weekday(.wide).day().month()).uppercased()
-    }
-}
-
-struct EventRow: View {
-    let event: EKEvent
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Circle().fill(Color(cgColor: event.calendar.cgColor)).frame(width: 7, height: 7)
-            Text(event.title ?? "Untitled").font(.system(size: 12)).lineLimit(1)
-            Spacer()
-            Text(event.isAllDay ? "All day" : event.startDate.formatted(date: .omitted, time: .shortened))
-                .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
-            if let url = CalendarService.meetingURL(for: event) {
-                IconButton("video.fill", size: 10) { NSWorkspace.shared.open(url) }
-            }
-        }
     }
 }

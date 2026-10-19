@@ -27,6 +27,7 @@ final class NotchViewModel: ObservableObject {
     @Published var isDropTargeted = false
     @Published var pinned = false
     @Published var heightOverrides: [String: CGFloat] = [:]
+    @Published var slideEdge: Edge = .trailing
     @Published private(set) var activity: Activity?
 
     let services = Services.shared
@@ -118,6 +119,23 @@ final class NotchViewModel: ObservableObject {
         }
         withAnimation(Self.spring) { state = .open }
         web.emit("open", self.tab)
+    }
+
+    /// Switch tab with a slide that matches the tab's position.
+    func select(_ id: String) {
+        let ids = enabledTabs.map(\.id)
+        guard id != tab, let from = ids.firstIndex(of: tab), let to = ids.firstIndex(of: id) else { tab = id; return }
+        slideEdge = to > from ? .trailing : .leading
+        withAnimation(.snappy(duration: 0.28)) { tab = id }
+    }
+
+    /// Trackpad swipe: +1 next tab, -1 previous (wraps).
+    func step(_ delta: Int) {
+        let ids = enabledTabs.map(\.id)
+        guard !ids.isEmpty, let i = ids.firstIndex(of: tab) else { return }
+        slideEdge = delta > 0 ? .trailing : .leading
+        withAnimation(.snappy(duration: 0.28)) { tab = ids[(i + delta + ids.count) % ids.count] }
+        if Prefs.bool(Prefs.haptics) { NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
     }
 
     /// Hotkey: open on this tab, or close if it's already showing.

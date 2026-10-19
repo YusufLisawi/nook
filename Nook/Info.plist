@@ -28,15 +28,7 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Nook reads what's playing in Music and Spotify and controls playback.</string>
-	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Nook shows your next meeting in the notch.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Nook shows your next meeting in the notch.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Nook records your voice for dictation.</string>
-	<key>NSRemindersFullAccessUsageDescription</key>
-	<string>Nook lists your reminders so you can tick them off.</string>
-	<key>NSRemindersUsageDescription</key>
-	<string>Nook lists your reminders so you can tick them off.</string>
 </dict>
 </plist>

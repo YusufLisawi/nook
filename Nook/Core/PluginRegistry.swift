@@ -28,7 +28,6 @@ final class PluginRegistry: ObservableObject {
         TabItem(id: "shelf", name: "Shelf", symbol: "tray.full.fill", order: 30, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "scratch", name: "Scratch", symbol: "square.and.pencil", order: 35, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "timers", name: "Timers", symbol: "timer", order: 80, height: defaultHeight, kind: .native, icon: nil),
-        TabItem(id: "calendar", name: "Calendar", symbol: "calendar", order: 90, height: defaultHeight, kind: .native, icon: nil),
     ]
 
     @Published private(set) var tabs: [TabItem] = nativeTabs

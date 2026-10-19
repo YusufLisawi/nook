@@ -143,8 +143,11 @@ struct ExpandedView: View {
             .frame(height: notch.height)
 
             content
+                .id(vm.tab)
+                .transition(.push(from: vm.slideEdge))
                 .frame(maxWidth: .infinity)
                 .frame(height: vm.contentHeight, alignment: .topLeading)
+                .clipped()
 
             TabDock(vm: vm).frame(height: NotchViewModel.dockHeight)
         }
@@ -159,11 +162,10 @@ struct ExpandedView: View {
             WebPluginView(webView: webView).id(tab.id)
         } else {
             switch vm.tab {
-            case "media": HomeTab(media: s.media, calendar: s.calendar)
+            case "media": HomeTab(media: s.media)
             case "shelf": ShelfTab(shelf: s.shelf, isTargeted: vm.isDropTargeted)
             case "scratch": ScratchTab()
             case "timers": TimersTab(timers: s.timers)
-            case "calendar": CalendarTab(calendar: s.calendar)
             default: EmptyState(symbol: "puzzlepiece.extension", title: "Missing plugin", detail: vm.tab)
             }
         }
@@ -179,7 +181,7 @@ struct TabDock: View {
             ForEach(vm.enabledTabs) { tab in
                 let selected = vm.tab == tab.id
                 Button {
-                    withAnimation(.snappy(duration: 0.2)) { vm.tab = tab.id }
+                    vm.select(tab.id)
                 } label: {
                     Image(systemName: tab.symbol)
                         .font(.system(size: 13, weight: .semibold))

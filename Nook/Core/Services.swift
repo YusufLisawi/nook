@@ -13,7 +13,6 @@ final class Services: ObservableObject {
     let media = MediaController()
     let timers = TimerService()
     let shelf = FileShelf()
-    let calendar = CalendarService()
     let system = SystemStats()
     let proxy = ProxyService()
     let dictation = DictationService()
@@ -25,7 +24,6 @@ final class Services: ObservableObject {
     func start() {
         plugins.start()
         media.start()
-        calendar.start()
         proxy.restoreOnLaunch()
         dictation.start()
     }

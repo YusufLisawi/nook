@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nook — A little notch. A whole lot more.</title>
+  <meta name="description" content="Your everyday Mac tools, one hover away. Nook is a free, open-source macOS notch app with dictation, a volume mixer, timers, and plugins you or your AI agent can build.">
+  <meta name="theme-color" content="#08090a">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Nook">
+  <meta property="og:title" content="Nook — A little notch. A whole lot more.">
+  <meta property="og:description" content="A free, open-source notch for macOS. Everyday tools at a hover. Endless possibilities with plugins.">
+  <meta property="og:image" content="assets/shots/home.png">
+  <meta property="og:image:width" content="743">
+  <meta property="og:image:height" content="320">
+  <meta property="og:image:alt" content="Nook’s Home panel with to-dos, Mac stats, and a focus timer.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="preload" as="image" href="assets/shots/home.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4"/></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4 1-4-2-6-2m12 5v-4a3.5 3.5 0 0 0-1-3c3 0 6-1 6-5a4 4 0 0 0-1-3 4 4 0 0 0 0-3s-1 0-3 1a11 11 0 0 0-6 0C8 4 7 4 7 4a4 4 0 0 0 0 3 4 4 0 0 0-1 3c0 4 3 5 6 5a3.5 3.5 0 0 0-1 3v4" transform="translate(-1 -1)"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.3-5.7-3-5.7 3 1.1-6.3-4.6-4.5 6.4-.9Z"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/></symbol>
+      <symbol id="i-mixer" viewBox="0 0 24 24"><path d="M5 3v7m0 4v7m7-18v12m0 4v2m7-18v2m0 4v12M2 10h6m1 5h6m1-10h6"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8m-4-5v5M6 10h3l2-4 3 7 2-3h2"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9m-10 12v-7h6v7"/></symbol>
+      <symbol id="i-script" viewBox="0 0 24 24"><path d="M5 5h14M5 10h14M5 15h10M5 20h7m6-5 3 3-3 3"/></symbol>
+      <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="14" r="8"/><path d="M12 6V2M9 2h6m3 6 2-2m-8 4v5l3 2"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 7h14M5 17h14"/></symbol>
+      <symbol id="i-note" viewBox="0 0 24 24"><path d="M19 12v8H4V5h8m3-1 3 3m-8 6 1-4 8-8 3 3-8 8-4 1ZM7 17h8"/></symbol>
+      <symbol id="i-shelf" viewBox="0 0 24 24"><path d="M4 13 2 20h20l-2-7h-5l-1 3h-4l-1-3H4ZM12 2v9m-4-4 4 4 4-4"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM20 2v4m-2-2h4"/></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 6-6 6 6 6m10-12 6 6-6 6M14 3l-4 18"/></symbol>
+      <symbol id="i-pointer" viewBox="0 0 24 24"><path d="m5 3 14 9-7 1-3 7-4-17Z"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="m8 3 8 0-1 6 4 4H5l4-4-1-6Zm4 10v9"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="site-header">
+    <nav class="nav wrap" aria-label="Main navigation">
+      <a class="brand" href="#top" aria-label="Nook home"><img src="assets/icon.png" alt="" width="36" height="36"><span>Nook</span></a>
+      <div class="nav-links"><a href="#features">Features</a><a href="#plugins">Plugins</a><a href="#faq">FAQ</a></div>
+      <a class="nav-download" href="https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg">Get Nook <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-copy wrap">
+        <a class="badge" href="#open-source"><span class="status-dot"></span> Free. Open source. Yours. <span aria-hidden="true">↗</span></a>
+        <h1 id="hero-title">A little notch.<br><span>A whole lot more.</span></h1>
+        <p class="hero-description">Your everyday Mac tools, one hover away.<br>A free, open-source notch with room for anything.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download for macOS</a>
+          <a class="button button-secondary" href="https://github.com/YusufLisawi/nook"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg> Star on GitHub</a>
+        </div>
+        <p class="compatibility">Free · macOS 14.2+ · Apple silicon &amp; Intel</p>
+      </div>
+
+      <div class="hero-demo wrap" data-demo>
+        <div class="demo-screen" role="group" aria-label="Nook product preview">
+          <div class="screen-wallpaper" aria-hidden="true"></div>
+          <div class="menu-bar" aria-hidden="true"><div><span class="menu-mark">●</span><b>Nook</b><span>File</span><span>View</span></div><div><span class="menu-wifi">◒</span><span class="menu-battery"></span><span>Mon 9:41</span></div></div>
+          <div class="camera-notch" aria-hidden="true"></div>
+          <div class="demo-track" id="notch-preview">
+            <img class="closed-notch" src="assets/shots/closed.png" alt="" width="243" height="54">
+            <div class="demo-slide is-active" data-slide="0"><img src="assets/shots/home.png" alt="Nook Home: a to-do list, CPU, memory and disk stats, and a focus timer, all inside the open notch." width="743" height="320" fetchpriority="high"></div>
+            <div class="demo-slide" data-slide="1" hidden><img src="assets/shots/monitor.png" alt="Nook System Monitor: live CPU, memory, disk, battery, network, and process stats." width="743" height="320"></div>
+            <div class="demo-slide" data-slide="2" hidden><img src="assets/shots/mixer.png" alt="Nook Mixer: speaker selection, volume controls, and a switch between sound and microphone." width="743" height="360"></div>
+            <div class="demo-slide" data-slide="3" hidden><img src="assets/shots/world-clock.png" alt="Nook World Clock: the time in Casablanca, Madrid, New York, and Dubai." width="743" height="290"></div>
+          </div>
+          <div class="screen-caption" aria-hidden="true"><span class="tiny-cross">+</span> A home for the things you reach for. <span class="tiny-cross">+</span></div>
+        </div>
+        <div class="demo-controls" hidden>
+          <div class="demo-options" role="group" aria-label="Choose a preview">
+            <button class="demo-option" type="button" data-preview="0" aria-pressed="true" aria-controls="notch-preview"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>Home</button>
+            <button class="demo-option" type="button" data-preview="1" aria-pressed="false" aria-controls="notch-preview"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg>Monitor</button>
+            <button class="demo-option" type="button" data-preview="2" aria-pressed="false" aria-controls="notch-preview"><svg class="icon" aria-hidden="true"><use href="#i-mixer"/></svg>Mixer</button>
+            <button class="demo-option" type="button" data-preview="3" aria-pressed="false" aria-controls="notch-preview"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg>Clocks</button>
+          </div>
+          <button class="demo-playback" type="button" aria-label="Pause preview"><span data-playback-icon aria-hidden="true">Ⅱ</span></button>
+        </div>
+        <p class="demo-hint">One hover to open. A whole new way to use your Mac.</p>
+      </div>
+      <div class="principles wrap" aria-label="Nook at a glance"><span><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Free forever</span><span><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg> MIT licensed</span><span><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg> Made for your workflow</span></div>
+    </section>
+
+    <section class="section wrap" id="features" aria-labelledby="features-title">
+      <div class="section-heading reveal"><p class="eyebrow">SMALL SPACE. BIG UPGRADE.</p><h2 id="features-title">Less switching.<br><span>More doing.</span></h2><p>The little things you do all day,<br>right where you need them.</p></div>
+      <div class="feature-grid">
+        <article class="feature-card dictation-card reveal">
+          <div class="feature-copy"><span class="feature-label"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg> Dictation</span><h3>Think it. Say it. Done.</h3><p>Hold <kbd aria-label="Control and Option">⌃⌥</kbd> and talk. Groq Whisper turns your voice into text; AI tidies it up. Keep your history. Retry a missed take.</p><span class="feature-note">Bring your own Groq API key.</span></div>
+          <div class="dictation-art" aria-hidden="true"><div class="voice-orbit"><div class="waveform"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="shortcut"><span>⌃</span><span>⌥</span><span class="shortcut-caption">hold to talk</span></div></div>
+        </article>
+        <article class="feature-card reveal">
+          <div class="feature-copy"><span class="feature-label"><svg class="icon" aria-hidden="true"><use href="#i-mixer"/></svg> Volume mixer</span><h3>Your sound. Your balance.</h3><p>Set each app’s volume, all the way to 200%. Pick your mic and speakers, then pin them as your defaults.</p></div>
+          <div class="feature-screen"><div class="mini-menubar" aria-hidden="true"></div><img src="assets/shots/mixer.png" alt="Nook’s volume mixer with output device selection and a volume slider." width="743" height="360" loading="lazy" decoding="async"></div>
+        </article>
+        <article class="feature-card reveal">
+          <div class="feature-copy"><span class="feature-label"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg> System monitor</span><h3>A pulse on your Mac.</h3><p>CPU, memory, disk, battery, and network activity. See what’s working hard without opening another window.</p></div>
+          <div class="feature-screen"><div class="mini-menubar" aria-hidden="true"></div><img src="assets/shots/monitor.png" alt="System Monitor showing CPU, memory, disk, battery, network speed, and top processes." width="743" height="320" loading="lazy" decoding="async"></div>
+        </article>
+        <article class="feature-card reveal">
+          <div class="feature-copy"><span class="feature-label"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg> Home</span><h3>A little command center.</h3><p>Your to-dos, system stats, and focus timer together. Get your bearings, pick a task, and get into it.</p></div>
+          <div class="feature-screen"><div class="mini-menubar" aria-hidden="true"></div><img src="assets/shots/home.png" alt="The Home tab with a to-do list, system stats, and 15-minute, 30-minute, and one-hour focus timers." width="743" height="320" loading="lazy" decoding="async"></div>
+        </article>
+        <article class="feature-card reveal">
+          <div class="feature-copy"><span class="feature-label"><svg class="icon" aria-hidden="true"><use href="#i-script"/></svg> Teleprompter</span><h3>Stay on script. Stay present.</h3><p>Your words scroll right under the camera. Keep your eyes up through the next call, demo, or recording.</p></div>
+          <div class="feature-screen"><div class="mini-menubar" aria-hidden="true"></div><img src="assets/shots/teleprompter.png" alt="Nook’s teleprompter with a script, scroll speed, font size, and playback controls." width="743" height="340" loading="lazy" decoding="async"></div>
+        </article>
+        <article class="feature-card reveal">
+          <div class="feature-copy"><span class="feature-label"><svg class="icon" aria-hidden="true"><use href="#i-timer"/></svg> Timers &amp; focus</span><h3>Make time for one thing.</h3><p>Start a quick timer or settle into a focus session. Keep the countdown close and your attention on the task.</p></div>
+          <div class="feature-screen"><div class="mini-menubar" aria-hidden="true"></div><img src="assets/shots/timers.png" alt="Nook Timers showing a 25-minute countdown, quick duration presets, and a stopwatch tab." width="743" height="320" loading="lazy" decoding="async"></div>
+        </article>
+      </div>
+      <div class="small-feature-grid">
+        <article class="small-feature reveal"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg><h3>Whole-Mac proxy</h3><p>Paste your proxies. Connect in one tap. Check your public IP right in the notch.</p></article>
+        <article class="small-feature reveal"><svg class="icon" aria-hidden="true"><use href="#i-note"/></svg><h3>A place for a thought</h3><p>Jot it down in Notes before it’s gone. Your next idea is always a hover away.</p></article>
+        <article class="small-feature reveal"><svg class="icon" aria-hidden="true"><use href="#i-shelf"/></svg><h3>Drop it. Grab it. Go.</h3><p>Drag files onto the Shelf, switch apps, then drag them out where you need them.</p></article>
+      </div>
+    </section>
+
+    <section class="native-section section" id="native" aria-labelledby="native-title">
+      <div class="wrap native-layout">
+        <div class="native-copy reveal"><p class="eyebrow">RIGHT AT HOME ON YOUR MAC</p><h2 id="native-title">Feels like it<br><span>belongs. Because<br> it does.</span></h2><p>Hover and it opens. Move on and it slips away. Smooth spring animations make a small space feel surprisingly natural.</p><div class="gesture-hint"><svg class="icon" aria-hidden="true"><use href="#i-pointer"/></svg><span>A little movement. Everything within reach.</span></div></div>
+        <div class="native-details reveal">
+          <div class="native-preview"><div class="native-screen-edge" aria-hidden="true"></div><img src="assets/shots/world-clock.png" alt="The World Clock plugin, open at the top edge of the screen with four international clocks." width="743" height="290" loading="lazy" decoding="async"><span class="native-preview-caption">Same notch. A world of possibilities.</span></div>
+          <div class="native-feature-grid">
+            <div><span class="native-glyph" aria-hidden="true">⇆</span><h3>Swipe into place</h3><p>Two fingers to change tabs. Drag to reorder them.</p></div>
+            <div><span class="native-glyph" aria-hidden="true">⌘</span><h3>Your own shortcuts</h3><p>Give each tab a hotkey. Jump straight to what you need.</p></div>
+            <div><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg><h3>Every screen is welcome</h3><p>No notch? Nook adds one. External monitors included.</p></div>
+            <div><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg><h3>Make a little room</h3><p>Pin it open. Set a different height for every tab.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap plugins-section" id="plugins" aria-labelledby="plugins-title">
+      <div class="plugin-layout">
+        <div class="plugin-copy reveal"><p class="eyebrow">BUILT TO BE BUILT ON</p><h2 id="plugins-title">Every tab<br> is a plugin.<br><span>Even yours.</span></h2><p>An HTML/JS folder and a <code>plugin.json</code>. That’s a Nook plugin. Save a change and it’s live. No rebuild. No waiting.</p><a class="text-link" href="https://github.com/YusufLisawi/nook/blob/main/PLUGINS.md">Make your first plugin <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a><div class="plugin-ingredients"><span>HTML + JS</span><span>Hot reload</span><span>Your ideas</span></div></div>
+        <div class="code-window reveal">
+          <div class="code-titlebar"><div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div><span>my-widget /</span><span class="code-live"><span class="status-dot"></span>live</span></div>
+          <div class="code-file"><span class="file-type" aria-hidden="true">{ }</span> plugin.json</div>
+          <pre tabindex="0" role="region" aria-label="Example plugin manifest"><code>{
+  <span class="syntax-key">"id"</span>: <span class="syntax-string">"my-widget"</span>,
+  <span class="syntax-key">"name"</span>: <span class="syntax-string">"CPU"</span>,
+  <span class="syntax-key">"symbol"</span>: <span class="syntax-string">"cpu"</span>,
+  <span class="syntax-key">"entry"</span>: <span class="syntax-string">"index.html"</span>,
+  <span class="syntax-key">"height"</span>: <span class="syntax-number">120</span>
+}</code></pre>
+          <div class="code-file"><span class="file-type" aria-hidden="true">JS</span> main.js</div>
+          <pre tabindex="0" role="region" aria-label="Example JavaScript for a live CPU widget"><code><span class="syntax-comment">// Loaded by index.html, alongside a &lt;main&gt;.</span>
+<span class="syntax-key">const</span> view = document.querySelector(<span class="syntax-string">"main"</span>);
+
+<span class="syntax-key">async function</span> <span class="syntax-function">refresh</span>() {
+  <span class="syntax-key">try</span> {
+    <span class="syntax-key">const</span> { cpu } = <span class="syntax-key">await</span> window.nook.<span class="syntax-function">system</span>();
+    view.textContent =
+      <span class="syntax-string">`${Math.round(cpu.usage * 100)}% CPU`</span>;
+  } <span class="syntax-key">catch</span> {
+    view.textContent = <span class="syntax-string">"CPU unavailable"</span>;
+  }
+}
+<span class="syntax-function">refresh</span>();
+<span class="syntax-function">setInterval</span>(refresh, <span class="syntax-number">2000</span>);</code></pre>
+          <div class="code-footnote"><span class="status-dot"></span> Edit. Save. There it is.</div>
+        </div>
+      </div>
+      <div class="bridge-features reveal"><div><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg><h3>Small plugin. Real power.</h3><p><code>window.nook</code> connects your code to shell commands, fetch, storage, system stats, and notifications.</p></div><div><svg class="icon" aria-hidden="true"><use href="#i-mixer"/></svg><h3>Settings, already handled.</h3><p>Declare options in <code>plugin.json</code>. Nook builds the settings form and saves your preferences.</p></div><div><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg><h3>Useful, even when closed.</h3><p>Show live activity on the closed notch. A build status, a countdown, or whatever matters to you.</p></div></div>
+      <div class="terminal reveal"><div class="terminal-label"><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg><span>Your idea → your notch</span></div><div class="terminal-commands"><code><span>$</span> nook new my-widget</code><code><span>$</span> nook open my-widget</code><code><span>$</span> nook logs -f</code><code><span>$</span> nook validate</code></div></div>
+    </section>
+
+    <section class="ai-section section wrap" aria-labelledby="ai-title">
+      <div class="ai-card reveal">
+        <div class="ai-copy"><p class="eyebrow">AN IDEA IS ALL YOU NEED</p><h2 id="ai-title">Your next plugin<br><span>starts with a sentence.</span></h2><p>Nook installs a <code>nook</code> CLI and an agent skill for Claude Code &amp; Codex. Your agent gets the tools and the know-how. You bring the idea.</p><a class="text-link" href="https://github.com/YusufLisawi/nook/blob/main/PLUGINS.md">Meet your new building blocks <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <div class="agent-demo"><div class="agent-top"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg><span>YOU IMAGINE. YOUR AGENT BUILDS.</span></div><div class="agent-prompt"><span class="prompt-symbol" aria-hidden="true">&gt;</span><p>Make a nook plugin that shows my open GitHub PRs.</p></div><div class="agent-path" aria-hidden="true"><span></span><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg><span></span></div><div class="agent-result"><div class="result-notch" aria-hidden="true"></div><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg><span>Your idea, right here.</span><span class="result-dot" aria-hidden="true"></span></div><p class="agent-caption">A PR tracker? A custom dashboard? Your call.</p></div>
+      </div>
+    </section>
+
+    <section class="open-source-section section wrap" id="open-source" aria-labelledby="open-source-title">
+      <div class="open-source-mark reveal" aria-hidden="true"><svg class="icon"><use href="#i-code"/></svg></div>
+      <div class="section-heading centered reveal"><p class="eyebrow">GOOD TOOLS SHOULD BE OPEN</p><h2 id="open-source-title">Yours to use.<br><span>Yours to make better.</span></h2><p>Free forever. Open source under MIT.<br>No Nook account. No tracking. Just a useful little app.</p><a class="button button-secondary" href="https://github.com/YusufLisawi/nook"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg> Build with us on GitHub <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a><span class="open-source-note">Read the code. Make a plugin. Send a pull request.</span></div>
+    </section>
+
+    <section class="faq-section section wrap" id="faq" aria-labelledby="faq-title">
+      <div class="faq-heading reveal"><p class="eyebrow">A FEW GOOD QUESTIONS</p><h2 id="faq-title">Before you<br><span>move in.</span></h2><p>Small app. No big mysteries.</p></div>
+      <div class="faq-list reveal">
+        <details><summary>Is Nook really free?<span class="faq-plus" aria-hidden="true"></span></summary><div class="faq-answer"><p>Yes. Nook is free and open source under the MIT license. Use it, change it, and share it. There’s no subscription or Nook account. Optional services you connect, such as Groq for dictation, use your own API key and may have their own costs.</p></div></details>
+        <details><summary>Will it work on my Mac?<span class="faq-plus" aria-hidden="true"></span></summary><div class="faq-answer"><p>Nook runs on macOS 14.2 or later, on Apple silicon and Intel. It works on Macs without a notch, too, by adding a virtual one at the top of the screen. External monitors are welcome.</p></div></details>
+        <details id="faq-open"><summary>macOS says it can’t verify the developer.<span class="faq-plus" aria-hidden="true"></span></summary><div class="faq-answer"><p>Nook isn’t notarized yet. After moving it to Applications, right-click Nook and choose <strong>Open</strong>. If macOS still blocks it, try opening it once, then go to <strong>System Settings → Privacy &amp; Security → Open Anyway</strong> and confirm.</p></div></details>
+        <details><summary>What permissions does Nook need?<span class="faq-plus" aria-hidden="true"></span></summary><div class="faq-answer"><p><strong>Accessibility</strong> enables global shortcuts and pasting dictated text. <strong>Microphone</strong> lets you record dictation. <strong>Audio capture</strong> lets the volume mixer control sound per app. Dictation sends audio to Groq for transcription and uses AI for optional cleanup.</p></div></details>
+        <details><summary>How do plugins work?<span class="faq-plus" aria-hidden="true"></span></summary><div class="faq-answer"><p>Each tab is a folder with HTML, JavaScript, and a <code>plugin.json</code> manifest. Nook loads it at runtime and reloads it when you edit a file. The <code>window.nook</code> bridge provides native features, including shell access, so only install plugins you trust. Build one yourself, or ask Claude Code or Codex to help. <a href="https://github.com/YusufLisawi/nook/blob/main/PLUGINS.md">Read the plugin docs <span aria-hidden="true">↗</span></a></p></div></details>
+      </div>
+    </section>
+
+    <section class="download-section wrap" id="download" aria-labelledby="download-title">
+      <div class="download-inner reveal"><img class="download-icon" src="assets/icon.png" alt="Nook app icon" width="88" height="88" loading="lazy"><p class="eyebrow">A NEW HOME AT THE TOP OF YOUR SCREEN</p><h2 id="download-title">Go on. Make room<br>for a little more.</h2><a class="button button-primary" href="https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download for macOS</a><p class="compatibility">Free · macOS 14.2+ · Apple silicon &amp; Intel</p><a class="first-open" href="#faq-open">First time opening Nook? <span aria-hidden="true">↗</span></a></div>
+    </section>
+  </main>
+
+  <footer class="site-footer wrap"><a class="brand" href="#top" aria-label="Back to Nook home"><img src="assets/icon.png" alt="" width="28" height="28"><span>Nook</span></a><p>© 2026 Youssef El Aissaoui</p><div><a href="https://github.com/YusufLisawi/nook/blob/main/LICENSE">MIT</a><a href="https://github.com/YusufLisawi/nook">GitHub <span aria-hidden="true">↗</span></a></div></footer>
+</body>
+</html>

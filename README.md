@@ -38,13 +38,13 @@ Everything is optional — turn tabs off in Settings.
 
 ## Install
 
-**One line, no security prompt:**
+**Or from Terminal:**
 
 ```bash
 curl -fsSL https://nook.motkan.com/install.sh | bash
 ```
 
-Or [download Nook.dmg](https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg) and drag **Nook** to Applications. The DMG isn't notarized yet, so the first time: System Settings → Privacy & Security → **Open Anyway**.
+Or [download Nook.dmg](https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg) and drag **Nook** to Applications. Signed with Developer ID and notarized by Apple.
 3. Grant what you use: **Accessibility** (shortcuts, paste), **Microphone** (dictation), **System Audio Recording** (per-app volume).
 
 Requires macOS 14.2 or later. Apple silicon and Intel.
@@ -82,7 +82,7 @@ git clone https://github.com/YusufLisawi/nook && cd nook
 ./scripts/make-dmg.sh          # universal build → dist/Nook.dmg
 ```
 
-The project is generated from `project.yml`. Release builds are signed with a local identity named "Nook Local Signing" (create your own self-signed code-signing certificate with that name, or change `CODE_SIGN_IDENTITY`).
+The project is generated from `project.yml`. Official builds are signed with Motkan LLC's Developer ID and notarized (`scripts/release.sh`). To build yourself, set `CODE_SIGN_IDENTITY` to `-` (ad-hoc) or your own identity and `DEVELOPMENT_TEAM` to your team.
 
 ## Credits
 

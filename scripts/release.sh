@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DEV_ID=$(security find-identity -v -p codesigning | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)
-IDENTITY=${DEV_ID:-"Nook Local Signing"}
+IDENTITY=${DEV_ID:-"-"} # no Developer ID → ad-hoc (contributors)
 echo "Signing as: $IDENTITY"
 
 xcodegen generate >/dev/null

@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.2.1</title>
+  <pubDate>Mon, 19 Oct 2026 20:21:14 GMT</pubDate>
+  <sparkle:version>5</sparkle:version>
+  <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<p>Nook 1.2.1 — the first automatic update.</p><li>The menu bar menu now shows your Nook version</li><li>New `nook://check-updates` link (and `nook` CLI-friendly) to check for updates</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.2.1/Nook.dmg" type="application/octet-stream" sparkle:edSignature="v3FNmN58j+b8tqghwIbVhqobjZUWZZ561STRwjfhTaJVp3DvYfx+IFXrLL91N7Grk14Nwuydqg5Oakw9kqT9BA==" length="6153160"/>
+</item>
+<item>
   <title>Nook 1.2.0</title>
   <pubDate>Mon, 19 Oct 2026 20:16:33 GMT</pubDate>
   <sparkle:version>4</sparkle:version>

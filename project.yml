@@ -9,6 +9,10 @@ settings:
     ARCHS: "$(ARCHS_STANDARD)"
     DEVELOPMENT_TEAM: B6K7724JDG # Motkan LLC — contributors: set your own team (or CODE_SIGN_IDENTITY "-")
     MACOSX_DEPLOYMENT_TARGET: "14.2"
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.10.0
 targets:
   Nook:
     type: application
@@ -33,6 +37,7 @@ targets:
       - path: PLUGINS.md
         buildPhase: resources
     dependencies:
+      - package: Sparkle
       - target: nook-cli
         embed: true
         copy:
@@ -41,9 +46,13 @@ targets:
       path: Nook/Info.plist
       properties:
         CFBundleDisplayName: Nook
-        CFBundleShortVersionString: "1.1.0"
-        CFBundleVersion: "3"
+        CFBundleShortVersionString: "1.2.0"
+        CFBundleVersion: "4"
         CFBundleIconFile: AppIcon
+        SUFeedURL: https://nook.motkan.com/appcast.xml
+        SUPublicEDKey: o0nqzSMKi74tZHIX4EozjBPfG36ikQh6OblRjqlPddA=
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
         CFBundleURLTypes:
           - CFBundleURLName: com.yusuf.nook
             CFBundleURLSchemes: [nook]

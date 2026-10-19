@@ -1,8 +1,11 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var controllers: [NotchController] = []
+    /// Sparkle: checks nook.motkan.com/appcast.xml daily; updates are EdDSA-signed + notarized.
+    let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
 
@@ -99,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.delegate = self
         menu.addItem(withTitle: "Open Nook", action: #selector(openNotch), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        menu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "").target = updater
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Nook", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu

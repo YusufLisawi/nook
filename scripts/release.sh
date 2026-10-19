@@ -16,6 +16,14 @@ xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedD
   CODE_SIGN_IDENTITY="$IDENTITY" OTHER_CODE_SIGN_FLAGS="--timestamp" build | grep -E "error:|BUILD" || true
 APP=build/Build/Products/Release/Nook.app
 # Re-sign inside-out with hardened runtime + secure timestamp (both required by notarization).
+SPK="$APP/Contents/Frameworks/Sparkle.framework"
+if [[ -d "$SPK" ]]; then # Sparkle's helpers first (Downloader keeps its own entitlements), then the framework
+  codesign --force --options runtime --timestamp -s "$IDENTITY" "$SPK/Versions/B/XPCServices/Installer.xpc"
+  codesign --force --options runtime --timestamp --preserve-metadata=entitlements -s "$IDENTITY" "$SPK/Versions/B/XPCServices/Downloader.xpc"
+  codesign --force --options runtime --timestamp -s "$IDENTITY" "$SPK/Versions/B/Autoupdate"
+  codesign --force --options runtime --timestamp -s "$IDENTITY" "$SPK/Versions/B/Updater.app"
+  codesign --force --options runtime --timestamp -s "$IDENTITY" "$SPK"
+fi
 codesign --force --options runtime --timestamp -s "$IDENTITY" "$APP/Contents/MacOS/nook-cli"
 codesign --force --options runtime --timestamp --entitlements Nook/Nook.entitlements -s "$IDENTITY" "$APP"
 codesign --verify --strict --deep "$APP" && echo "signature ok"

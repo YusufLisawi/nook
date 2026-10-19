@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.1.0</string>
+	<string>1.2.0</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -32,7 +32,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>4</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.2</string>
 	<key>LSUIElement</key>
@@ -43,5 +43,13 @@
 	<string>Nook's volume mixer changes each app's volume by routing its sound through Nook.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Nook records your voice for dictation.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://nook.motkan.com/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>o0nqzSMKi74tZHIX4EozjBPfG36ikQh6OblRjqlPddA=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

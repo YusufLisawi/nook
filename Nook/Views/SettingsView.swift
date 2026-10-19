@@ -81,6 +81,7 @@ struct SettingsView: View {
             } footer: {
                 Text("Drag tab icons in the notch to reorder them. Shortcuts open that tab from anywhere (press again to close). Drop a plugin folder into the Plugins folder; it shows up right away, with no rebuild.").font(.caption)
             }
+            UpdatesSection()
             ToolsSection()
             Section("Dictation") {
                 Picker("Transcription", selection: $engine) {
@@ -143,6 +144,29 @@ private struct CustomizeButton: View {
                         .padding(16)
                         .frame(width: 340)
                 }
+        }
+    }
+}
+
+/// Settings → Updates (Sparkle).
+private struct UpdatesSection: View {
+    private let updater = (NSApp.delegate as? AppDelegate)?.updater.updater
+    @State private var autoCheck = true
+    @State private var autoInstall = false
+
+    var body: some View {
+        Section("Updates") {
+            LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")
+            Toggle("Check for updates automatically", isOn: $autoCheck)
+                .onChange(of: autoCheck) { _, on in updater?.automaticallyChecksForUpdates = on }
+            Toggle("Download and install updates automatically", isOn: $autoInstall)
+                .onChange(of: autoInstall) { _, on in updater?.automaticallyDownloadsUpdates = on }
+                .disabled(!autoCheck)
+            Button("Check Now") { updater?.checkForUpdates() }
+        }
+        .onAppear {
+            autoCheck = updater?.automaticallyChecksForUpdates ?? true
+            autoInstall = updater?.automaticallyDownloadsUpdates ?? false
         }
     }
 }

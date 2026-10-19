@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.2.4</title>
+  <pubDate>Mon, 19 Oct 2026 21:23:06 GMT</pubDate>
+  <sparkle:version>8</sparkle:version>
+  <sparkle:shortVersionString>1.2.4</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<p>Nook 1.2.4</p><li>Dictation recordings are deleted automatically (default: after 1 day). Your transcripts stay.</li><li>Choose 1 hour, 5 hours, 1 day, 1 week or never in Settings → Dictation</li><li>Failed dictations keep their audio for a week so Retry still works</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.2.4/Nook.dmg" type="application/octet-stream" sparkle:edSignature="/3wn6rk9p0twQAqK97nySEYG5jKwequlWow1Daq5tF6RXvL9S/b9CpY5VKowr5GiMbn9WCESKhHRFcltf6MkBg==" length="6170313"/>
+</item>
+<item>
   <title>Nook 1.2.3</title>
   <pubDate>Mon, 19 Oct 2026 20:50:02 GMT</pubDate>
   <sparkle:version>7</sparkle:version>

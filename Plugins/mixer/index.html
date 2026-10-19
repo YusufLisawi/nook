@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <symbol id="i-spk" viewBox="0 0 20 20"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor"/><path d="M13 7.5a3.5 3.5 0 0 1 0 5M15.5 5.5a6.5 6.5 0 0 1 0 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 20 20"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor"/><path d="m13 8 4 4m0-4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 20 20"><path d="M5 9a5 5 0 1 1 1.5 4M5 5v4h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 20 20"><path d="M7 3h6l-1 5 3 3H5l3-3zM10 11v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-pinf" viewBox="0 0 20 20"><path d="M7 3h6l-1 5 3 3H5l3-3z" fill="currentColor"/><path d="M10 11v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 20 20"><rect x="7" y="2.5" width="6" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs></svg>
+
+  <main class="nk-root">
+    <header class="nk-row-flex">
+      <select id="device" class="nk-input picker" title="Output device"></select>
+      <button id="pin" class="nk-icon-btn" title="Keep as default"><svg><use href="#i-pin"/></svg></button>
+      <span class="nk-fill"></span>
+      <div class="nk-seg" id="view">
+        <button data-view="output" class="nk-on">Sound</button>
+        <button data-view="input">Mic</button>
+      </div>
+    </header>
+
+    <div id="error" class="nk-error" hidden></div>
+
+    <section id="output" class="strip nk-fill"></section>
+
+    <section id="input" class="nk-col nk-fill" hidden>
+      <div class="nk-card nk-tight mic-volume">
+        <svg class="mic-icon"><use href="#i-mic"/></svg>
+        <span class="nk-small nk-muted">Input volume</span>
+        <input id="micVolume" type="range" min="0" max="100" class="nk-fill">
+        <b id="micValue" class="nk-num">—</b>
+      </div>
+      <div id="mics" class="nk-list nk-scroll nk-fill"></div>
+    </section>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

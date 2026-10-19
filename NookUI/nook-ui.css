@@ -3,6 +3,8 @@
 
 .nk-root { box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.35; }
 .nk-root *, .nk-root *::before, .nk-root *::after { box-sizing: border-box; }
+/* `hidden` must win over the kit's display rules (nk-error, nk-col… are flex). */
+[hidden] { display: none !important; }
 .nk-row-flex { display: flex; align-items: center; gap: 8px; }
 .nk-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 .nk-fill { flex: 1; min-width: 0; min-height: 0; }

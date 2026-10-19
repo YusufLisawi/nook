@@ -111,6 +111,7 @@ final class WebPluginHost: NSObject {
         case "timer.stop": s.timers.reset(); reply(timerState(s.timers), nil)
         case "timer.state": reply(timerState(s.timers), nil)
         case let f where f.hasPrefix("proxy."): s.proxy.handle(String(f.dropFirst(6)), args: args, reply: reply)
+        case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default: reply(nil, "Unknown nook call: \(fn)")
         }
@@ -154,6 +155,7 @@ final class WebPluginHost: NSObject {
             notch: { close: () => call('notch.close'), pin: p => call('notch.pin', !!p), setHeight: h => call('notch.setHeight', Number(h)) },
             proxy: Object.fromEntries(['list','add','remove','rename','connect','disconnect','ip'].map(n => [n, (...a) => call('proxy.' + n, ...a)])),
             timer: { start: m => call('timer.start', Number(m)), stop: () => call('timer.stop'), state: () => call('timer.state') },
+            audio: Object.fromEntries(['state','setDefault','setDeviceVolume','setDeviceMute','setPreferred','setAppVolume','setAppMute','resetApp','openPrivacy'].map(n => [n, (...a) => call('audio.' + n, ...a)])),
             dictation: Object.fromEntries(['history','retry','remove','copy','paste','clear','state','toggle'].map(n => [n, (...a) => call('dictation.' + n, ...a)])),
             on: (e, cb) => { (listeners[e] = listeners[e] || []).push(cb); },
             _emit: (e, d) => (listeners[e] || []).forEach(cb => { try { cb(d); } catch (err) { console.error(err); } }),

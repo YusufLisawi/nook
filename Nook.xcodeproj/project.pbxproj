@@ -12,6 +12,7 @@
 		31C2915681CE1780B2E4A3F3 /* Groq.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD88336361791E70385D715 /* Groq.swift */; };
 		3493A661FBB0DBA502384425 /* Plugins in Resources */ = {isa = PBXBuildFile; fileRef = 511F04655A88E65837A89A02 /* Plugins */; };
 		36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56729F3514AAE0833BA5B921 /* AppDelegate.swift */; };
+		369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7A346371B85AEE3A606DDF /* AudioMixer.swift */; };
 		3EC534324EA0668F89733786 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED7F0CE539625E9216FFC57 /* Services.swift */; };
 		417B30DC9B913FA1DA788859 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FB94566365EE9D32B99E1 /* NotchPanel.swift */; };
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
@@ -51,6 +52,7 @@
 		511F04655A88E65837A89A02 /* Plugins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Plugins; sourceTree = SOURCE_ROOT; };
 		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		56729F3514AAE0833BA5B921 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		5C7A346371B85AEE3A606DDF /* AudioMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMixer.swift; sourceTree = "<group>"; };
 		66A8305528A9B604368F8C25 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
 		6AF31C476DBDFF1170647A72 /* Nook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
@@ -76,6 +78,7 @@
 		0BB6FA2B1EAFA56051E5EB3F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5C7A346371B85AEE3A606DDF /* AudioMixer.swift */,
 				C56F150318FB5BF1029A8DF1 /* FileShelf.swift */,
 				66A8305528A9B604368F8C25 /* MediaController.swift */,
 				FD70FF370E94556B10546FF6 /* ProxyService.swift */,
@@ -232,6 +235,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
+				369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */,
 				9693847AED3AC165044B60F9 /* Components.swift in Sources */,
 				E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */,
 				864E1DCD0564607BE5F16D0C /* DictationShortcut.swift in Sources */,
@@ -308,7 +312,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -370,7 +374,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

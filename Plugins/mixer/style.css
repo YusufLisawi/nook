@@ -1,0 +1,41 @@
+.picker { width: auto; max-width: 260px; padding: 5px 9px; font-weight: 600; -webkit-appearance: none; appearance: none; cursor: default;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 13px) 52%, calc(100% - 9px) 52%; background-size: 4px 4px; background-repeat: no-repeat; padding-right: 24px; }
+.picker option { background: #1c1c1e; }
+.nk-icon-btn.on { color: var(--accent); }
+
+/* Channel strip */
+.strip { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; min-height: 0; align-items: stretch; }
+.strip::-webkit-scrollbar { display: none; }
+.channel { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0; border-radius: 12px; }
+.channel:hover { background: rgba(255, 255, 255, .04); }
+.channel.master { width: 70px; }
+.divider { flex: none; width: 1px; background: var(--border); margin: 8px 4px; }
+.head { height: 30px; display: grid; place-items: center; position: relative; }
+.head img { width: 28px; height: 28px; }
+.head svg { width: 20px; height: 20px; }
+.playing-dot { position: absolute; right: -3px; bottom: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px #000; }
+.name { font-size: 10px; color: var(--muted); max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.track { position: relative; width: 30px; flex: 1; min-height: 70px; border-radius: 10px; background: rgba(255, 255, 255, .1); overflow: hidden; cursor: ns-resize; touch-action: none; }
+.track .fill { position: absolute; left: 0; right: 0; bottom: 0; background: #f2f2f2; transition: height .08s linear, background .2s; }
+.track.boost .fill { background: var(--accent); }
+.track.muted .fill { background: rgba(255, 255, 255, .25); }
+.track .tick { position: absolute; left: 0; right: 0; height: 1px; background: rgba(255, 255, 255, .35); mix-blend-mode: difference; pointer-events: none; }
+
+.foot { display: flex; align-items: center; gap: 2px; height: 20px; }
+.value { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 34px; text-align: center; color: var(--muted); }
+.value.boost { color: var(--accent); font-weight: 600; }
+.mini { appearance: none; border: 0; background: transparent; color: var(--muted); width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; cursor: default; padding: 0; }
+.mini:hover { background: rgba(255, 255, 255, .12); color: var(--fg); }
+.mini svg { width: 13px; height: 13px; }
+.mini.on { color: var(--bad); }
+.mini.hide { visibility: hidden; }
+.empty-apps { flex: 1; }
+
+/* Mic view */
+.mic-volume { display: flex; align-items: center; gap: 10px; }
+.mic-icon { width: 16px; height: 16px; color: var(--accent); flex: none; }
+.mic-volume input[type=range] { accent-color: var(--accent); }
+.mic-row .check { width: 16px; height: 16px; color: var(--accent); flex: none; }
+.mic-row .check.off { visibility: hidden; }

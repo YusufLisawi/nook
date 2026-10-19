@@ -16,6 +16,7 @@ final class Services: ObservableObject {
     let system = SystemStats()
     let proxy = ProxyService()
     let dictation = DictationService()
+    let audio = AudioMixer()
     let plugins = PluginRegistry()
 
     /// Set by web plugins through `nook.activity.set`; shown on the closed notch.
@@ -26,10 +27,12 @@ final class Services: ObservableObject {
         media.start()
         proxy.restoreOnLaunch()
         dictation.start()
+        audio.start()
     }
 
     func shutdown() {
         proxy.shutdown()
+        audio.shutdown() // remove taps so no app is left muted
     }
 }
 

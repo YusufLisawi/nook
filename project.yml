@@ -2,11 +2,11 @@ name: Nook
 options:
   bundleIdPrefix: com.yusuf
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "14.2"
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.2"
 targets:
   Nook:
     type: application
@@ -30,9 +30,10 @@ targets:
           - CFBundleURLName: com.yusuf.nook
             CFBundleURLSchemes: [nook]
         LSUIElement: true
-        LSMinimumSystemVersion: "14.0"
+        LSMinimumSystemVersion: "14.2"
         NSAppleEventsUsageDescription: Nook reads what's playing in Music and Spotify and controls playback.
         NSMicrophoneUsageDescription: Nook records your voice for dictation.
+        NSAudioCaptureUsageDescription: Nook's volume mixer changes each app's volume by routing its sound through Nook.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yusuf.nook

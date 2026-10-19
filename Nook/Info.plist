@@ -34,11 +34,13 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>14.0</string>
+	<string>14.2</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Nook reads what's playing in Music and Spotify and controls playback.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Nook's volume mixer changes each app's volume by routing its sound through Nook.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Nook records your voice for dictation.</string>
 </dict>

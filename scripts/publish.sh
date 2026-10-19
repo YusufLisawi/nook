@@ -9,6 +9,9 @@ VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Co
 BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Contents/Info.plist")
 SPARKLE_BIN=${SPARKLE_BIN:-$HOME/Developer/_ext/sparkle/bin}
 xcrun stapler validate dist/Nook.dmg >/dev/null || { echo "dist/Nook.dmg isn't notarized — run release.sh first"; exit 1; }
+if command -v gitleaks >/dev/null; then # never publish with a possible secret in the repo
+  gitleaks dir . --redact --no-banner --exit-code 1 >/dev/null 2>&1 || { echo "✗ gitleaks found a possible secret — fix it before publishing"; exit 1; }
+fi
 
 # EdDSA signature with the private key in the keychain (account "nook").
 SIG=$("$SPARKLE_BIN/sign_update" --account nook dist/Nook.dmg)   # → sparkle:edSignature="…" length="…"

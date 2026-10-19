@@ -52,4 +52,11 @@ PY
 gh release create "v$VERSION" dist/Nook.dmg --repo YusufLisawi/nook --title "Nook $VERSION" --notes-file "$NOTES" --latest
 git add site/appcast.xml && git commit -qm "Appcast: Nook $VERSION" && git push -q origin main
 coolify deploy uuid c0eavfha70p6pxmafnrj6atc >/dev/null 2>&1 || echo "! redeploy the site in Coolify (nook-landing)"
-echo "✓ Published Nook $VERSION — existing installs will offer it within a day (or Check for Updates…)"
+# Coolify swaps containers on redeploy; wait until the live feed serves this version before calling it done.
+for i in {1..30}; do
+  curl -fs https://nook.motkan.com/appcast.xml | grep -q "<sparkle:shortVersionString>$VERSION<" && break
+  sleep 5
+done
+curl -fs https://nook.motkan.com/appcast.xml | grep -q "<sparkle:shortVersionString>$VERSION<" \
+  && echo "✓ Published Nook $VERSION — feed is live; installs will offer it within a day (or Check for Updates…)" \
+  || echo "! Feed doesn't show $VERSION yet — check the nook-landing app in Coolify"

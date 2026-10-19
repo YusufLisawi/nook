@@ -26,7 +26,7 @@ enum Groq {
         field("response_format", "json")
         field("temperature", "0")
         if !vocabulary.isEmpty { field("prompt", vocabulary.replacingOccurrences(of: "\n", with: ", ")) }
-        body += Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"\(file.lastPathComponent)\"\r\nContent-Type: audio/m4a\r\n\r\n".utf8)
+        body += Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"\(file.lastPathComponent)\"\r\nContent-Type: \(file.pathExtension == "wav" ? "audio/wav" : "audio/m4a")\r\n\r\n".utf8)
         body += try Data(contentsOf: file)
         body += Data("\r\n--\(boundary)--\r\n".utf8)
         request.httpBody = body

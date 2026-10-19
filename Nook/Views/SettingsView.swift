@@ -18,6 +18,9 @@ struct SettingsView: View {
     @AppStorage(DictationService.Keys.sounds) private var sounds = true
     @AppStorage(DictationService.Keys.vocabulary) private var vocabulary = ""
     @AppStorage(DictationService.Keys.prompt) private var prompt = DictationService.defaultPrompt
+    @AppStorage(DictationService.Keys.engine) private var engine = "chatgpt"
+    @AppStorage(DictationService.Keys.micUID) private var micUID = ""
+    @State private var mics = MicRecorder.microphones()
     @State private var groqKey = Secrets.get(DictationService.Keys.groqSecret) ?? ""
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -80,7 +83,20 @@ struct SettingsView: View {
             }
             ToolsSection()
             Section("Dictation") {
-                SecureField("Groq API key (dictation + AI)", text: $groqKey)
+                Picker("Transcription", selection: $engine) {
+                    Text("ChatGPT (your Codex login)").tag("chatgpt")
+                    Text("Groq Whisper").tag("groq")
+                }
+                if engine == "chatgpt" {
+                    Text(OpenAITranscriber.status).font(.caption)
+                        .foregroundStyle(OpenAITranscriber.readAuth() == nil ? Color.orange : Color.secondary)
+                }
+                Picker("Microphone", selection: $micUID) {
+                    Text("System default").tag("")
+                    ForEach(mics) { Text($0.name).tag($0.id) }
+                }
+                .onAppear { mics = MicRecorder.microphones() }
+                SecureField("Groq API key (Groq engine, AI clean-up, nook.ai)", text: $groqKey)
                     .onChange(of: groqKey) { _, key in Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) }
                 LabeledContent("Hold to talk") {
                     DictationShortcutField(storageKey: DictationService.Keys.holdShortcut, fallback: .defaultHold)

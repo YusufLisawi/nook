@@ -10,6 +10,7 @@
 		01381470FD8777D82669823C /* ToolsInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A33F966890CC6F544C6D730 /* ToolsInstaller.swift */; };
 		090E3A91C0607295B1B6509A /* skill in Resources */ = {isa = PBXBuildFile; fileRef = 251F2F98844B8FDBF322E6BB /* skill */; };
 		1830C87670856F04FDE26E8B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A708EC61760010B0EA91A3 /* main.swift */; };
+		2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44481D567E5664A614F2BDF9 /* MicRecorder.swift */; };
 		318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E3F23227270422F28E8EA8 /* SettingsView.swift */; };
 		31C2915681CE1780B2E4A3F3 /* Groq.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD88336361791E70385D715 /* Groq.swift */; };
 		3493A661FBB0DBA502384425 /* Plugins in Resources */ = {isa = PBXBuildFile; fileRef = 511F04655A88E65837A89A02 /* Plugins */; };
@@ -17,6 +18,7 @@
 		369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7A346371B85AEE3A606DDF /* AudioMixer.swift */; };
 		3EC534324EA0668F89733786 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED7F0CE539625E9216FFC57 /* Services.swift */; };
 		417B30DC9B913FA1DA788859 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FB94566365EE9D32B99E1 /* NotchPanel.swift */; };
+		452BF7EAA27D896D001EF851 /* OpenAITranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */; };
 		5211D767553F2B876DF5720B /* template in Resources */ = {isa = PBXBuildFile; fileRef = FE8D215B0A74BB45D9B25666 /* template */; };
 		5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305C12534BB0A21814E084F9 /* LinkCatcher.swift */; };
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
@@ -84,6 +86,7 @@
 		251F2F98844B8FDBF322E6BB /* skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = skill; sourceTree = SOURCE_ROOT; };
 		305C12534BB0A21814E084F9 /* LinkCatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCatcher.swift; sourceTree = "<group>"; };
 		3DB8B9DC39F1086191974395 /* TabHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabHotkeys.swift; sourceTree = "<group>"; };
+		44481D567E5664A614F2BDF9 /* MicRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicRecorder.swift; sourceTree = "<group>"; };
 		49066C920CB9F7805A9F9470 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = SOURCE_ROOT; };
 		511F04655A88E65837A89A02 /* Plugins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Plugins; sourceTree = SOURCE_ROOT; };
 		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
@@ -102,6 +105,7 @@
 		A765987708E7C7A6BDC686EE /* nook-cli */ = {isa = PBXFileReference; includeInIndex = 0; path = "nook-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF4BC706384F08798C56F055 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		B0E3F23227270422F28E8EA8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITranscriber.swift; sourceTree = "<group>"; };
 		C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPluginHost.swift; sourceTree = "<group>"; };
 		C1A1BD9CB7BF5C32DC1280CA /* PLUGINS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLUGINS.md; sourceTree = "<group>"; };
 		C31AA95267FAFBFBDB850E8C /* TimerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerService.swift; sourceTree = "<group>"; };
@@ -137,6 +141,8 @@
 				02492F02F9E93673FFF9F475 /* DictationShortcut.swift */,
 				FFD88336361791E70385D715 /* Groq.swift */,
 				03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */,
+				44481D567E5664A614F2BDF9 /* MicRecorder.swift */,
+				BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */,
 			);
 			path = Dictation;
 			sourceTree = "<group>";
@@ -328,12 +334,14 @@
 				66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */,
 				5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */,
 				889613576CA3F120014ECCA6 /* MediaController.swift in Sources */,
+				2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */,
 				C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */,
 				B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */,
 				417B30DC9B913FA1DA788859 /* NotchPanel.swift in Sources */,
 				BB786E698B2BB609FA914BED /* NotchRootView.swift in Sources */,
 				C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */,
 				8734562697D96E684C1632B1 /* NotchViewModel.swift in Sources */,
+				452BF7EAA27D896D001EF851 /* OpenAITranscriber.swift in Sources */,
 				70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */,
 				A9529D4BD2578A4547009C93 /* PluginSettings.swift in Sources */,
 				92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */,

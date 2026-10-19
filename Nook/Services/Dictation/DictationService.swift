@@ -22,6 +22,8 @@ final class DictationService: ObservableObject {
         static let sounds = "dictationSounds"
         static let groqSecret = "groq_api_key"
         static let holdShortcut = "dictationHoldShortcut"
+        static let engine = "dictationEngine" // "chatgpt" | "groq"
+        static let micUID = "dictationMicUID" // "" = system default
         static let toggleShortcut = "dictationToggleShortcut"
     }
 
@@ -32,7 +34,8 @@ final class DictationService: ObservableObject {
     @Published private(set) var history: [Entry] = []
 
     let hotkeys = HotkeyMonitor()
-    private var recorder: AVAudioRecorder?
+    private let mic = MicRecorder()
+    private var recording = false
     private var meterTimer: Timer?
     private var current: (id: String, url: URL, started: Date)?
     private var idleWork: DispatchWorkItem?
@@ -47,8 +50,12 @@ final class DictationService: ObservableObject {
     var apiKey: String? { Secrets.get(Keys.groqSecret) }
 
     func start() {
-        UserDefaults.standard.register(defaults: [Keys.cleanup: true, Keys.sounds: true, Keys.prompt: Self.defaultPrompt, Keys.vocabulary: ""])
+        UserDefaults.standard.register(defaults: [
+            Keys.cleanup: true, Keys.sounds: true, Keys.prompt: Self.defaultPrompt, Keys.vocabulary: "",
+            Keys.engine: OpenAITranscriber.readAuth() != nil ? "chatgpt" : "groq", Keys.micUID: "",
+        ])
         importFromFreeFlow()
+        importFreeFlowMic()
         loadHistory()
         // Anything still "transcribing" was interrupted by a quit.
         for i in history.indices where history[i].status == "transcribing" {
@@ -61,6 +68,17 @@ final class DictationService: ObservableObject {
         hotkeys.onToggle = { [weak self] in self?.toggle() }
         reloadShortcuts()
         hotkeys.start()
+    }
+
+    /// One-time: use the same microphone FreeFlow was set to.
+    private func importFreeFlowMic() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "dictationImportedFreeFlowMic") else { return }
+        defaults.set(true, forKey: "dictationImportedFreeFlowMic")
+        if let uid = UserDefaults(suiteName: "com.zachlatta.freeflow")?.string(forKey: "selected_microphone_id"), !uid.isEmpty,
+           MicRecorder.microphones().contains(where: { $0.id == uid }) {
+            defaults.set(uid, forKey: Keys.micUID)
+        }
     }
 
     /// One-time import of the user's FreeFlow key, prompt and vocabulary.
@@ -106,34 +124,31 @@ final class DictationService: ObservableObject {
             return
         }
         let id = UUID().uuidString
-        let url = Self.dir.appendingPathComponent("\(id).m4a")
-        let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
-        ]
-        guard let recorder = try? AVAudioRecorder(url: url, settings: settings) else { return flash(.failed) }
-        recorder.isMeteringEnabled = true
-        recorder.record()
-        self.recorder = recorder
+        let url = Self.dir.appendingPathComponent("\(id).wav")
+        do {
+            try mic.start(deviceUID: UserDefaults.standard.string(forKey: Keys.micUID), to: url)
+        } catch {
+            Notifier.post(title: "Nook can't record", body: error.localizedDescription)
+            return flash(.failed)
+        }
+        recording = true
         current = (id, url, Date())
         idleWork?.cancel()
         phase = .recording
         sound("Tink")
         meterTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20, repeats: true) { [weak self] _ in
-            guard let recorder = self?.recorder else { return }
-            recorder.updateMeters()
-            self?.level = max(0, min(1, (recorder.averagePower(forChannel: 0) + 50) / 50))
+            guard let self else { return }
+            self.level = self.mic.level
         }
     }
 
     func finish(cancel: Bool = false) {
-        guard phase == .recording, let recorder, let current else { return }
-        recorder.stop()
+        guard phase == .recording, recording, let current else { return }
+        let duration = mic.stop()
+        recording = false
         meterTimer?.invalidate()
-        self.recorder = nil
         self.current = nil
         level = 0
-        let duration = Date().timeIntervalSince(current.started)
         if cancel || duration < 0.4 { // accidental tap
             try? FileManager.default.removeItem(at: current.url)
             phase = .idle
@@ -151,18 +166,23 @@ final class DictationService: ObservableObject {
 
     private func process(_ id: String, paste: Bool) {
         guard let entry = history.first(where: { $0.id == id }) else { return }
-        guard let key = apiKey else { return fail(id, "Add a Groq API key in Nook Settings") }
         let file = Self.dir.appendingPathComponent(entry.audio)
         let defaults = UserDefaults.standard
         let vocabulary = defaults.string(forKey: Keys.vocabulary) ?? ""
         let prompt = defaults.string(forKey: Keys.prompt) ?? Self.defaultPrompt
         let doCleanup = defaults.bool(forKey: Keys.cleanup)
+        let useChatGPT = defaults.string(forKey: Keys.engine) == "chatgpt"
+        let groqKey = apiKey
+        if !useChatGPT, groqKey == nil { return fail(id, "Add a Groq API key in Nook Settings, or switch the engine to ChatGPT") }
         Task { @MainActor in
             do {
-                let raw = try await Groq.transcribe(file: file, key: key, vocabulary: vocabulary)
+                let hint = vocabulary.split(whereSeparator: \.isNewline).joined(separator: ", ")
+                let raw = useChatGPT
+                    ? try await OpenAITranscriber.transcribe(file: file, hint: hint)
+                    : try await Groq.transcribe(file: file, key: groqKey!, vocabulary: vocabulary)
                 var text = raw
-                if doCleanup, !raw.isEmpty {
-                    text = (try? await Groq.cleanup(raw, key: key, systemPrompt: prompt, vocabulary: vocabulary)) ?? raw
+                if doCleanup, !raw.isEmpty, let groqKey {
+                    text = (try? await Groq.cleanup(raw, key: groqKey, systemPrompt: prompt, vocabulary: vocabulary)) ?? raw
                 }
                 update(id) { $0.raw = raw; $0.text = text; $0.status = "done"; $0.error = nil }
                 if text.isEmpty {
@@ -278,7 +298,7 @@ final class DictationService: ObservableObject {
 
     func statePayload() -> [String: Any] {
         ["recording": phase == .recording, "transcribing": phase == .transcribing,
-         "holdShortcut": hotkeys.hold?.display ?? "Off", "toggleShortcut": hotkeys.toggle?.display ?? "Off", "hasKey": apiKey != nil,
+         "holdShortcut": hotkeys.hold?.display ?? "Off", "toggleShortcut": hotkeys.toggle?.display ?? "Off", "hasKey": apiKey != nil || (UserDefaults.standard.string(forKey: Keys.engine) == "chatgpt" && OpenAITranscriber.readAuth() != nil),
          "accessibility": hotkeys.isTrusted]
     }
 }

@@ -6,6 +6,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
+    ARCHS: "$(ARCHS_STANDARD)"
     MACOSX_DEPLOYMENT_TARGET: "14.2"
 targets:
   Nook:
@@ -19,12 +20,28 @@ targets:
       - path: NookUI
         type: folder
         buildPhase: resources
+      - path: docs
+        type: folder
+        buildPhase: resources
+      - path: skill
+        type: folder
+        buildPhase: resources
+      - path: cli/template
+        type: folder
+        buildPhase: resources
+      - path: PLUGINS.md
+        buildPhase: resources
+    dependencies:
+      - target: nook-cli
+        embed: true
+        copy:
+          destination: executables
     info:
       path: Nook/Info.plist
       properties:
         CFBundleDisplayName: Nook
-        CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "1"
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "2"
         CFBundleIconFile: AppIcon
         CFBundleURLTypes:
           - CFBundleURLName: com.yusuf.nook
@@ -41,4 +58,16 @@ targets:
         OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: ""
+        ENABLE_HARDENED_RUNTIME: NO
+  nook-cli:
+    type: tool
+    platform: macOS
+    sources: [cli/swift]
+    settings:
+      base:
+        PRODUCT_NAME: nook-cli
+        PRODUCT_BUNDLE_IDENTIFIER: com.yusuf.nook.cli
+        CODE_SIGN_IDENTITY: "Nook Local Signing"
+        CODE_SIGN_STYLE: Manual
+        OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
         ENABLE_HARDENED_RUNTIME: NO

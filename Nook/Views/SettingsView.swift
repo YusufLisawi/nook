@@ -74,6 +74,7 @@ struct SettingsView: View {
             } footer: {
                 Text("Drag tab icons in the notch to reorder them. Shortcuts open that tab from anywhere (press again to close). Drop a plugin folder into the Plugins folder; it shows up right away, with no rebuild.").font(.caption)
             }
+            ToolsSection()
             Section("Dictation") {
                 SecureField("Groq API key", text: $groqKey)
                     .onChange(of: groqKey) { _, key in Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) }

@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.mainMenu = main
     }
 
-    /// nook://open/<tab> · nook://toggle/<tab> · nook://close · nook://reload · nook://settings  (used by the `nook` CLI)
+    /// nook://open/<tab> · nook://toggle/<tab> · nook://close · nook://reload · nook://settings · nook://check-updates  (used by the `nook` CLI)
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme == "nook" {
             let tab = url.pathComponents.dropFirst().first
@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case "close": controllers.forEach { $0.viewModel.close() }
             case "reload": Services.shared.plugins.reload(); Services.shared.plugins.touch()
             case "settings": openSettings()
+            case "check-updates": updater.checkForUpdates(nil)
             default: break
             }
         }
@@ -100,6 +101,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: "rectangle.topthird.inset.filled", accessibilityDescription: "Nook")
         let menu = NSMenu()
         menu.delegate = self
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        menu.addItem(withTitle: "Nook \(version)", action: nil, keyEquivalent: "").isEnabled = false
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Open Nook", action: #selector(openNotch), keyEquivalent: "").target = self
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         menu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "").target = updater

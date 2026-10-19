@@ -24,6 +24,7 @@ final class DictationService: ObservableObject {
         static let holdShortcut = "dictationHoldShortcut"
         static let engine = "dictationEngine" // "chatgpt" | "groq"
         static let micUID = "dictationMicUID" // "" = system default
+        static let keepAudioHours = "dictationKeepAudioHours" // 0 = keep forever
         static let toggleShortcut = "dictationToggleShortcut"
     }
 
@@ -41,6 +42,7 @@ final class DictationService: ObservableObject {
     private var meterTimer: Timer?
     private var current: (id: String, url: URL, started: Date)?
     private var idleWork: DispatchWorkItem?
+    private var cleanupTimer: Timer?
 
     private static var dir: URL {
         let dir = Services.supportDir.appendingPathComponent("Dictation/audio", isDirectory: true)
@@ -54,7 +56,7 @@ final class DictationService: ObservableObject {
     func start() {
         UserDefaults.standard.register(defaults: [
             Keys.cleanup: true, Keys.sounds: true, Keys.prompt: Self.defaultPrompt, Keys.vocabulary: "",
-            Keys.engine: OpenAITranscriber.readAuth() != nil ? "chatgpt" : "groq", Keys.micUID: "",
+            Keys.engine: OpenAITranscriber.readAuth() != nil ? "chatgpt" : "groq", Keys.micUID: "", Keys.keepAudioHours: 24,
         ])
         importFromFreeFlow()
         importFreeFlowMic()
@@ -68,6 +70,8 @@ final class DictationService: ObservableObject {
         hotkeys.onHoldEnd = { [weak self] in self?.finish() }
         hotkeys.onHoldCancel = { [weak self] in self?.finish(cancel: true) }
         hotkeys.onToggle = { [weak self] in self?.toggle() }
+        cleanupRecordings()
+        cleanupTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in self?.cleanupRecordings() }
         reloadShortcuts()
         hotkeys.start()
     }
@@ -166,11 +170,39 @@ final class DictationService: ObservableObject {
         process(current.id, paste: true)
     }
 
+    // MARK: Recording cleanup
+
+    /// Deletes old audio (the text stays in history). Failed dictations keep their audio ≥ 7 days so Retry works.
+    func cleanupRecordings() {
+        let hours = UserDefaults.standard.double(forKey: Keys.keepAudioHours)
+        guard hours > 0 else { return }
+        let now = Date()
+        let fm = FileManager.default
+        var referenced = Set<String>()
+        for entry in history {
+            referenced.insert(entry.audio)
+            guard entry.status != "transcribing" else { continue }
+            let keep = entry.status == "failed" ? max(hours, 24 * 7) : hours
+            if now.timeIntervalSince(entry.date) > keep * 3600 {
+                try? fm.removeItem(at: Self.dir.appendingPathComponent(entry.audio))
+            }
+        }
+        // Strays (e.g. a crash mid-recording) that no history entry points to.
+        let files = (try? fm.contentsOfDirectory(at: Self.dir, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        for file in files where !referenced.contains(file.lastPathComponent) && file.lastPathComponent != current?.url.lastPathComponent {
+            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? now
+            if now.timeIntervalSince(modified) > hours * 3600 { try? fm.removeItem(at: file) }
+        }
+    }
+
     // MARK: Pipeline
 
     private func process(_ id: String, paste: Bool) {
         guard let entry = history.first(where: { $0.id == id }) else { return }
         let file = Self.dir.appendingPathComponent(entry.audio)
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return fail(id, "The recording was cleaned up, so it can't be retried")
+        }
         let defaults = UserDefaults.standard
         let vocabulary = defaults.string(forKey: Keys.vocabulary) ?? ""
         let prompt = defaults.string(forKey: Keys.prompt) ?? Self.defaultPrompt

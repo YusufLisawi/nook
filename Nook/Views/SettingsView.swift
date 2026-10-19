@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage(DictationService.Keys.prompt) private var prompt = DictationService.defaultPrompt
     @AppStorage(DictationService.Keys.engine) private var engine = "chatgpt"
     @AppStorage(DictationService.Keys.micUID) private var micUID = ""
+    @AppStorage(DictationService.Keys.keepAudioHours) private var keepAudioHours = 24.0
     @State private var mics = MicRecorder.microphones()
     @State private var groqKey = Secrets.get(DictationService.Keys.groqSecret) ?? ""
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -97,6 +98,16 @@ struct SettingsView: View {
                     ForEach(mics) { Text($0.name).tag($0.id) }
                 }
                 .onAppear { mics = MicRecorder.microphones() }
+                Picker("Delete recordings after", selection: $keepAudioHours) {
+                    Text("1 hour").tag(1.0)
+                    Text("5 hours").tag(5.0)
+                    Text("1 day").tag(24.0)
+                    Text("1 week").tag(168.0)
+                    Text("Never").tag(0.0)
+                }
+                .onChange(of: keepAudioHours) { _, _ in Services.shared.dictation.cleanupRecordings() }
+                Text("Only the audio is deleted — your transcripts stay. Failed ones keep their audio for a week so you can retry.")
+                    .font(.caption).foregroundStyle(.secondary)
                 SecureField("Groq API key (Groq engine, AI clean-up, nook.ai)", text: $groqKey)
                     .onChange(of: groqKey) { _, key in Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) }
                 LabeledContent("Hold to talk") {

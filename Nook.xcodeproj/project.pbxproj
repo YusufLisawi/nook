@@ -17,6 +17,7 @@
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
 		66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */; };
 		70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */; };
+		7716178DEA1C7B1CA939F55E /* NookUI in Resources */ = {isa = PBXBuildFile; fileRef = 14A07A8C4411618C0764B100 /* NookUI */; };
 		799A4A3D71F1ECF5BBA417A0 /* Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DB59F92E353F6D2904A53A /* Tabs.swift */; };
 		818E0AA52033914C11B7FE1F /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = AF4BC706384F08798C56F055 /* AppIcon.icns */; };
 		864E1DCD0564607BE5F16D0C /* DictationShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02492F02F9E93673FFF9F475 /* DictationShortcut.swift */; };
@@ -41,6 +42,7 @@
 		02492F02F9E93673FFF9F475 /* DictationShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationShortcut.swift; sourceTree = "<group>"; };
 		03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyMonitor.swift; sourceTree = "<group>"; };
 		0ED7F0CE539625E9216FFC57 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
+		14A07A8C4411618C0764B100 /* NookUI */ = {isa = PBXFileReference; lastKnownFileType = folder; path = NookUI; sourceTree = SOURCE_ROOT; };
 		18DADCCDD358E9EA34C28C74 /* Prefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Prefs.swift; sourceTree = "<group>"; };
 		1D42A5D5FCF4370A368C56D5 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		23055D40A8B72A840805201E /* SystemStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStats.swift; sourceTree = "<group>"; };
@@ -138,6 +140,7 @@
 		CC3EFE3504B73EAEEDED18F5 = {
 			isa = PBXGroup;
 			children = (
+				14A07A8C4411618C0764B100 /* NookUI */,
 				511F04655A88E65837A89A02 /* Plugins */,
 				726FFD2802A28B7087BEA2D4 /* Nook */,
 				EF799ADDBCF3DE03D240F860 /* Products */,
@@ -213,6 +216,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				818E0AA52033914C11B7FE1F /* AppIcon.icns in Resources */,
+				7716178DEA1C7B1CA939F55E /* NookUI in Resources */,
 				3493A661FBB0DBA502384425 /* Plugins in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -21,7 +21,7 @@ Edit a file and Nook reloads the plugin within a second (folder is watched).
   "icon": "icon.png",         // optional, shown in Settings
   "entry": "index.html",
   "order": 40,                // dock position (lower = left)
-  "height": 210               // content height in points when this tab is open (default 210, max 420)
+  "height": 210               // content height in points when this tab is open (default 210, min 80, max 400)
 }
 ```
 
@@ -32,7 +32,7 @@ Edit a file and Nook reloads the plugin within a second (folder is watched).
 - Injected CSS variables: `--fg #fff`, `--muted rgba(255,255,255,.55)`, `--card rgba(255,255,255,.06)`, `--card-hover rgba(255,255,255,.1)`,
   `--border rgba(255,255,255,.08)`, `--accent #ff9f0a`, `--good #30d158`, `--bad #ff453a`, `--radius 14px`. Font: `-apple-system`.
 - No network CDNs; keep everything inline or in the folder. Use `nook.fetch` for HTTP (no CORS).
-- Style: dark, compact, Apple-like. 11–13px text. Cards = `--card` background + `--radius`. No coloured edge stripes on cards.
+- Style: follow **docs/UI-GUIDELINES.md** (`nook guide`). The **Nook UI kit** (`nk-*` classes: cards, rows, buttons, pills, inputs, empty/error states…) is injected into every plugin — use it instead of writing your own.
 - The webview stays alive while the app runs, so timers keep going between tab switches.
 
 ## Bridge — `window.nook` (all calls return Promises)
@@ -73,3 +73,22 @@ nook.dictation.toggle()  // start/stop recording
 ```
 
 Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`.
+
+## Developer tools
+
+```bash
+nook new <id> --name "My Thing" --symbol sparkles   # scaffold in your Plugins folder — live immediately
+nook open <id>          # show it in the notch under the mouse   (also: toggle, close, reload, settings)
+nook logs <id> -f       # console.log / console.error / uncaught errors from the plugin
+nook validate <id>      # manifest, offline, transparent background, no edge stripes…
+nook storage <id>       # what the plugin saved with nook.storage
+nook eject <id>         # copy a bundled plugin into your folder to customise it
+nook api | guide | limits
+```
+
+- CLI source: `cli/nook.ts` (Bun), linked at `~/.local/bin/nook`. Template: `cli/template/`.
+- URL scheme: `nook://open/<id>`, `nook://toggle/<id>`, `nook://close`, `nook://reload`, `nook://settings`.
+- Console output is written to `~/Library/Logs/Nook/plugins.log`. Web Inspector: Safari → Develop → this Mac → Nook.
+- ⌘A / ⌘C / ⌘V / ⌘X / ⌘Z work in plugin inputs (routed by the notch panel).
+- What plugins can't do (and workarounds): **docs/LIMITS.md** (`nook limits`).
+

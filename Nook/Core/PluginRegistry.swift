@@ -71,6 +71,9 @@ final class PluginRegistry: ObservableObject {
         tabs = (native + byID.values).sorted { ($0.order, $0.id) < ($1.order, $1.id) }
     }
 
+    /// Force web plugins to reload (e.g. `nook reload`).
+    func touch() { revision += 1 }
+
     private func watch() {
         var context = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
         let callback: FSEventStreamCallback = { _, info, _, _, _, _ in

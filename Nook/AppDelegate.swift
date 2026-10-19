@@ -19,6 +19,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.rebuildNotches()
         }
         setupStatusItem()
+        setupEditMenu()
+    }
+
+    /// Hidden main menu so ⌘A/⌘C/⌘V/⌘Z work in the Settings window (Nook has no visible menu bar).
+    private func setupEditMenu() {
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSResponder.selectAll(_:)), keyEquivalent: "a")
+        let main = NSMenu()
+        let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+        editItem.submenu = edit
+        main.addItem(NSMenuItem(title: "Nook", action: nil, keyEquivalent: ""))
+        main.addItem(editItem)
+        NSApp.mainMenu = main
+    }
+
+    /// nook://open/<tab> · nook://toggle/<tab> · nook://close · nook://reload · nook://settings  (used by the `nook` CLI)
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "nook" {
+            let tab = url.pathComponents.dropFirst().first
+            switch url.host {
+            case "open": notchUnderMouse()?.viewModel.open(tab: tab)
+            case "toggle":
+                if let tab { notchUnderMouse()?.viewModel.toggle(tab: tab) }
+            case "close": controllers.forEach { $0.viewModel.close() }
+            case "reload": Services.shared.plugins.reload(); Services.shared.plugins.touch()
+            case "settings": openSettings()
+            default: break
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

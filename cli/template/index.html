@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="nk-root">
+    <section class="nk-card nk-fill nk-col">
+      <div id="list" class="nk-list nk-scroll nk-fill"></div>
+      <div id="empty" class="nk-empty" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <b>Nothing here yet</b>
+        <span>Add your first item below.</span>
+      </div>
+    </section>
+
+    <form id="add" class="nk-row-flex">
+      <input id="text" class="nk-input nk-fill" placeholder="Add an item…" autocomplete="off">
+      <button class="nk-btn nk-primary">Add</button>
+    </form>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

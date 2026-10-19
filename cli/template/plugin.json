@@ -1,0 +1,8 @@
+{
+  "id": "__ID__",
+  "name": "__NAME__",
+  "symbol": "__SYMBOL__",
+  "entry": "index.html",
+  "order": __ORDER__,
+  "height": __HEIGHT__
+}

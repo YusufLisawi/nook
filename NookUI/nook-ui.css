@@ -1,0 +1,99 @@
+/* Nook UI kit — injected into every plugin. Opt-in: nothing here applies until you use an nk-* class.
+   Tokens (--fg, --muted, --card, --accent…) are injected too; see docs/UI-GUIDELINES.md. */
+
+.nk-root { box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.35; }
+.nk-root *, .nk-root *::before, .nk-root *::after { box-sizing: border-box; }
+.nk-row-flex { display: flex; align-items: center; gap: 8px; }
+.nk-col { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.nk-fill { flex: 1; min-width: 0; min-height: 0; }
+.nk-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nk-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+/* Surfaces */
+.nk-card { background: var(--card); border-radius: var(--radius); padding: 12px; min-height: 0; }
+.nk-card.nk-tight { padding: 8px 10px; }
+.nk-card.nk-hover:hover { background: var(--card-hover); }
+.nk-tint-good { background: rgba(48, 209, 88, .14); }
+.nk-tint-bad { background: rgba(255, 69, 58, .14); }
+.nk-tint-accent { background: rgba(255, 159, 10, .14); }
+
+/* Text */
+.nk-title { font-size: 13px; font-weight: 600; }
+.nk-big { font-size: 22px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.nk-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.nk-muted { color: var(--muted); }
+.nk-small { font-size: 11px; }
+.nk-num { font-variant-numeric: tabular-nums; }
+.nk-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nk-good { color: var(--good); } .nk-bad { color: var(--bad); } .nk-accent { color: var(--accent); }
+
+/* Lists — scroll inside, never the page */
+.nk-scroll { overflow-y: auto; min-height: 0; scrollbar-width: none; }
+.nk-scroll::-webkit-scrollbar { display: none; }
+.nk-list { display: flex; flex-direction: column; gap: 2px; }
+.nk-item { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 9px; cursor: default; transition: background .12s; }
+.nk-item:hover { background: var(--card-hover); }
+.nk-item.nk-selected { background: rgba(255, 255, 255, .14); }
+.nk-item .nk-actions { opacity: 0; transition: opacity .12s; display: flex; gap: 2px; }
+.nk-item:hover .nk-actions { opacity: 1; }
+
+/* Buttons */
+.nk-btn { appearance: none; border: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--fg); background: rgba(255, 255, 255, .1);
+  padding: 6px 12px; border-radius: 8px; cursor: default; display: inline-flex; align-items: center; gap: 6px; transition: background .12s, transform .08s; }
+.nk-btn:hover { background: rgba(255, 255, 255, .16); }
+.nk-btn:active { transform: scale(.97); }
+.nk-btn:disabled { opacity: .4; pointer-events: none; }
+.nk-btn.nk-primary { background: rgba(255, 159, 10, .2); color: var(--accent); }
+.nk-btn.nk-primary:hover { background: rgba(255, 159, 10, .28); }
+.nk-btn.nk-danger { background: rgba(255, 69, 58, .16); color: var(--bad); }
+.nk-btn.nk-ghost { background: transparent; color: var(--muted); }
+.nk-btn.nk-ghost:hover { background: rgba(255, 255, 255, .08); color: var(--fg); }
+.nk-icon-btn { appearance: none; border: 0; background: transparent; color: var(--fg); width: 28px; height: 28px; border-radius: 50%;
+  display: inline-grid; place-items: center; cursor: default; transition: background .12s; }
+.nk-icon-btn:hover { background: rgba(255, 255, 255, .14); }
+.nk-icon-btn svg { width: 15px; height: 15px; }
+
+/* Pills / badges */
+.nk-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .1); }
+.nk-pill.nk-good { background: rgba(48, 209, 88, .16); }
+.nk-pill.nk-bad { background: rgba(255, 69, 58, .16); }
+.nk-pill.nk-accent { background: rgba(255, 159, 10, .16); }
+.nk-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+
+/* Inputs */
+.nk-input, .nk-textarea { width: 100%; font: inherit; font-size: 12px; color: var(--fg); background: rgba(255, 255, 255, .07);
+  border: 1px solid transparent; border-radius: 9px; padding: 7px 10px; outline: none; transition: border-color .12s, background .12s; }
+.nk-input:focus, .nk-textarea:focus { border-color: rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .09); }
+.nk-input::placeholder, .nk-textarea::placeholder { color: rgba(255, 255, 255, .35); }
+.nk-textarea { resize: none; line-height: 1.45; }
+
+/* Segmented control */
+.nk-seg { display: inline-flex; background: rgba(255, 255, 255, .07); border-radius: 9px; padding: 2px; gap: 2px; }
+.nk-seg button { appearance: none; border: 0; font: inherit; font-size: 11px; font-weight: 600; color: var(--muted); background: transparent; padding: 4px 11px; border-radius: 7px; cursor: default; }
+.nk-seg button.nk-on { background: rgba(255, 255, 255, .16); color: var(--fg); }
+
+/* Switch: <label class="nk-switch"><input type="checkbox"><span></span></label> */
+.nk-switch { position: relative; width: 30px; height: 18px; display: inline-block; flex: none; }
+.nk-switch input { display: none; }
+.nk-switch span { position: absolute; inset: 0; border-radius: 999px; background: rgba(255, 255, 255, .16); transition: background .15s; }
+.nk-switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.nk-switch input:checked + span { background: var(--good); }
+.nk-switch input:checked + span::after { transform: translateX(12px); }
+
+/* Progress */
+.nk-progress { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.nk-progress > i { display: block; height: 100%; background: var(--fg); border-radius: inherit; transition: width .3s; }
+
+/* Empty / error states */
+.nk-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; color: var(--muted); }
+.nk-empty svg { width: 22px; height: 22px; opacity: .7; }
+.nk-empty b { color: var(--fg); font-size: 13px; font-weight: 600; }
+.nk-error { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; background: rgba(255, 69, 58, .14); color: #ffb4ae; font-size: 11px; }
+
+/* Spinner */
+.nk-spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .2); border-top-color: var(--fg); animation: nk-spin .7s linear infinite; flex: none; }
+@keyframes nk-spin { to { transform: rotate(360deg); } }
+
+/* Gentle entrance for new rows */
+.nk-in { animation: nk-in .22s ease-out both; }
+@keyframes nk-in { from { opacity: 0; transform: translateY(4px); } }

@@ -83,6 +83,7 @@ final class WebPluginHost: NSObject {
             if let url { NSWorkspace.shared.open(url) }
             ok()
         case "notify": Notifier.post(title: str(0), body: str(1)); ok()
+        case "log": PluginLog.write(pluginID, level: str(0), message: str(1)); ok()
         case "activity.set":
             let a = arg(0) as? [String: Any] ?? [:]
             s.pluginActivity = PluginActivity(pluginID: pluginID, text: a["text"] as? String ?? "",
@@ -112,10 +113,25 @@ final class WebPluginHost: NSObject {
         ["running": t.isRunning, "mode": t.mode == .countdown ? "timer" : "stopwatch", "remaining": t.value, "text": t.displayText]
     }
 
+    /// Nook UI kit (nk-* classes), as a JS string literal.
+    private static let uiKit: String = {
+        let css = Bundle.main.url(forResource: "nook-ui", withExtension: "css", subdirectory: "NookUI").flatMap { try? String(contentsOf: $0) } ?? ""
+        let data = (try? JSONSerialization.data(withJSONObject: [css])) ?? Data("[\"\"]".utf8)
+        return String(decoding: data, as: UTF8.self) + "[0]"
+    }()
+
     private static func bridgeJS(pluginInfo: String) -> String {
         """
         (() => {
+          const KIT = \(uiKit);
           const call = (fn, ...args) => window.webkit.messageHandlers.nook.postMessage({ fn, args });
+          // Forward console + uncaught errors to ~/Library/Logs/Nook/plugins.log (`nook logs`).
+          ['log', 'info', 'warn', 'error'].forEach(level => {
+            const original = console[level].bind(console);
+            console[level] = (...a) => { original(...a); try { call('log', level, a.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(' ')); } catch {} };
+          });
+          window.addEventListener('error', e => call('log', 'error', `${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`));
+          window.addEventListener('unhandledrejection', e => call('log', 'error', 'Unhandled promise: ' + (e.reason && e.reason.message || e.reason)));
           const listeners = {};
           window.nook = {
             plugin: \(pluginInfo),
@@ -137,7 +153,7 @@ final class WebPluginHost: NSObject {
           const css = `:root{--fg:#fff;--muted:rgba(255,255,255,.55);--card:rgba(255,255,255,.06);--card-hover:rgba(255,255,255,.1);--border:rgba(255,255,255,.08);--accent:#ff9f0a;--good:#30d158;--bad:#ff453a;--radius:14px;color-scheme:dark}
             html,body{background:transparent!important;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;-webkit-user-select:none;overflow:hidden}
             input,textarea,[contenteditable]{-webkit-user-select:text}`;
-          const style = document.createElement('style'); style.textContent = css;
+          const style = document.createElement('style'); style.textContent = css + KIT;
           document.documentElement.appendChild(style);
         })();
         """
@@ -301,6 +317,33 @@ enum Notifier {
             content.title = title
             content.body = body
             center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+        }
+    }
+}
+
+/// Plugin console output → ~/Library/Logs/Nook/plugins.log (read it with `nook logs`).
+enum PluginLog {
+    static let url: URL = {
+        let dir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Logs/Nook", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("plugins.log")
+    }()
+    private static let queue = DispatchQueue(label: "nook.pluginlog")
+    private static let formatter = ISO8601DateFormatter()
+
+    static func write(_ pluginID: String, level: String, message: String) {
+        let line = "\(formatter.string(from: Date())) [\(pluginID)] \(level.uppercased()) \(message.prefix(2000))\n"
+        queue.async {
+            if let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int, size > 2_000_000 {
+                try? FileManager.default.removeItem(at: url) // keep it small
+            }
+            if let handle = try? FileHandle(forWritingTo: url) {
+                handle.seekToEndOfFile()
+                handle.write(Data(line.utf8))
+                try? handle.close()
+            } else {
+                try? Data(line.utf8).write(to: url)
+            }
         }
     }
 }

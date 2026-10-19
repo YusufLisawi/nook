@@ -113,7 +113,7 @@ private struct CustomizeButton: View {
     @State private var open = false
 
     var body: some View {
-        if tab.isWeb || !tab.settings.isEmpty {
+        if true { // every tab has at least a height
             Button { open.toggle() } label: { Image(systemName: "slider.horizontal.3") }
                 .buttonStyle(.borderless)
                 .help("Customize \(tab.name)")

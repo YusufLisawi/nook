@@ -37,6 +37,19 @@ final class PluginRegistry: ObservableObject {
     @Published private(set) var tabs: [TabItem] = nativeTabs
     /// User's drag-and-drop dock order (tab ids). Empty = manifest `order`.
     @Published private(set) var customOrder: [String] = UserDefaults.standard.stringArray(forKey: "tabOrder") ?? []
+    /// User-chosen content height per tab (points). Overrides the manifest's `height`.
+    @Published private(set) var userHeights: [String: CGFloat] =
+        (UserDefaults.standard.dictionary(forKey: "tabHeights") as? [String: Double] ?? [:]).mapValues { CGFloat($0) }
+    static let minHeight: CGFloat = 120
+
+    /// What the tab opens at: the user's choice, else the plugin's own default.
+    func height(for tab: TabItem) -> CGFloat { userHeights[tab.id] ?? tab.height }
+
+    func setHeight(_ id: String, _ height: CGFloat?) {
+        userHeights[id] = height.map { min(Self.maxHeight, max(Self.minHeight, $0)) }
+        UserDefaults.standard.set(userHeights.mapValues { Double($0) }, forKey: "tabHeights")
+    }
+
     /// Bumps whenever a plugin file changes, so web views reload.
     @Published private(set) var revision = 0
 

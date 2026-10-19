@@ -59,6 +59,7 @@ final class NotchViewModel: ObservableObject {
             .store(in: &bag)
         s.plugins.$tabs.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         s.plugins.$customOrder.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        s.plugins.$userHeights.sink { [weak self] _ in withAnimation(Self.spring) { self?.objectWillChange.send() } }.store(in: &bag)
         s.timers.onFinish = { [weak self] in self?.open(tab: "timers") }
     }
 
@@ -74,7 +75,9 @@ final class NotchViewModel: ObservableObject {
     func isEnabled(_ id: String) -> Bool { enabledTabs.contains { $0.id == id } }
 
     var contentHeight: CGFloat {
-        min(PluginRegistry.maxHeight, heightOverrides[tab] ?? currentTab?.height ?? PluginRegistry.defaultHeight)
+        // A plugin's live setHeight (e.g. teleprompter while playing) > the user's height > the manifest default.
+        let base = currentTab.map { services.plugins.height(for: $0) } ?? PluginRegistry.defaultHeight
+        return min(PluginRegistry.maxHeight, heightOverrides[tab] ?? base)
     }
 
     var contentSize: CGSize {

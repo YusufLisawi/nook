@@ -130,10 +130,10 @@ struct PluginSettingsForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 12) {
-            if tab.settings.isEmpty {
-                Text(tab.isWeb ? "This plugin has no options yet. Edit its code to change anything."
-                               : "This built-in tab has no options.")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
+            heightControl
+            if tab.settings.isEmpty, tab.isWeb {
+                Text("No other options yet. Edit its code to change anything else.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
             }
             ForEach(tab.settings) { setting in
                 VStack(alignment: .leading, spacing: 3) {
@@ -167,6 +167,23 @@ struct PluginSettingsForm: View {
         }
         .font(.system(size: compact ? 12 : 13))
         .tint(.orange) // Nook accent, not the system colour
+    }
+
+    /// Every tab: how tall the notch opens for it. Live while dragging.
+    private var heightControl: some View {
+        let height = Binding<Double>(
+            get: { Double(plugins.height(for: tab)) },
+            set: { plugins.setHeight(tab.id, CGFloat($0)) }
+        )
+        return LabeledContent("Height") {
+            HStack(spacing: 8) {
+                Slider(value: height, in: Double(PluginRegistry.minHeight)...Double(PluginRegistry.maxHeight), step: 10)
+                Text("\(Int(height.wrappedValue))").monospacedDigit().frame(width: 30, alignment: .trailing)
+                if plugins.userHeights[tab.id] != nil {
+                    Button("Default") { plugins.setHeight(tab.id, nil) }.buttonStyle(.link).font(.caption)
+                }
+            }
+        }
     }
 
     private func binding(_ setting: PluginSetting) -> Binding<JSONValue> {

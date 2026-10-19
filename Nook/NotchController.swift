@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Owns the panel and polls the mouse at 30 Hz to drive hover, click-through and drag-to-shelf.
 final class NotchController {
-    static let panelSize = CGSize(width: 880, height: 480)
+    static let panelSize = CGSize(width: 880, height: 520)
 
     let viewModel: NotchViewModel
     private var panel: NotchPanel?

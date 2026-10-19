@@ -23,14 +23,14 @@
   </defs></svg>
   <main class="dictation-panel" aria-label="Dictation history">
     <header class="header">
-      <div class="state-pill" id="state-pill" role="status"><span id="state-icon"><svg class="icon" aria-hidden="true"><use href="#icon-wave"/></svg></span><span id="state-label">Checking dictation…</span></div>
+      <label class="search-field"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><input id="search" type="search" placeholder="Search history" aria-label="Search dictation history" autocomplete="off" spellcheck="false"></label><span id="history-count" aria-live="polite">—</span>
+      <div class="state-pill" id="state-pill" role="status" hidden><span id="state-icon"><svg class="icon" aria-hidden="true"><use href="#icon-wave"/></svg></span><span id="state-label">Checking dictation…</span></div>
       <button class="mic-button" id="mic-button" aria-label="Start dictation" title="Start dictation" disabled><svg class="icon" aria-hidden="true"><use href="#icon-mic"/></svg></button>
       <button class="clear-button" id="clear-button" disabled>Clear</button>
     </header>
     <div class="warning-card" id="key-warning" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span>Add a Groq API key in Nook Settings</span></div>
     <div class="error-card" id="error-card" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span id="error-text"></span><button class="icon-button" id="retry-load" aria-label="Refresh dictation" title="Refresh dictation"><svg class="icon" aria-hidden="true"><use href="#icon-retry"/></svg></button></div>
     <div class="clear-confirm" id="clear-confirm" role="alert" hidden><span>Clear all dictation history?</span><button class="small-button" id="cancel-clear">Cancel</button><button class="small-button destructive" id="confirm-clear">Clear all</button></div>
-    <div class="search-row"><label class="search-field"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><input id="search" type="search" placeholder="Search history" aria-label="Search dictation history" autocomplete="off" spellcheck="false"></label><span id="history-count" aria-live="polite">—</span></div>
     <section class="history-list" id="history-list" aria-label="Dictation entries"><div class="empty-state"><span class="spinner" aria-hidden="true"></span><span>Loading your dictations…</span></div></section>
   </main>
 </body>

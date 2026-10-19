@@ -52,6 +52,7 @@
     const toggle = shortcut('toggleShortcut', '⌥Space');
     $('state-label').textContent = toggling ? recording ? 'Finishing recording…' : 'Starting microphone…' : !state ? 'Dictation status unavailable' : recording ? `Recording… · ${toggle} to stop` : transcribing ? `Transcribing… · Hold ${hold} to talk` : `Hold ${hold} to talk · ${toggle} to toggle`;
     $('state-pill').title = `Hold ${hold} to talk · ${toggle} to toggle`;
+    $('mic-button').title = `Hold ${hold} to talk · ${toggle} to toggle`;
     $('state-pill').classList.toggle('recording', recording);
     $('state-pill').classList.toggle('transcribing', transcribing);
     $('state-icon').replaceChildren(transcribing || toggling ? spinner() : icon('wave'));

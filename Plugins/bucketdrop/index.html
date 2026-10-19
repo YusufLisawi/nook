@@ -15,21 +15,60 @@
     <symbol id="i-trash" viewBox="0 0 20 20"><path d="M4 6h12M8 3.5h4l1 2.5M5.5 6l.7 10.2a1 1 0 0 0 1 .8h5.6a1 1 0 0 0 1-.8L14.5 6"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 20 20"><path d="M16 7a6.5 6.5 0 1 0 .2 5M16 3v4h-4"/></symbol>
     <symbol id="i-search" viewBox="0 0 20 20"><circle cx="8.6" cy="8.6" r="5.4"/><path d="m12.6 12.6 4.2 4.2"/></symbol>
+    <symbol id="i-bucket" viewBox="0 0 20 20"><ellipse cx="10" cy="5" rx="6.5" ry="2.2"/><path d="M3.5 5l1.4 10.2c.2 1.3 2.4 2.3 5.1 2.3s4.9-1 5.1-2.3L16.5 5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 20 20"><path d="m6 8 4 4 4-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 20 20"><path d="m4.5 10 3.5 3.5 7.5-7.5"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 20 20"><path d="m12.5 4 3.5 3.5M4 16l1-4L13.5 3.5a1.4 1.4 0 0 1 2 0l1 1a1.4 1.4 0 0 1 0 2L8 15z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 20 20"><path d="m12 5-5 5 5 5"/></symbol>
   </defs></svg>
 
   <main class="app">
     <header class="bar">
-      <div class="title"><strong>BucketDrop</strong><span id="where" class="muted">Loading…</span></div>
+      <div class="picker">
+        <button id="picker" class="picker-btn" aria-haspopup="menu">
+          <span class="badge"><svg class="icon"><use href="#i-bucket"/></svg></span>
+          <span class="picker-text"><strong id="pick-name">Loading…</strong><span id="pick-host" class="muted"></span></span>
+          <svg class="icon chev"><use href="#i-chevron"/></svg>
+        </button>
+        <div id="menu" class="menu" role="menu" hidden></div>
+      </div>
       <div class="search"><svg class="icon"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search" spellcheck="false"></div>
-      <button id="pick" class="btn primary" title="Choose files to upload"><svg class="icon"><use href="#i-up"/></svg>Upload</button>
+      <button id="pick" class="btn primary" title="Choose files to upload (drag folders in to zip them)"><svg class="icon"><use href="#i-up"/></svg>Upload</button>
       <button id="paste" class="btn" title="Upload what's on the clipboard (file or image)"><svg class="icon"><use href="#i-clip"/></svg>Clipboard</button>
       <button id="refresh" class="icon-btn" title="Refresh"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      <button id="settings" class="icon-btn" title="Storages"><svg class="icon"><use href="#i-gear"/></svg></button>
     </header>
 
     <div id="status" class="status" hidden></div>
     <ul id="list" class="list"></ul>
-    <div id="empty" class="empty">Drop files here to upload</div>
-    <div id="drop" class="drop" hidden><svg class="icon"><use href="#i-up"/></svg>Drop to upload</div>
+    <div id="empty" class="empty">Drop files or folders here to upload</div>
+    <div id="drop" class="drop" hidden><svg class="icon"><use href="#i-up"/></svg><span id="drop-text">Drop to upload</span></div>
+
+    <section id="sheet" class="sheet" hidden>
+      <header class="sheet-bar">
+        <button id="sheet-back" class="icon-btn" title="Back"><svg class="icon"><use href="#i-back"/></svg></button>
+        <strong id="sheet-title">Storages</strong>
+        <span class="spacer"></span>
+        <button id="add" class="btn primary"><svg class="icon"><use href="#i-plus"/></svg>Add storage</button>
+      </header>
+      <ul id="storages" class="list"></ul>
+      <form id="form" class="form" hidden autocomplete="off">
+        <label>Name<input name="name" placeholder="Personal"></label>
+        <label>Bucket<input name="bucket" placeholder="my-bucket" required></label>
+        <label class="wide">Endpoint<input name="endpoint" placeholder="https://<account>.r2.cloudflarestorage.com" required></label>
+        <label>Region<input name="region" placeholder="auto"></label>
+        <label class="wide">Public URL<input name="publicBase" placeholder="https://files.example.com (optional)"></label>
+        <label>Access key ID<input name="ak" spellcheck="false"></label>
+        <label class="wide">Secret access key<input name="sk" type="password" spellcheck="false"></label>
+        <div class="form-actions wide">
+          <span id="form-note" class="muted"></span>
+          <button type="button" id="cancel" class="btn">Cancel</button>
+          <button type="submit" class="btn primary">Test &amp; save</button>
+        </div>
+      </form>
+    </section>
   </main>
   <script src="main.js"></script>
 </body>

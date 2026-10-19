@@ -189,6 +189,10 @@ struct TabDock: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                // Spring-loaded: dragging a file over a tab icon opens that tab, so it can be dropped there.
+                .onDrop(of: [.fileURL], isTargeted: Binding(get: { false }, set: { over in
+                    if over, vm.tab != tab.id { withAnimation(.snappy(duration: 0.2)) { vm.tab = tab.id } }
+                })) { _ in false }
                 .help(TabHotkeys.get(tab.id).map { "\(tab.name)  \($0.display)" } ?? tab.name)
             }
         }

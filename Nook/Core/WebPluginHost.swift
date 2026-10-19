@@ -45,7 +45,8 @@ final class WebPluginHost: NSObject {
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
         let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info), injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        let view = WKWebView(frame: .zero, configuration: config)
+        let view = DropWebView(frame: .zero, configuration: config)
+        view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")
         view.underPageBackgroundColor = .clear
         view.isInspectable = true
@@ -147,6 +148,49 @@ private final class BridgeHandler: NSObject, WKScriptMessageHandlerWithReply {
         guard let body = message.body as? [String: Any], let fn = body["fn"] as? String else { return replyHandler(nil, "Bad call") }
         let reply: (Any?, String?) -> Void = { value, error in DispatchQueue.main.async { replyHandler(value, error) } }
         host?.handle(pluginID: pluginID, fn: fn, args: body["args"] as? [Any] ?? [], reply: reply)
+    }
+}
+
+/// Hands dropped files to the plugin as real paths instead of letting WebKit open them:
+/// `nook.on('dragenter')`, `nook.on('dragleave')`, `nook.on('drop', paths)`. Other drags (text, links) go to WebKit.
+final class DropWebView: WKWebView {
+    var onFiles: ((String, Any) -> Void)?
+    private var fileDrag = false
+
+    private func paths(_ info: NSDraggingInfo) -> [String] {
+        let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]
+        return (urls ?? []).map(\.path)
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        fileDrag = !paths(sender).isEmpty
+        guard fileDrag else { return super.draggingEntered(sender) }
+        onFiles?("dragenter", NSNull())
+        return .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        fileDrag ? .copy : super.draggingUpdated(sender)
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        guard fileDrag else { return super.draggingExited(sender) }
+        fileDrag = false
+        onFiles?("dragleave", NSNull())
+    }
+
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        fileDrag || super.prepareForDragOperation(sender)
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard fileDrag else { return super.performDragOperation(sender) }
+        onFiles?("drop", paths(sender))
+        return true
+    }
+
+    override func concludeDragOperation(_ sender: NSDraggingInfo?) {
+        if fileDrag { fileDrag = false } else { super.concludeDragOperation(sender) }
     }
 }
 

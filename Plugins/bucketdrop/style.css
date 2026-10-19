@@ -13,9 +13,9 @@ button:active:not(:disabled){opacity:.72}
 .muted{color:var(--muted)}
 .app{position:relative;display:flex;flex-direction:column;gap:7px;height:100%;padding:8px 10px 8px 12px}
 .bar{display:flex;align-items:center;gap:6px;flex:none}
-.title{display:flex;flex-direction:column;min-width:0;flex:1;line-height:15px}
-.title strong{font-size:13px;font-weight:600;letter-spacing:-.15px}
-.title span{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+
 .search{display:flex;align-items:center;gap:5px;width:150px;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--muted)}
 .search .icon{width:13px;height:13px}
 .search input{width:100%;min-width:0;border:0;outline:0;background:transparent;font-size:11px}
@@ -44,3 +44,30 @@ button:active:not(:disabled){opacity:.72}
 .empty{position:absolute;inset:44px 10px 8px 12px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;pointer-events:none}
 .drop{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius);background:rgba(255,159,10,.14);border:1.5px dashed rgba(255,159,10,.55);color:var(--accent);font-size:13px;font-weight:600;pointer-events:none}
 .drop .icon{width:20px;height:20px}
+.picker{position:relative;flex:1;min-width:0}
+.picker-btn{display:flex;align-items:center;gap:8px;max-width:100%;height:34px;padding:0 8px 0 4px;border-radius:10px;justify-content:flex-start}
+.picker-btn:hover{background:var(--card-hover)}
+.badge{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,159,10,.14);color:var(--accent)}
+.picker-text{display:flex;flex-direction:column;align-items:flex-start;min-width:0;line-height:14px}
+.picker-text strong{font-size:13px;font-weight:600;letter-spacing:-.15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picker-text span{font-size:11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chev{width:13px;height:13px;color:var(--muted)}
+.menu{position:absolute;z-index:5;top:38px;left:0;width:260px;max-height:170px;overflow:auto;padding:4px;border-radius:12px;background:#1c1c1e;border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.menu button{width:100%;justify-content:flex-start;gap:8px;padding:6px 8px;border-radius:8px;text-align:left}
+.menu button:hover{background:var(--card-hover)}
+.menu .m-text{display:flex;flex-direction:column;min-width:0;flex:1;line-height:14px}
+.menu .m-text span{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu .m-check{width:14px;height:14px;color:var(--accent)}
+.menu hr{border:0;border-top:1px solid var(--border);margin:4px 2px}
+.sheet{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;gap:7px;padding:8px 10px 8px 12px;background:#000}
+.sheet-bar{display:flex;align-items:center;gap:6px;flex:none}
+.sheet-bar strong{font-size:13px;font-weight:600}
+.spacer{flex:1}
+.form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 8px;overflow:auto}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}
+.form label.wide,.form .wide{grid-column:span 2}
+.form input{height:27px;padding:0 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);outline:0;font-size:12px}
+.form input:focus{border-color:rgba(255,159,10,.4)}
+.form-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;align-self:end}
+.form-actions .muted{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{font-size:10px;padding:1px 6px;border-radius:6px;background:var(--card-hover);color:var(--muted)}

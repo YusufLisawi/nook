@@ -58,6 +58,7 @@ nook.notch.close()
 nook.notch.pin(true|false)                    // keep the notch open when the mouse leaves
 nook.notch.setHeight(px)                      // resize this tab's content area live
 nook.on(event, cb)                            // 'open' | 'close' | 'show' (tab shown) | 'proxy' | 'dictation'
+                                              // 'dragenter' | 'dragleave' | 'drop' (paths: real file/folder paths dropped on this tab)
 
 nook.proxy.list()        // → { proxies: [{ id, name, scheme, host, port, hasAuth }], activeId|null }
 nook.proxy.add(text)     // bulk: newlines/spaces/commas; host:port, host:port:user:pass, user:pass@host:port, scheme://…  → { added, bad }

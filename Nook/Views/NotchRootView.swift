@@ -2,6 +2,9 @@ import SwiftUI
 
 struct NotchRootView: View {
     @ObservedObject var vm: NotchViewModel
+    @AppStorage(Prefs.openOnHover) private var openOnHover = true
+
+    private var clickToOpenHover: Bool { !openOnHover && vm.isHovering && !vm.isOpen }
 
     var body: some View {
         let size = vm.contentSize
@@ -10,7 +13,7 @@ struct NotchRootView: View {
             ZStack(alignment: .top) {
                 NotchShape(topRadius: flare, bottomRadius: vm.isOpen ? 24 : 10)
                     .fill(Color.black)
-                    .shadow(color: .black.opacity(vm.isOpen ? 0.45 : 0), radius: 18, y: 8)
+                    .shadow(color: .black.opacity(vm.isOpen ? 0.45 : (clickToOpenHover ? 0.35 : 0)), radius: vm.isOpen ? 18 : 8, y: vm.isOpen ? 8 : 3)
                 Group {
                     if vm.isOpen {
                         ExpandedView(vm: vm).transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))

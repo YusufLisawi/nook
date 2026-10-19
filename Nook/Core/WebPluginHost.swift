@@ -111,6 +111,8 @@ final class WebPluginHost: NSObject {
         case "timer.stop": s.timers.reset(); reply(timerState(s.timers), nil)
         case "timer.state": reply(timerState(s.timers), nil)
         case let f where f.hasPrefix("proxy."): s.proxy.handle(String(f.dropFirst(6)), args: args, reply: reply)
+        case "ai.chat":
+            AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], reply: reply)
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default: reply(nil, "Unknown nook call: \(fn)")
@@ -155,6 +157,7 @@ final class WebPluginHost: NSObject {
             notch: { close: () => call('notch.close'), pin: p => call('notch.pin', !!p), setHeight: h => call('notch.setHeight', Number(h)) },
             proxy: Object.fromEntries(['list','add','remove','rename','connect','disconnect','ip'].map(n => [n, (...a) => call('proxy.' + n, ...a)])),
             timer: { start: m => call('timer.start', Number(m)), stop: () => call('timer.stop'), state: () => call('timer.state') },
+            ai: { chat: (messages, o) => call('ai.chat', messages, o || {}) },
             audio: Object.fromEntries(['state','setDefault','setDeviceVolume','setDeviceMute','setPreferred','setAppVolume','setAppMute','resetApp','openPrivacy'].map(n => [n, (...a) => call('audio.' + n, ...a)])),
             dictation: Object.fromEntries(['history','retry','remove','copy','paste','clear','state','toggle'].map(n => [n, (...a) => call('dictation.' + n, ...a)])),
             on: (e, cb) => { (listeners[e] = listeners[e] || []).push(cb); },
@@ -355,5 +358,38 @@ enum PluginLog {
                 try? Data(line.utf8).write(to: url)
             }
         }
+    }
+}
+
+/// `nook.ai.chat(messages, {json, model, temperature})` → assistant text, via the user's Groq key (same as dictation).
+enum AIChat {
+    static let defaultModel = "openai/gpt-oss-120b"
+
+    static func send(messages: [[String: Any]], options: [String: Any], reply: @escaping (Any?, String?) -> Void) {
+        guard let key = Secrets.get(DictationService.Keys.groqSecret) else {
+            return reply(nil, "Add a Groq API key in Nook Settings → Dictation")
+        }
+        guard !messages.isEmpty else { return reply(nil, "No messages") }
+        var body: [String: Any] = [
+            "model": options["model"] as? String ?? defaultModel,
+            "messages": messages,
+            "temperature": options["temperature"] as? Double ?? 0.2,
+        ]
+        if (body["model"] as? String)?.hasPrefix("openai/gpt-oss") == true { body["reasoning_effort"] = "low" }
+        if options["json"] as? Bool == true { body["response_format"] = ["type": "json_object"] }
+        var request = URLRequest(url: URL(string: "https://api.groq.com/openai/v1/chat/completions")!, timeoutInterval: 90)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error { return reply(nil, error.localizedDescription) }
+            let json = (data.flatMap { try? JSONSerialization.jsonObject(with: $0) }) as? [String: Any] ?? [:]
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                return reply(nil, (json["error"] as? [String: Any])?["message"] as? String ?? "AI request failed")
+            }
+            let text = ((json["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any])?["content"] as? String ?? ""
+            reply(text, nil)
+        }.resume()
     }
 }

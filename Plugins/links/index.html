@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Links</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="i-link" viewBox="0 0 20 20"><path d="m8 12 4-4M7 13l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M13 7l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 20 20"><path d="m8 3 1.8 5.2L15 10l-5.2 1.8L8 17l-1.8-5.2L1 10l5.2-1.8L8 3ZM16 2v4m-2-2h4M17 14v4m-2-2h4"/></symbol>
+    <symbol id="i-more" viewBox="0 0 20 20"><path d="M4 10h.01M10 10h.01M16 10h.01" stroke-width="3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 20 20"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 20 20"><path d="M3 5h14M7 5V3h6v2M5 5l1 12h8l1-12M8 8v6m4-6v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></symbol>
+  </defs></svg>
+  <main class="nk-root">
+    <header class="nk-row-flex toolbar">
+      <input id="search" class="nk-input nk-fill" type="search" placeholder="Search links" aria-label="Search title, URL or domain" autocomplete="off" spellcheck="false">
+      <span id="count" class="nk-small nk-muted nk-num" aria-live="polite">—</span>
+      <button id="cleanup" class="nk-btn nk-primary" type="button" disabled><svg class="icon"><use href="#i-sparkles"/></svg>Clean up</button>
+      <button id="more" class="nk-icon-btn" type="button" title="More actions" aria-label="More actions" aria-expanded="false" aria-controls="overflow" disabled><svg class="icon"><use href="#i-more"/></svg></button>
+    </header>
+    <div id="overflow" class="nk-row-flex" hidden>
+      <span class="nk-fill"></span>
+      <button id="remove-old" class="nk-btn nk-ghost" type="button">Remove older than 30 days</button>
+      <button id="remove-all" class="nk-btn nk-danger" type="button">Remove all</button>
+    </div>
+    <div id="error" class="nk-error" role="alert" hidden>
+      <span id="error-text" class="nk-fill"></span>
+      <button id="retry" class="nk-btn nk-ghost" type="button" hidden>Retry</button>
+      <button id="dismiss-error" class="nk-icon-btn" type="button" aria-label="Dismiss error"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <div id="confirmation" class="nk-card nk-tight nk-row-flex" role="group" aria-label="Confirm removal" hidden>
+      <span id="confirmation-text" class="nk-fill nk-ellipsis"></span>
+      <button id="confirm-remove" class="nk-btn nk-danger" type="button">Remove</button>
+      <button id="confirm-cancel" class="nk-btn nk-ghost" type="button">Cancel</button>
+    </div>
+    <section id="content" class="nk-fill nk-col" aria-label="Saved links">
+      <div class="nk-empty"><span class="nk-spinner"></span><span>Loading links…</span></div>
+    </section>
+    <p id="status" class="nk-small nk-muted" role="status" hidden></p>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

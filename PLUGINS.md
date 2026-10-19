@@ -83,6 +83,8 @@ nook.system()                                 // → {
 nook.clipboard.write(text) / read()
 nook.open(url)                                // URL or file path
 nook.notify(title, body)
+nook.ai.chat(messages, { json, model, temperature })  // → assistant text via the user's Groq key (OpenAI-style messages);
+                                              //   json:true = JSON mode. Default model openai/gpt-oss-120b. Rejects if no key.
 nook.activity.set({ text, symbol, color })    // shows on the closed notch (color = css colour)
 nook.activity.clear()
 nook.notch.close()

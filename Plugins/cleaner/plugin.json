@@ -1,0 +1,13 @@
+{
+  "id": "cleaner",
+  "name": "Cleaner",
+  "symbol": "sparkles",
+  "entry": "index.html",
+  "order": 55,
+  "height": 280,
+  "settings": [
+    { "key": "downloadsDays", "label": "Old downloads = not opened for (days)", "type": "number", "min": 7, "max": 365, "step": 1, "default": 60 },
+    { "key": "includeDownloads", "label": "Include old downloads", "type": "toggle", "default": false },
+    { "key": "includeDeviceSupport", "label": "Include iOS DeviceSupport", "type": "toggle", "default": true }
+  ]
+}

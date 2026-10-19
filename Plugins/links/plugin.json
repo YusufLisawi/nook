@@ -1,0 +1,15 @@
+{
+  "id": "links",
+  "name": "Links",
+  "symbol": "link",
+  "entry": "index.html",
+  "order": 42,
+  "height": 260,
+  "settings": [
+    { "key": "capture", "label": "Capture", "type": "select", "options": ["Only when I copy just a link", "Any link inside copied text", "Off"], "default": "Only when I copy just a link" },
+    { "key": "stripTracking", "label": "Remove tracking parameters (utm_, fbclid…)", "type": "toggle", "default": true },
+    { "key": "ignoreDomains", "label": "Never save these domains", "type": "textarea", "default": "localhost\n127.0.0.1", "help": "One per line" },
+    { "key": "maxLinks", "label": "Keep at most", "type": "number", "min": 100, "max": 5000, "step": 100, "default": 1000 },
+    { "key": "olderThanDays", "label": "\"Remove old\" means older than (days)", "type": "number", "min": 1, "max": 365, "step": 1, "default": 30 }
+  ]
+}

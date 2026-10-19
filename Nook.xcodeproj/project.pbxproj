@@ -18,6 +18,7 @@
 		3EC534324EA0668F89733786 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ED7F0CE539625E9216FFC57 /* Services.swift */; };
 		417B30DC9B913FA1DA788859 /* NotchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FB94566365EE9D32B99E1 /* NotchPanel.swift */; };
 		5211D767553F2B876DF5720B /* template in Resources */ = {isa = PBXBuildFile; fileRef = FE8D215B0A74BB45D9B25666 /* template */; };
+		5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305C12534BB0A21814E084F9 /* LinkCatcher.swift */; };
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
 		66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */; };
 		70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */; };
@@ -81,6 +82,7 @@
 		1D42A5D5FCF4370A368C56D5 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		23055D40A8B72A840805201E /* SystemStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStats.swift; sourceTree = "<group>"; };
 		251F2F98844B8FDBF322E6BB /* skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = skill; sourceTree = SOURCE_ROOT; };
+		305C12534BB0A21814E084F9 /* LinkCatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCatcher.swift; sourceTree = "<group>"; };
 		3DB8B9DC39F1086191974395 /* TabHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabHotkeys.swift; sourceTree = "<group>"; };
 		49066C920CB9F7805A9F9470 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = SOURCE_ROOT; };
 		511F04655A88E65837A89A02 /* Plugins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Plugins; sourceTree = SOURCE_ROOT; };
@@ -118,6 +120,7 @@
 			children = (
 				5C7A346371B85AEE3A606DDF /* AudioMixer.swift */,
 				C56F150318FB5BF1029A8DF1 /* FileShelf.swift */,
+				305C12534BB0A21814E084F9 /* LinkCatcher.swift */,
 				66A8305528A9B604368F8C25 /* MediaController.swift */,
 				FD70FF370E94556B10546FF6 /* ProxyService.swift */,
 				23055D40A8B72A840805201E /* SystemStats.swift */,
@@ -323,6 +326,7 @@
 				BB148C8EA0E18FBD2336D7C0 /* FileShelf.swift in Sources */,
 				31C2915681CE1780B2E4A3F3 /* Groq.swift in Sources */,
 				66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */,
+				5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */,
 				889613576CA3F120014ECCA6 /* MediaController.swift in Sources */,
 				C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */,
 				B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */,

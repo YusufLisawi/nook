@@ -24,7 +24,11 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Behaviour") {
-                Toggle("Open on hover", isOn: $openOnHover)
+                Picker("Open the notch", selection: $openOnHover) {
+                    Text("When I hover").tag(true)
+                    Text("When I click").tag(false)
+                }
+                .pickerStyle(.segmented)
                 Toggle("Haptic feedback", isOn: $haptics)
                 Toggle("Trackpad swipes (two fingers: ← → tabs, ↓ open, ↑ on the top bar close)", isOn: $swipes)
                 Toggle("Hide when an app is full screen", isOn: $hideInFullscreen)
@@ -76,7 +80,7 @@ struct SettingsView: View {
             }
             ToolsSection()
             Section("Dictation") {
-                SecureField("Groq API key", text: $groqKey)
+                SecureField("Groq API key (dictation + AI)", text: $groqKey)
                     .onChange(of: groqKey) { _, key in Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) }
                 LabeledContent("Hold to talk") {
                     DictationShortcutField(storageKey: DictationService.Keys.holdShortcut, fallback: .defaultHold)

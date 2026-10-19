@@ -16,6 +16,7 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | Show status on the closed notch | `nook.activity.set/clear` |
 | Control the notch | `nook.notch.close/pin/setHeight` |
 | Take dropped files/folders | `nook.on('drop', …)` gives real paths |
+| Ask an LLM | `nook.ai.chat` — uses the user's Groq key (no key → a clear error) |
 | Use built-in engines | `nook.proxy.*` (whole-machine proxy), `nook.dictation.*` (Groq dictation) |
 | Keep running in the background | the web view stays alive while Nook runs (timers, polling, sockets keep going) |
 | React to Nook | `nook.on('open'|'close'|'show'|'proxy'|'dictation'|…)` |

@@ -87,7 +87,11 @@ final class NotchViewModel: ObservableObject {
             return CGSize(width: max(Self.openWidth, notch.width + 300), height: notch.height + 8 + contentHeight + 8 + Self.dockHeight + 10)
         case .closed:
             if let activity { return CGSize(width: notch.width + 2 * sideWidth(for: activity), height: notch.height) }
-            return isHovering ? CGSize(width: notch.width + 14, height: notch.height + 3) : notch
+            guard isHovering else { return notch }
+            // Click mode: a clearer "press me" grow, since hovering alone won't open it.
+            return Prefs.bool(Prefs.openOnHover)
+                ? CGSize(width: notch.width + 14, height: notch.height + 3)
+                : CGSize(width: notch.width + 30, height: notch.height + 7)
         }
     }
 

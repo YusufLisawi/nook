@@ -37,7 +37,7 @@ nook validate <id>       # must pass before you say "done"
 ## Bridge cheat sheet (full: `nook api`)
 
 `nook.settings.get/set/open` + `nook.on('settings')` · `nook.storage.get/set/all` · `nook.shell(cmd,{timeout})` ·
-`nook.fetch(url,{method,headers,body})` · `nook.system()` · `nook.clipboard.read/write` · `nook.open(url|path)` · `nook.notify(title, body)` ·
+`nook.fetch(url,{method,headers,body})` · `nook.system()` · `nook.ai.chat(messages,{json})` (LLM via the user's Groq key) · `nook.clipboard.read/write` · `nook.open(url|path)` · `nook.notify(title, body)` ·
 `nook.activity.set({text,symbol,color}) / clear()` (closed-notch status) · `nook.notch.close/pin(bool)/setHeight(px)` ·
 `nook.on('open'|'close'|'show'|'drop'|'dragenter'|'dragleave'|'audio'|'proxy'|'dictation', cb)` ·
 `nook.audio.*` (devices, per-app volume) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})

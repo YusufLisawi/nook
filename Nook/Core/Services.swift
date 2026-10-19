@@ -17,6 +17,7 @@ final class Services: ObservableObject {
     let proxy = ProxyService()
     let dictation = DictationService()
     let audio = AudioMixer()
+    let links = LinkCatcher()
     let plugins = PluginRegistry()
 
     /// Set by web plugins through `nook.activity.set`; shown on the closed notch.
@@ -28,6 +29,7 @@ final class Services: ObservableObject {
         proxy.restoreOnLaunch()
         dictation.start()
         audio.start()
+        links.start()
     }
 
     func shutdown() {

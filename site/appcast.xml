@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.2.3</title>
+  <pubDate>Mon, 19 Oct 2026 20:50:02 GMT</pubDate>
+  <sparkle:version>7</sparkle:version>
+  <sparkle:shortVersionString>1.2.3</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<p>Nook 1.2.3</p><li>While you dictate, the notch shows how long you have been talking (red dot + timer)</li><li>The Dictation tab shows how much you have spoken and the time it saved you vs typing</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.2.3/Nook.dmg" type="application/octet-stream" sparkle:edSignature="CfilghnN+Ab2K9fJ/1HmL2ll3b9KD+mAXtqXjcZVnsqvcWR+xHvzqeyw1ODtroj/bDgjEcIQ/3ugmBltV4ZHBw==" length="6158326"/>
+</item>
+<item>
   <title>Nook 1.2.2</title>
   <pubDate>Mon, 19 Oct 2026 20:44:32 GMT</pubDate>
   <sparkle:version>6</sparkle:version>

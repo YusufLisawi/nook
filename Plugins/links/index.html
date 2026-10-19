@@ -15,34 +15,69 @@
     <symbol id="i-trash" viewBox="0 0 20 20"><path d="M3 5h14M7 5V3h6v2M5 5l1 12h8l1-12M8 8v6m4-6v6"/></symbol>
     <symbol id="i-check" viewBox="0 0 20 20"><path d="m4 10 4 4 8-8"/></symbol>
     <symbol id="i-x" viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 20 20"><path d="m12 2 6 6-3 1-3 4-5-5 4-3 1-3ZM7 8l-2 3 4 4 3-2M7 13l-4 4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 20 20"><path d="M2 6V4h6l2 2h8v10H2V6Z"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 20 20"><path d="M2 12 5 4h10l3 8v5H2v-5Zm0 0h5l1 2h4l1-2h5"/></symbol>
   </defs></svg>
   <main class="nk-root">
     <header class="nk-row-flex toolbar">
-      <input id="search" class="nk-input nk-fill" type="search" placeholder="Search links" aria-label="Search title, URL or domain" autocomplete="off" spellcheck="false">
-      <span id="count" class="nk-small nk-muted nk-num" aria-live="polite">—</span>
-      <button id="cleanup" class="nk-btn nk-primary" type="button" disabled><svg class="icon"><use href="#i-sparkles"/></svg>Clean up</button>
-      <button id="more" class="nk-icon-btn" type="button" title="More actions" aria-label="More actions" aria-expanded="false" aria-controls="overflow" disabled><svg class="icon"><use href="#i-more"/></svg></button>
+      <input id="search" class="nk-input nk-fill" type="search" placeholder="Search links" aria-label="Search title, URL, domain or note" autocomplete="off" spellcheck="false">
+      <div id="header-actions" class="nk-row-flex">
+        <span id="count" class="nk-small nk-muted nk-num" aria-live="polite">—</span>
+        <button id="cleanup" class="nk-btn nk-primary" type="button" disabled><svg class="icon"><use href="#i-sparkles"/></svg>Clean up</button>
+        <button id="more" class="nk-icon-btn" type="button" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" disabled><svg class="icon"><use href="#i-more"/></svg></button>
+      </div>
+      <div id="bulk" class="nk-row-flex" aria-label="Selected links" hidden>
+        <span id="selected-count" class="nk-small nk-num"></span><span class="nk-muted">·</span>
+        <button id="bulk-pin" class="nk-btn nk-ghost" type="button">Pin</button>
+        <button id="bulk-move" class="nk-btn nk-ghost" type="button" aria-haspopup="menu">Move to ▾</button>
+        <button id="bulk-delete" class="nk-btn nk-danger" type="button">Delete</button>
+        <button id="bulk-clear" class="nk-icon-btn" type="button" title="Clear selection" aria-label="Clear selection"><svg class="icon"><use href="#i-x"/></svg></button>
+      </div>
     </header>
-    <div id="overflow" class="nk-row-flex" hidden>
-      <span class="nk-fill"></span>
-      <button id="remove-old" class="nk-btn nk-ghost" type="button">Remove older than 30 days</button>
-      <button id="remove-all" class="nk-btn nk-danger" type="button">Remove all</button>
-    </div>
     <div id="error" class="nk-error" role="alert" hidden>
       <span id="error-text" class="nk-fill"></span>
       <button id="retry" class="nk-btn nk-ghost" type="button" hidden>Retry</button>
       <button id="dismiss-error" class="nk-icon-btn" type="button" aria-label="Dismiss error"><svg class="icon"><use href="#i-x"/></svg></button>
     </div>
     <div id="confirmation" class="nk-card nk-tight nk-row-flex" role="group" aria-label="Confirm removal" hidden>
-      <span id="confirmation-text" class="nk-fill nk-ellipsis"></span>
+      <span id="confirmation-text" class="nk-fill nk-small"></span>
       <button id="confirm-remove" class="nk-btn nk-danger" type="button">Remove</button>
       <button id="confirm-cancel" class="nk-btn nk-ghost" type="button">Cancel</button>
     </div>
-    <section id="content" class="nk-fill nk-col" aria-label="Saved links">
-      <div class="nk-empty"><span class="nk-spinner"></span><span>Loading links…</span></div>
-    </section>
+    <div class="workspace nk-fill">
+      <aside class="sidebar nk-col" aria-label="Link folders">
+        <nav id="folders" class="nk-list nk-scroll nk-fill" aria-label="Views and folders"></nav>
+        <form id="folder-form" class="folder-form nk-row-flex" hidden>
+          <input id="folder-name" class="nk-input nk-fill" placeholder="Folder name" aria-label="Folder name" maxlength="40" autocomplete="off">
+          <button class="nk-icon-btn" type="submit" title="Save folder" aria-label="Save folder"><svg class="icon"><use href="#i-check"/></svg></button>
+          <button id="folder-cancel" class="nk-icon-btn" type="button" title="Cancel" aria-label="Cancel folder edit"><svg class="icon"><use href="#i-x"/></svg></button>
+        </form>
+        <button id="new-folder" class="nk-btn nk-ghost" type="button" disabled>+ New folder</button>
+        <button id="sort-ai" class="nk-btn nk-ghost" type="button" disabled><svg class="icon"><use href="#i-sparkles"/></svg>Sort with AI</button>
+      </aside>
+      <section class="main-list nk-col nk-fill" aria-label="Saved links">
+        <div id="list-heading" class="nk-row-flex">
+          <span id="view-title" class="nk-label nk-fill nk-ellipsis">All</span>
+          <span class="nk-small nk-muted">Group by</span>
+          <div id="group-by" class="nk-seg" role="group" aria-label="Group links by">
+            <button id="group-day" type="button" class="nk-on" aria-pressed="true">Day</button>
+            <button id="group-site" type="button" aria-pressed="false">Site</button>
+          </div>
+        </div>
+        <div id="content" class="nk-fill nk-col" tabindex="0" aria-label="Links. Arrow keys navigate; Enter opens; P pins; Delete removes.">
+          <div class="nk-empty"><span class="nk-spinner"></span><span>Loading links…</span></div>
+        </div>
+      </section>
+    </div>
+    <div id="toast" class="nk-card nk-tight nk-row-flex" role="status" aria-live="polite" hidden>
+      <span id="toast-text" class="nk-small nk-fill"></span><span class="nk-muted">·</span>
+      <button id="undo" class="nk-btn nk-ghost" type="button">Undo</button>
+    </div>
     <p id="status" class="nk-small nk-muted" role="status" hidden></p>
+    <div id="menu" class="nk-card nk-tight nk-list nk-scroll" role="menu" hidden></div>
   </main>
+  <script src="store.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

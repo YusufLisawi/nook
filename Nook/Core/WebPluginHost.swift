@@ -120,7 +120,7 @@ final class WebPluginHost: NSObject {
     }
 
     private func timerState(_ t: TimerService) -> [String: Any] {
-        ["running": t.isRunning, "mode": t.mode == .countdown ? "timer" : "stopwatch", "remaining": t.value, "text": t.displayText]
+        ["running": t.isRunning, "mode": t.mode == .countdown ? "timer" : (t.mode == .pomodoro ? "pomodoro" : "stopwatch"), "remaining": t.value, "text": t.displayText]
     }
 
     /// Nook UI kit (nk-* classes), as a JS string literal.

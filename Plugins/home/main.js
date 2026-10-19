@@ -88,7 +88,7 @@
   // ---- Timer --------------------------------------------------------------
 
   function showTimer(t) {
-    const running = t && t.mode === 'timer' && t.running;
+    const running = t && (t.mode === 'timer' || t.mode === 'pomodoro') && t.running;
     ui.timer.classList.toggle('running', !!running);
     ui.timerText.textContent = running ? t.text : 'Focus timer';
     ui.timerStop.hidden = !running;

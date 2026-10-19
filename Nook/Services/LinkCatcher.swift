@@ -71,7 +71,10 @@ final class LinkCatcher {
                 toTitle.append(id)
             }
         }
-        if list.count > maxLinks { list.removeLast(list.count - maxLinks) }
+        // Over the limit: drop the oldest links that aren't pinned (pinned ones are never trimmed).
+        while list.count > maxLinks, let last = list.lastIndex(where: { ($0["pinned"] as? Bool) != true }) {
+            list.remove(at: last)
+        }
         storage.set(Self.storageKey, list)
         PluginEvents.emit("links", list, to: Self.pluginID)
         for id in toTitle { fetchTitle(id) }

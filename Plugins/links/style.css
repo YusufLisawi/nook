@@ -1,33 +1,72 @@
 html, body { height: 100%; margin: 0; overflow: hidden; background: transparent; }
-.nk-root { overflow: hidden; }
+.nk-root { overflow: hidden; position: relative; }
 .svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .icon { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.toolbar, #overflow, #error, #confirmation, #status, .review-heading, .review-footer { flex: none; }
-.toolbar .nk-btn, #count { white-space: nowrap; }
+.toolbar, #error, #confirmation, #status, #toast, #list-heading, .review-heading, .review-footer { flex: none; }
+.toolbar .nk-btn, #count, #bulk { white-space: nowrap; }
 #count { min-width: 24px; text-align: center; }
-#search { width: 0; }
+#search { width: 0; min-width: 100px; }
+#bulk { gap: 4px; }
+#bulk .nk-btn { padding: 6px 8px; }
 #error-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 #status { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.day-heading { padding: 5px 9px 2px; flex: none; }
+#confirmation-text { line-height: 1.3; }
+.workspace { display: flex; gap: 8px; overflow: hidden; }
+.sidebar { width: 130px; flex: none; gap: 4px; }
+.sidebar > .nk-btn { flex: none; justify-content: flex-start; padding: 6px 8px; font-size: 11px; }
+.folder-row { padding: 0; gap: 0; flex: none; }
+.folder-view { display: flex; gap: 6px; align-items: center; padding: 6px 8px; min-width: 0; width: 100%; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; text-align: left; cursor: default; }
+.folder-row.nk-selected .folder-view { color: var(--fg); }
+.folder-view .icon, .folder-emoji { width: 15px; flex: none; text-align: center; }
+.folder-row .folder-more { width: 22px; height: 24px; margin-right: 2px; opacity: 0; flex: none; }
+.folder-row:hover .folder-more, .folder-row:focus-within .folder-more { opacity: 1; }
+.folder-row.drop-target { outline: 1px dashed var(--border); outline-offset: -1px; background: var(--card-hover); }
+.folder-form { flex-wrap: wrap; gap: 2px; }
+.folder-form .nk-input { flex-basis: 100%; padding: 5px 8px; }
+.folder-form .nk-icon-btn { width: 24px; height: 22px; }
+#sort-ai { color: var(--accent); }
+.main-list { overflow: hidden; gap: 4px; }
+#list-heading { min-height: 26px; gap: 6px; }
+#group-by button { padding: 3px 8px; }
+#content { outline: none; overflow: hidden; gap: 4px; }
+.group-heading { padding: 5px 9px 2px; flex: none; gap: 6px; }
+.group-heading .favicon { width: 18px; height: 18px; border-radius: 4px; font-size: 10px; }
+.group-heading .favicon img { width: 16px; height: 16px; }
 .link-row, .review-row { flex: none; }
-.link-row { padding-top: 6px; padding-bottom: 6px; gap: 6px; }
-.link-open { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: default; }
-.link-open:focus-visible, .nk-icon-btn:focus-visible, .nk-btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.link-row { padding-top: 6px; padding-bottom: 6px; gap: 6px; height: 44px; overflow: hidden; transition: height 150ms ease-out, padding 150ms ease-out, opacity 150ms ease-out, margin 150ms ease-out, background 120ms ease-out; }
+.link-row.removing { height: 0; min-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; margin-bottom: -2px; pointer-events: none; }
+.link-row.highlighted { outline: 1px solid var(--border); outline-offset: -1px; background: var(--card-hover); }
+.link-row.dragging { opacity: .5; }
+.link-open { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 .link-copy { display: flex; flex-direction: column; gap: 2px; }
 .link-title { font-size: 12px; font-weight: 500; }
+.title-line { gap: 4px; }
+.pin-glyph { width: 11px; height: 11px; color: var(--muted); }
 .favicon { position: relative; display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 7px; overflow: hidden; background: var(--card); color: var(--muted); font-size: 12px; font-weight: 600; }
 .favicon img { position: absolute; width: 20px; height: 20px; border-radius: 4px; }
-.link-row:focus-within .nk-actions { opacity: 1; }
+.select-box { width: 14px; height: 14px; margin: 0; flex: none; accent-color: var(--accent); opacity: 0; transition: opacity 120ms ease-out; }
+.link-row:hover .select-box, .link-row:focus-within .select-box, .link-row.nk-selected .select-box, .has-selection .select-box { opacity: 1; }
+.link-row:focus-within .nk-actions, .link-row.highlighted .nk-actions { opacity: 1; }
 .nk-actions { flex: none; }
-.nk-actions .nk-icon-btn { color: var(--muted); }
+.link-row .nk-actions { gap: 0; }
+.link-row .nk-actions .nk-icon-btn { width: 24px; height: 26px; color: var(--muted); }
 .nk-actions .delete:hover { color: var(--bad); }
+.nk-actions .pin-on { color: var(--accent) !important; }
 .nk-icon-btn:disabled { opacity: .4; pointer-events: none; }
-.review-row { align-items: center; gap: 9px; cursor: default; }
-.review-row input { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; flex: none; }
+.review-row { align-items: center; gap: 8px; cursor: default; padding: 6px 8px; }
+.review-row input, .group-heading input { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; flex: none; }
 .review-row.unavailable { opacity: .5; }
 .review-footer .nk-small { min-width: 0; }
+.review-heading .nk-title { font-size: 12px; }
 .nk-empty .icon { width: 22px; height: 22px; }
 .nk-empty { min-height: 0; padding: 4px; }
+.nk-empty span { max-width: 100%; }
+#toast { padding: 3px 10px; }
+#toast .nk-btn { padding: 4px 8px; color: var(--accent); }
+#menu { position: fixed; z-index: 10; min-width: 156px; max-width: 240px; max-height: calc(100vh - 8px); background: var(--card); backdrop-filter: blur(32px) brightness(.35); -webkit-backdrop-filter: blur(32px) brightness(.35); border: 1px solid var(--border); padding: 4px; }
+#menu .nk-btn { width: 100%; justify-content: flex-start; padding: 6px 8px; flex: none; text-align: left; }
+#menu .menu-heading { padding: 4px 8px; }
 @media (prefers-reduced-motion: reduce) {
-  .nk-item, .nk-btn, .nk-actions { transition: none; }
+  .nk-item, .nk-btn, .nk-actions, .select-box { transition: none; }
 }

@@ -146,6 +146,8 @@ final class AudioMixer {
         let path: String?
         var processes: [AudioObjectID]
         var playing: Bool
+        var outputProcesses: [AudioObjectID] = [] // only these get tapped
+        var recording = false                    // app is using a microphone right now
     }
 
     /// Audio processes grouped by the app responsible for them (helpers, GPU/renderer processes → their app).
@@ -166,6 +168,9 @@ final class AudioMixer {
             var group = groups[path] ?? AppGroup(key: path, levelKey: bundleID ?? path, name: name, bundleID: bundleID, path: path, processes: [], playing: false)
             group.processes.append(object)
             group.playing = group.playing || running != 0
+            if running != 0 { group.outputProcesses.append(object) }
+            let input: UInt32 = Self.read(object, kAudioProcessPropertyIsRunningInput, default: 0)
+            group.recording = group.recording || input != 0
             groups[path] = group
         }
         return groups.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -180,22 +185,36 @@ final class AudioMixer {
         for group in groups {
             guard let level = levels[group.levelKey], level.gain != 1 || level.muted else { continue }
             wanted.insert(group.key)
-            if let tap = taps[group.key], tap.outputUID == outputUID, Set(tap.processes) == Set(group.processes) {
-                continue // up to date
+            if let tap = taps[group.key], tap.outputUID == outputUID {
+                // Re-tap only when the set of processes actually playing sound changes — and never while the app is
+                // recording: rebuilding swaps an aggregate device, which browser recorders see as "mic disconnected".
+                let playing = Set(group.outputProcesses)
+                if !playing.isEmpty, playing != Set(tap.processes), !group.recording,
+                   !tap.update(processes: group.outputProcesses), Date().timeIntervalSince(tap.createdAt) > 30 {
+                    rebuild(group: group, level: level, outputUID: outputUID)
+                }
+                continue
             }
-            taps[group.key]?.stop()
-            do {
-                let tap = try AppTap(processes: group.processes, outputUID: outputUID, levelKey: group.levelKey)
-                tap.gain = level.gain
-                tap.muted = level.muted
-                taps[group.key] = tap
-                watchForSilence(tap, key: group.key)
-            } catch {
-                taps.removeValue(forKey: group.key)
-            }
+            guard !group.outputProcesses.isEmpty, !group.recording else { continue } // nothing to tap yet / don't disturb a recording
+            // Missing audio-capture permission: don't retry every 2 s; wait until the user changes a level again.
+            guard !needsPermission else { continue }
+            rebuild(group: group, level: level, outputUID: outputUID)
         }
         for key in taps.keys where !wanted.contains(key) {
             taps.removeValue(forKey: key)?.stop()
+        }
+    }
+
+    private func rebuild(group: AppGroup, level: AppLevel, outputUID: String) {
+        taps[group.key]?.stop()
+        do {
+            let tap = try AppTap(processes: group.outputProcesses, outputUID: outputUID, levelKey: group.levelKey)
+            tap.gain = level.gain
+            tap.muted = level.muted
+            taps[group.key] = tap
+            watchForSilence(tap, key: group.key)
+        } catch {
+            taps.removeValue(forKey: group.key)
         }
     }
 
@@ -407,9 +426,11 @@ final class AudioMixer {
 
 /// One app's tap: process tap → private aggregate device → IOProc applies gain → output device.
 private final class AppTap {
-    let processes: [AudioObjectID]
+    private(set) var processes: [AudioObjectID]
     let outputUID: String
     let levelKey: String
+    let createdAt = Date()
+    private var tapUUID = UUID()
     var gain: Float = 1
     var muted = false
     private(set) var sawSignal = false
@@ -426,7 +447,7 @@ private final class AppTap {
         self.levelKey = levelKey
 
         let description = CATapDescription(stereoMixdownOfProcesses: processes)
-        description.uuid = UUID()
+        description.uuid = tapUUID
         description.muteBehavior = .mutedWhenTapped
         description.isPrivate = true
         var status = AudioHardwareCreateProcessTap(description, &tapID)
@@ -487,6 +508,22 @@ private final class AppTap {
             }
             if peak > 0.0001 { sawSignal = true }
         }
+    }
+
+    /// Point the live tap at a new set of processes without touching the aggregate device.
+    func update(processes new: [AudioObjectID]) -> Bool {
+        guard tapID != kAudioObjectUnknown else { return false }
+        let description = CATapDescription(stereoMixdownOfProcesses: new)
+        description.uuid = tapUUID
+        description.muteBehavior = .mutedWhenTapped
+        description.isPrivate = true
+        var address = AudioMixer.address(kAudioTapPropertyDescription)
+        var object: CATapDescription = description
+        let status = withUnsafeMutablePointer(to: &object) {
+            AudioObjectSetPropertyData(tapID, &address, 0, nil, UInt32(MemoryLayout<CATapDescription>.size), $0)
+        }
+        if status == noErr { processes = new }
+        return status == noErr
     }
 
     func stop() {

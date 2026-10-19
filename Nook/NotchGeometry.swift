@@ -22,8 +22,9 @@ struct NotchGeometry {
             let height = screen.safeAreaInsets.top
             return .init(screen: screen, notch: CGRect(x: frame.minX + left.width, y: frame.maxY - height, width: width, height: height))
         }
-        // No notch: a small fake one, centred on the menu bar.
-        let size = CGSize(width: 190, height: 32)
+        // No notch: a small fake one, centred on the menu bar and exactly as tall as it.
+        let menuBar = frame.maxY - screen.visibleFrame.maxY
+        let size = CGSize(width: 190, height: menuBar > 0 ? menuBar : NSStatusBar.system.thickness)
         return .init(screen: screen, notch: CGRect(x: frame.midX - size.width / 2, y: frame.maxY - size.height, width: size.width, height: size.height))
     }
 }

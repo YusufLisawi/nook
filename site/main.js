@@ -90,3 +90,11 @@
   window.addEventListener("hashchange", openLinkedQuestion);
   openLinkedQuestion();
 })();
+
+document.querySelectorAll('.install-copy').forEach((button) => {
+  button.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(button.dataset.copy); button.textContent = 'Copied'; }
+    catch { button.textContent = 'Select it'; }
+    setTimeout(() => { button.textContent = 'Copy'; }, 1600);
+  });
+});

@@ -58,7 +58,9 @@ targets:
         OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: ""
-        ENABLE_HARDENED_RUNTIME: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: Nook/Nook.entitlements
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
   nook-cli:
     type: tool
     platform: macOS

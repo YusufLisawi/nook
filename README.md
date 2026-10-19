@@ -38,8 +38,13 @@ Everything is optional — turn tabs off in Settings.
 
 ## Install
 
-1. [Download Nook.dmg](https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg) and drag **Nook** to Applications.
-2. Nook isn't notarized yet, so the first time: **right-click Nook → Open**, or System Settings → Privacy & Security → **Open Anyway**.
+**One line, no security prompt:**
+
+```bash
+curl -fsSL https://nook.motkan.com/install.sh | bash
+```
+
+Or [download Nook.dmg](https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg) and drag **Nook** to Applications. The DMG isn't notarized yet, so the first time: System Settings → Privacy & Security → **Open Anyway**.
 3. Grant what you use: **Accessibility** (shortcuts, paste), **Microphone** (dictation), **System Audio Recording** (per-app volume).
 
 Requires macOS 14.2 or later. Apple silicon and Intel.

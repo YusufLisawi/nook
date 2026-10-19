@@ -2,9 +2,11 @@
 # Build a universal Release of Nook and package it as dist/Nook.dmg (drag-to-Applications).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-xcodegen generate >/dev/null
-xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build \
-  ONLY_ACTIVE_ARCH=NO build | grep -E "error:|BUILD" || true
+if [[ "${1:-}" != "--skip-build" ]]; then
+  xcodegen generate >/dev/null
+  xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build \
+    ONLY_ACTIVE_ARCH=NO build | grep -E "error:|BUILD" || true
+fi
 APP=build/Build/Products/Release/Nook.app
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
 echo "Nook $VERSION — $(lipo -archs "$APP/Contents/MacOS/Nook")"

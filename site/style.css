@@ -446,3 +446,14 @@ details[open] .faq-plus::after { transform: rotate(0); }
   .reveal.will-reveal { opacity: 1; transform: none; }
   .button:hover { transform: none; }
 }
+
+/* One-line installer */
+.install-cmd { margin: 18px auto 0; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 100%; }
+.install-label { font-size: 12px; color: rgba(255,255,255,.5); }
+.install-row { display: flex; align-items: center; gap: 4px; max-width: 100%; padding: 5px 5px 5px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.install-row code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(255,255,255,.85); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.install-row code::-webkit-scrollbar { display: none; }
+.install-copy { flex: none; border: 0; border-radius: 8px; padding: 6px 12px; font: 600 12px -apple-system, sans-serif; cursor: pointer;
+  color: #ff9f0a; background: rgba(255,159,10,.14); transition: background .15s; }
+.install-copy:hover { background: rgba(255,159,10,.24); }

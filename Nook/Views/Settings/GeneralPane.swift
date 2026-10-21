@@ -9,6 +9,7 @@ struct GeneralPane: View {
     @AppStorage(Prefs.haptics) private var haptics = true
     @AppStorage(Prefs.swipes) private var swipes = true
     @AppStorage(Prefs.hideInFullscreen) private var hideInFullscreen = true
+    @AppStorage(Prefs.hideFromCapture) private var hideFromCapture = true
     @AppStorage(Prefs.shelfAutoOpen) private var shelfAutoOpen = true
     @AppStorage(Prefs.showMusic) private var showMusic = true
     @AppStorage(Prefs.showTimer) private var showTimer = true
@@ -38,6 +39,13 @@ struct GeneralPane: View {
                 }
                 .onChange(of: screenSetting) { _, _ in onScreensChanged() }
                 Toggle("Hide when an app is full screen", isOn: $hideInFullscreen)
+            }
+            Section {
+                Toggle("Hide Nook from screen sharing and recordings", isOn: $hideFromCapture)
+            } header: {
+                Text("Privacy")
+            } footer: {
+                Text("You still see the notch and the menu bar icon. Screenshots, screen recorders and meeting screen-share (Zoom, Meet, Teams) don't.")
             }
             Section {
                 Toggle("Haptic feedback", isOn: $haptics)

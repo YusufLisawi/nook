@@ -14,6 +14,7 @@ final class NotchPanel: NSPanel {
         ignoresMouseEvents = true
         level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)) + 3)
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+        CaptureShield.apply(self)
     }
 
     override var canBecomeKey: Bool { true }

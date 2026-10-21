@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.rebuildNotches()
         }
         setupStatusItem()
+        CaptureShield.start()
         setupEditMenu()
         handleTerminationSignals()
         ToolsInstaller.installIfNeeded()

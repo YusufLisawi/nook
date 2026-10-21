@@ -4,6 +4,7 @@ enum Prefs {
     static let openOnHover = "openOnHover"
     static let haptics = "hapticFeedback"
     static let hideInFullscreen = "hideInFullscreen"
+    static let hideFromCapture = "hideFromCapture"
     static let showMusic = "showMusicActivity"
     static let showTimer = "showTimerActivity"
     static let shelfAutoOpen = "shelfAutoOpenOnDrag"
@@ -15,7 +16,7 @@ enum Prefs {
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
-            openOnHover: true, haptics: true, hideInFullscreen: true,
+            openOnHover: true, haptics: true, hideInFullscreen: true, hideFromCapture: true,
             showMusic: true, showTimer: true, shelfAutoOpen: true, swipes: true,
             preferredScreen: "*", disabledTabs: "", // every screen by default
         ])

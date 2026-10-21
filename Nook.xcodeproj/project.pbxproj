@@ -85,6 +85,7 @@
 		C3328EACD94AB4C16FF52AFA /* nook-cli in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = A765987708E7C7A6BDC686EE /* nook-cli */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */; };
 		C45EFE92B882049EE02C44D0 /* FileSearchPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23965ADD45E92309A3E756CD /* FileSearchPreview.swift */; };
+		C63113DB4DAC5186FA0FCFBF /* CaptureShield.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3695BCFB2AE45A793E9D585D /* CaptureShield.swift */; };
 		C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867998E9B233A6020709500D /* NotchController.swift */; };
 		CA78B061E8B1DCEE10EBA1C0 /* AgentsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D8AF0C0507505D2DEDCDB4B /* AgentsPane.swift */; };
 		D0A1223E7F4F65DEA0EBAE31 /* PluginStorePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F852F8AAAF23FBC93E0E9D5 /* PluginStorePane.swift */; };
@@ -162,6 +163,7 @@
 		264155FA846A218EFDEBD1E9 /* PluginSettingsForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettingsForm.swift; sourceTree = "<group>"; };
 		305C12534BB0A21814E084F9 /* LinkCatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCatcher.swift; sourceTree = "<group>"; };
 		32CDA4F32C95DE8B60030AA0 /* AgentDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDiff.swift; sourceTree = "<group>"; };
+		3695BCFB2AE45A793E9D585D /* CaptureShield.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureShield.swift; sourceTree = "<group>"; };
 		3A9CB58AD389EFE253297561 /* SettingsShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShortcutRecorder.swift; sourceTree = "<group>"; };
 		3DB8B9DC39F1086191974395 /* TabHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabHotkeys.swift; sourceTree = "<group>"; };
 		3DF31FC9222BDD326A794D90 /* DictationPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPane.swift; sourceTree = "<group>"; };
@@ -292,6 +294,7 @@
 		1D625B216BA9C91D4344ACB5 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				3695BCFB2AE45A793E9D585D /* CaptureShield.swift */,
 				51BC2C6184ED772D9A964531 /* Extensions.swift */,
 				FB0D3096715CC7687F6FA829 /* KeyboardActions.swift */,
 				0AB0A480A5DF8010E2767325 /* KeyboardWebSupport.swift */,
@@ -579,6 +582,7 @@
 				CA78B061E8B1DCEE10EBA1C0 /* AgentsPane.swift in Sources */,
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
 				369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */,
+				C63113DB4DAC5186FA0FCFBF /* CaptureShield.swift in Sources */,
 				BDD29991D7AD3BBB2397C519 /* CleanerBridge.swift in Sources */,
 				3398231BDE93A499FBCF0816 /* CleanerEngine.swift in Sources */,
 				9007398995E444128D4D967D /* ClipModels.swift in Sources */,

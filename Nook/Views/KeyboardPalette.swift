@@ -76,7 +76,12 @@ struct KeyboardPalette: View {
             }
             .font(.system(size: 12))
             .background(Color(white: 0.065))
-            .onAppear { DispatchQueue.main.async { searching = true } }
+            .onAppear {
+                DispatchQueue.main.async {
+                    searching = true
+                    DispatchQueue.main.async { vm.contentDidAttach?() }
+                }
+            }
         }
     }
 }

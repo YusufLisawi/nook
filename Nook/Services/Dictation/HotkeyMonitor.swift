@@ -56,9 +56,14 @@ final class HotkeyMonitor {
         self.tap = tap
     }
 
-    private func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
+    func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            return Unmanaged.passUnretained(event)
+        }
+        // Remapped mouse keys belong to the target app, including their releases. Never mutate
+        // dictation/shortcut state or swallow them, even if a physical shortcut is already held.
+        if NookSyntheticInput.isMouseEvent(event) {
             return Unmanaged.passUnretained(event)
         }
         guard !paused else { return Unmanaged.passUnretained(event) }

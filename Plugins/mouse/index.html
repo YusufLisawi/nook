@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <symbol id="i-x" viewBox="0 0 20 20"><path d="m6 6 8 8m0-8-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-mouse" viewBox="0 0 20 20"><rect x="5.5" y="2.5" width="9" height="15" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 2.5v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  </defs></svg>
+
+  <main class="nk-root">
+    <header class="nk-row-flex">
+      <label class="nk-switch" title="Turn the mouse fixes on or off"><input id="enabled" type="checkbox" aria-label="Enable mouse controls" data-nk-autofocus disabled><span></span></label>
+      <span id="status" class="nk-pill" role="status"><i class="nk-dot"></i><span>Loading…</span></span>
+      <span class="nk-fill"></span>
+      <div class="nk-seg nk-roving" id="view" data-nk-orientation="horizontal" aria-label="Mouse controls">
+        <button data-view="scroll" data-nk-item="scroll" class="nk-on">Scroll</button>
+        <button data-view="buttons" data-nk-item="buttons">Buttons</button>
+      </div>
+    </header>
+
+    <div id="error" class="nk-error" role="alert" hidden></div>
+
+    <section id="scroll" class="nk-card nk-fill nk-scroll form"><span class="nk-spinner"></span></section>
+
+    <section id="buttons" class="nk-col nk-fill" hidden>
+      <div id="rules" class="nk-list nk-scroll nk-fill"></div>
+      <div class="nk-row-flex">
+        <span id="learnHint" class="nk-small nk-muted nk-fill"></span>
+        <button id="learn" class="nk-btn nk-primary" disabled>Add a button</button>
+      </div>
+    </section>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

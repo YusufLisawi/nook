@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.5.2</title>
+  <pubDate>Wed, 21 Oct 2026 15:15:42 GMT</pubDate>
+  <sparkle:version>14</sparkle:version>
+  <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Dock: no scrolling, shows up to 12 items. Put more in a group or hide them (Settings → Tabs &amp; Plugins marks what&#x27;s not in the dock). Hotkeys and ⌘K still open every tab.</li><li>Plugin Store is live: github.com/YusufLisawi/nook-plugins</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.5.2/Nook.dmg" type="application/octet-stream" sparkle:edSignature="7rT4+6L1RwuUxgPlVZ853go3hOg7yCMahBS7S15oK2uTg9Q+I4OoblSZawqWZeuzi16I73MCXwkc5MpBW483Bg==" length="10024146"/>
+</item>
+<item>
   <title>Nook 1.5.1</title>
   <pubDate>Wed, 21 Oct 2026 15:07:53 GMT</pubDate>
   <sparkle:version>13</sparkle:version>

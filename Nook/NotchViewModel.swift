@@ -101,10 +101,32 @@ final class NotchViewModel: ObservableObject {
         return base
     }
 
+    private var lastOpenSize = CGSize.zero
+    private var shrunkFrom: CGSize?
+
     /// The black shape's rect on screen; the mouse counts as "inside" only here.
+    ///
+    /// Switching to a shorter tab shrinks it under a pointer that was just on the dock. Until the pointer is back inside the
+    /// shrunken notch or leaves the old, taller area, that area keeps counting as inside, so the click doesn't read as
+    /// "left the notch" and close it.
     var liveRect: CGRect {
-        let size = contentSize
-        return CGRect(x: geometry.notch.midX - size.width / 2, y: geometry.screen.frame.maxY - size.height, width: size.width, height: size.height)
+        var size = contentSize
+        if isOpen {
+            let mouse = NSEvent.mouseLocation
+            if size.height < lastOpenSize.height, shrunkFrom == nil { shrunkFrom = lastOpenSize }
+            if let old = shrunkFrom {
+                if rect(for: size).contains(mouse) { shrunkFrom = nil } else { size.height = max(size.height, old.height) }
+            }
+            lastOpenSize = contentSize
+        } else {
+            shrunkFrom = nil
+            lastOpenSize = .zero
+        }
+        return rect(for: size)
+    }
+
+    private func rect(for size: CGSize) -> CGRect {
+        CGRect(x: geometry.notch.midX - size.width / 2, y: geometry.screen.frame.maxY - size.height, width: size.width, height: size.height)
     }
 
     func hoverBegan() {

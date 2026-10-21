@@ -73,14 +73,23 @@ struct MouseConfig: Codable, Equatable {
 
     // MARK: Persistence
 
-    private static let key = "mouseFixConfig"
+    private static var file: URL? {
+        ProcessInfo.processInfo.environment["NOOK_DATA_DIR"].map { URL(fileURLWithPath: $0).appendingPathComponent("mouse.json") }
+    }
 
     static func load() -> MouseConfig {
-        UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(MouseConfig.self, from: $0) } ?? MouseConfig()
+        if let file, let data = try? Data(contentsOf: file), let config = try? JSONDecoder().decode(MouseConfig.self, from: data) { return config }
+        // Read-only migration. Never write Nook's old preferences from the helper.
+        return UserDefaults(suiteName: "com.yusuf.nook")?.data(forKey: "mouseFixConfig")
+            .flatMap { try? JSONDecoder().decode(MouseConfig.self, from: $0) } ?? MouseConfig()
     }
 
     func save() {
-        UserDefaults.standard.set(try? JSONEncoder().encode(self), forKey: Self.key)
+        guard let file = Self.file else { return }
+        do {
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            try JSONEncoder().encode(self).write(to: file, options: .atomic)
+        } catch { FileHandle.standardError.write(Data("Couldn’t save mouse settings: \(error.localizedDescription)\n".utf8)) }
     }
 
     // MARK: Bridge

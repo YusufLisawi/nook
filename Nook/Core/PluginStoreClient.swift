@@ -16,6 +16,8 @@ struct PluginStoreEntry: Codable, Identifiable, Equatable {
     /// SHA-1 of the plugin's Git tree, not a mutable branch name.
     let sha: String
     let updatedAt: String
+    var sha256: String? = nil
+    var `default`: Bool? = nil
 
     func matches(_ query: String) -> Bool {
         query.isEmpty || ([id, name, description, author] + tags).joined(separator: " ")
@@ -40,6 +42,7 @@ struct PluginStoreReceipt: Codable, Equatable {
     let version: String
     let sha: String
     let repository: String
+    var sha256: String? = nil
 }
 
 struct PluginStoreInstallation: Equatable {
@@ -127,7 +130,8 @@ actor PluginStoreClient {
             guard PluginStorePackage.validID(entry.id), entry.path == "plugins/\(entry.id)",
                   PluginStorePackage.isSHA(entry.sha), PluginStorePackage.validVersion(entry.version),
                   !entry.name.isEmpty, !entry.description.isEmpty, !entry.author.isEmpty,
-                  entry.screenshots.allSatisfy(PluginStorePackage.safePath) else {
+                  entry.screenshots.allSatisfy(PluginStorePackage.safePath),
+                  entry.sha256 == nil || PluginStorePackage.matches(entry.sha256!, "^[a-f0-9]{64}\\z") else {
                 throw PluginStoreError("The Store has an invalid entry: \(entry.id).")
             }
         }
@@ -151,7 +155,8 @@ actor PluginStoreClient {
         return Dictionary(uniqueKeysWithValues: ids.compactMap { id in installation(id).map { (id, $0) } })
     }
 
-    func install(_ entry: PluginStoreEntry, update: Bool = false) async throws {
+    func install(_ entry: PluginStoreEntry, update: Bool = false,
+                 approve: (([String: Any], URL) async throws -> Void)? = nil) async throws {
         guard PluginStorePackage.validID(entry.id), PluginStorePackage.isSHA(entry.sha), entry.path == "plugins/\(entry.id)" else {
             throw PluginStoreError("Invalid Store plugin.")
         }
@@ -178,8 +183,14 @@ actor PluginStoreClient {
               try PluginStorePackage.treeSHA(package) == entry.sha else {
             throw PluginStoreError("The downloaded plugin does not match the catalog. Refresh the Store and try again.")
         }
-        let receipt = PluginStoreReceipt(id: entry.id, version: entry.version, sha: entry.sha, repository: Self.repository)
+        let manifestData = try Data(contentsOf: package.appendingPathComponent("plugin.json"))
+        let manifest = try JSONSerialization.jsonObject(with: manifestData) as! [String: Any]
+        if let sha256 = entry.sha256 {
+            guard try PluginStorePackage.packageSHA256(package) == sha256 else { throw PluginStoreError("SHA-256 verification failed.") }
+        } else if (manifest["apiVersion"] as? Int ?? 1) >= 2 { throw PluginStoreError("API v2 Store packages require a SHA-256 digest. Refresh the catalog.") }
+        let receipt = PluginStoreReceipt(id: entry.id, version: entry.version, sha: entry.sha, repository: Self.repository, sha256: entry.sha256)
         try JSONEncoder().encode(receipt).write(to: package.appendingPathComponent(Self.receiptName), options: .atomic)
+        try await approve?(manifest, package)
         try fm.createDirectory(at: pluginsRoot, withIntermediateDirectories: true)
         // Reject symlink roots/destinations and recheck immediately before swapping.
         // Compare paths: resolving a not-yet-created directory drops its URL's trailing slash.
@@ -254,8 +265,8 @@ actor PluginStoreClient {
             guard PluginStorePackage.safePath(file.path), PluginStorePackage.isSHA(file.sha),
                   seen.insert(file.path.lowercased()).inserted else { throw PluginStoreError("The plugin contains an unsafe or duplicate path.") }
             if file.type == "tree", file.mode == "040000" { continue }
-            guard file.type == "blob", file.mode == "100644", let size = file.size, size >= 0, size <= 5_000_000 else {
-                throw PluginStoreError("Plugins may only contain regular, non-executable files up to 5 MB.")
+            guard file.type == "blob", ["100644", "100755"].contains(file.mode), let size = file.size, size >= 0, size <= 5_000_000 else {
+                throw PluginStoreError("Plugins may only contain regular files up to 5 MB.")
             }
             fileCount += 1
             guard fileCount <= 200 else { throw PluginStoreError("Plugins are limited to 200 files.") }
@@ -265,6 +276,7 @@ actor PluginStoreClient {
             let target = directory.appendingPathComponent(file.path)
             try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
             try contents.write(to: target, options: .atomic)
+            try fm.setAttributes([.posixPermissions: file.mode == "100755" ? 0o755 : 0o644], ofItemAtPath: target.path)
         }
     }
 
@@ -359,8 +371,8 @@ enum PluginStorePackage {
             if values.isDirectory == true { continue }
             let attributes = try fm.attributesOfItem(atPath: url.path)
             guard values.isRegularFile == true, (values.fileSize ?? 0) <= 5_000_000,
-                  ((attributes[.posixPermissions] as? Int ?? 0) & 0o111) == 0 else {
-                throw PluginStoreError("Plugin files must be regular, non-executable files up to 5 MB: \(path).")
+                  ((attributes[.posixPermissions] as? Int ?? 0) & 0o111) == 0 || path.hasPrefix("bin/") else {
+                throw PluginStoreError("Plugin files must be regular files; only bin/ helpers may be executable, up to 5 MB: \(path).")
             }
             total += values.fileSize ?? 0
             result.append(url)
@@ -379,6 +391,15 @@ enum PluginStorePackage {
             return value
         }
         let manifest = try json("plugin.json"), metadata = try json("store.json")
+        let v2 = try PluginManifestV2(json: manifest, directory: root)
+        if let native = v2.native {
+            if let command = native.command {
+                let candidates = [command, command.replacingOccurrences(of: "bin/", with: "bin/arm64/"), command.replacingOccurrences(of: "bin/", with: "bin/x86_64/")]
+                guard candidates.contains(where: { FileManager.default.isExecutableFile(atPath: root.appendingPathComponent($0).path) }) else { throw PluginStoreError("Build the native helper before packaging.") }
+            } else if let run = native.run {
+                guard FileManager.default.fileExists(atPath: try v2.containedURL(run[1]).path) else { throw PluginStoreError("Native script is missing.") }
+            }
+        }
         guard let id = manifest["id"] as? String, validID(id), id == root.lastPathComponent,
               let name = manifest["name"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw PluginStoreError("plugin.json needs a name and an ID matching its folder.")
@@ -454,6 +475,19 @@ enum PluginStorePackage {
         return metadata
     }
 
+    /// Canonical SHA-256: UTF-8 path NUL mode NUL byte-count NUL raw bytes, sorted by UTF-8 path.
+    static func packageSHA256(_ root: URL) throws -> String {
+        var hash = SHA256()
+        let urls = try files(root).map { (try relativePath($0, in: root), $0) }
+            .sorted { Array($0.0.utf8).lexicographicallyPrecedes(Array($1.0.utf8)) }
+        for (path, url) in urls {
+            let data = try Data(contentsOf: url)
+            let mode = FileManager.default.isExecutableFile(atPath: url.path) ? "100755" : "100644"
+            hash.update(data: Data("\(path)\0\(mode)\0\(data.count)\0".utf8)); hash.update(data: data)
+        }
+        return hash.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
     static func objectSHA(_ type: String, _ data: Data) -> String {
         var object = Data("\(type) \(data.count)\0".utf8)
         object.append(data)
@@ -471,7 +505,8 @@ enum PluginStorePackage {
             for (url, isDirectory) in sorted {
                 if isDirectory, !all.contains(where: { $0.path.hasPrefix(url.path + "/") }) { continue }
                 let sha = try isDirectory ? tree(url) : objectSHA("blob", Data(contentsOf: url))
-                body.append(Data("\(isDirectory ? "40000" : "100644") \(url.lastPathComponent)\0".utf8))
+                let executable = !isDirectory && FileManager.default.isExecutableFile(atPath: url.path)
+                body.append(Data("\(isDirectory ? "40000" : executable ? "100755" : "100644") \(url.lastPathComponent)\0".utf8))
                 for offset in stride(from: 0, to: sha.count, by: 2) {
                     let start = sha.index(sha.startIndex, offsetBy: offset)
                     body.append(UInt8(sha[start..<sha.index(start, offsetBy: 2)], radix: 16)!)

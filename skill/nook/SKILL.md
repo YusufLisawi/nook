@@ -40,7 +40,7 @@ nook validate <id>       # must pass before you say "done"
 `nook.fetch(url,{method,headers,body})` · `nook.system()` · `nook.ai.chat(messages,{json})` (LLM via the user's Groq key) · `nook.clipboard.read/write` · `nook.open(url|path)` · `nook.notify(title, body)` ·
 `nook.activity.set({text,symbol,color}) / clear()` (closed-notch status) · `nook.notch.close/pin(bool)/setHeight(px)` ·
 `nook.on('open'|'close'|'show'|'drop'|'dragenter'|'dragleave'|'audio'|'proxy'|'dictation'|'mouse', cb)` ·
-`nook.audio.*` (devices, per-app volume) · `nook.commands.*` (AI Commands) · `nook.mouse.*` (wheel smoothing, button remaps) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})
+`nook.audio.*` (devices, per-app volume) · `nook.commands.*` (AI Commands) · `nook.native.call('mouse.<method>',{args})` (Store Mouse helper) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})
 
 ## Starter layout (uses the kit)
 
@@ -61,3 +61,13 @@ Clone https://github.com/YusufLisawi/nook (the user may already have it, e.g. `~
 `Nook/Core/WebPluginHost.swift` (bridge — add `nook.*` calls in `handle` and `bridgeJS`) · `Nook/Core/PluginRegistry.swift` ·
 `Nook/Services/*` (media, timers, shelf, stats, proxy, mixer, dictation, mouse) · `Nook/Views/*` · `NookUI/nook-ui.css` · `cli/swift` (this CLI).
 Build: `xcodegen generate && xcodebuild -scheme Nook -configuration Release -derivedDataPath build build`. Document new bridge calls in `PLUGINS.md`.
+
+## Plug-and-play native plugins (API v2)
+
+For **new native features, helper processes, permissions, Store packaging or migrating an app feature**, read
+[plugin-v2.md](plugin-v2.md), the complete build guide installed from `store/SKILL.md`. It supersedes the old
+`nook.mouse.*` native-engine notes above: Mouse now ships as a separate Store helper and uses
+`nook.native.call('mouse.<method>', {args:[...]})` / `nook.native.on('mouse', cb)`.
+Use `nook new <id> --native swift|rust|node|python`, one capability-gated `nook.host.call(method,params)` surface,
+and separate supervised JSON-RPC stdio helpers. New feature code belongs in the plugin, not the app binary.
+Default plugins install/update from the Store. Existing web-only v1 plugins remain supported during migration.

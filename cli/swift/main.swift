@@ -4,7 +4,7 @@ import Foundation
 
 let fm = FileManager.default
 let home = fm.homeDirectoryForCurrentUser
-let support = home.appendingPathComponent("Library/Application Support/Nook")
+let support = ProcessInfo.processInfo.environment["NOOK_SUPPORT_DIR"].map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent("Library/Application Support/Nook")
 let userPlugins = support.appendingPathComponent("Plugins")
 let dataDir = support.appendingPathComponent("Data")
 let logFile = home.appendingPathComponent("Library/Logs/Nook/plugins.log")
@@ -32,7 +32,7 @@ var positional: [String] {
     var skip = false
     for a in args {
         if skip { skip = false; continue }
-        if a.hasPrefix("--") { skip = !["--json"].contains(a); continue }
+        if a.hasPrefix("--") { skip = !["--json", "--once"].contains(a); continue }
         if a.hasPrefix("-") { continue }
         out.append(a)
     }
@@ -107,6 +107,10 @@ func validate(_ p: Plugin) -> (errors: [String], warnings: [String]) {
         if !matches(id, "^[a-z0-9][a-z0-9-]*$") { errors.append("id \"\(id)\" must be lowercase letters, digits and dashes") }
         if id != p.dir.lastPathComponent { warnings.append("folder name \"\(p.dir.lastPathComponent)\" differs from id \"\(id)\"") }
     }
+    do {
+        let manifest = try PluginManifestV2(json: m, directory: p.dir)
+        if manifest.native != nil { _ = try manifest.executable() }
+    } catch { errors.append(error.localizedDescription) }
     let entry = m["entry"] as? String ?? "index.html"
     if !fm.fileExists(atPath: p.dir.appendingPathComponent(entry).path) { errors.append("entry file \"\(entry)\" is missing") }
     if let h = m["height"] { if let n = h as? Double, n >= 80, n <= maxHeight {} else { errors.append("height must be a number between 80 and \(Int(maxHeight))") } }
@@ -179,6 +183,7 @@ nook — build and drive Nook plugins (no app rebuild needed)
   nook uninstall <id>             move a user plugin to Trash; keep saved data
   nook update [id]                update one or all Store plugins; preserve local edits
   nook publish <path> [--yes]     validate and preview a Store contribution; --yes opens a PR
+  nook dev <path> [--once]        sync a Developer plugin with hot reload (does not launch Nook)
   nook eject <id>                 copy a bundled plugin into your folder so you can change it
   nook open <id> | toggle <id>    show a tab in the notch under the mouse
   nook close | reload | settings  close notches · reload all plugins · open Settings
@@ -193,6 +198,9 @@ nook — build and drive Nook plugins (no app rebuild needed)
 """
 
 switch command {
+case "_plugin-exec":
+    PluginHelperLauncher.run(args)
+
 case "search", "install", "uninstall", "update":
     runStoreCommand { try await PluginStoreCommands.run(command, arguments: args) }
 
@@ -227,9 +235,20 @@ case "list":
 case "path":
     print(positional.first.map { find($0).dir.path } ?? userPlugins.path)
 
+case "dev":
+    guard let path = positional.first else { die("Usage: nook dev <path> [--once]") }
+    do { try PluginNativeCommands.dev(source: URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL, plugins: userPlugins, support: support, once: args.contains("--once")) }
+    catch { die(error.localizedDescription) }
+
 case "new":
-    guard let id = positional.first else { die("Usage: nook new <id> [--name N] [--symbol S] [--height H]") }
+    guard let id = positional.first else { die("Usage: nook new <id> [--name N] [--symbol S] [--height H] [--native swift|rust|node|python] [--output <parent>]") }
     if !matches(id, "^[a-z0-9][a-z0-9-]*$") { die("id must be lowercase letters, digits and dashes") }
+    if let language = flag("native") {
+        let parent = flag("output").map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) } ?? userPlugins
+        do { try PluginNativeCommands.scaffold(id: id, language: language, parent: parent, templates: resources.appendingPathComponent("templates"), name: flag("name") ?? id, symbol: flag("symbol") ?? "puzzlepiece.extension") }
+        catch { die(error.localizedDescription) }
+        quit(0)
+    }
     let dir = userPlugins.appendingPathComponent(id)
     if fm.fileExists(atPath: dir.path) { die("\(dir.path) already exists") }
     if plugins().contains(where: { $0.id == id }) { die("id \"\(id)\" is taken (nook list)") }

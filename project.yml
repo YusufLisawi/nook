@@ -35,6 +35,9 @@ targets:
       - path: skill
         type: folder
         buildPhase: resources
+      - path: store/templates
+        type: folder
+        buildPhase: resources
       - path: cli/template
         type: folder
         buildPhase: resources
@@ -79,13 +82,14 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: Nook/Nook.entitlements
         CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
-        LM_SKIP_METADATA_EXTRACTION: YES # No App Intents; avoid Xcode's empty-extraction warning.
+        LM_FORCE_LINK_GENERATION: YES # Keep Xcode 26 metadata extraction warning-free.
   nook-cli:
     type: tool
     platform: macOS
     sources:
       - path: cli/swift
       - path: Nook/Core/PluginStoreClient.swift
+      - path: Nook/Core/PluginEngine/PluginManifestV2.swift
     settings:
       base:
         PRODUCT_NAME: nook-cli

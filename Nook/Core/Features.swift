@@ -44,13 +44,12 @@ final class Features: ObservableObject, @unchecked Sendable { // mutable state i
         add("monitor", "Monitor", "CPU, memory, network and battery stats.", "Samples only while the tab is visible.", tabs: ["monitor"], stop: { s.release("system") })
         add("teleprompter", "Teleprompter", "Scrolling script display.", "No background service.", tabs: ["teleprompter"])
         add("cleaner", "Cleaner", "Review and trash disposable files.", "Runs only on request.", tabs: ["cleaner"], start: { CleanerBridge.register() }, stop: { CleanerBridge.stop() })
-        add("pluginStore", "Plugin Store", "Browse and install community plugins.", "No network request until opened.", start: { PluginStore.register() }, stop: { PluginStore.disable(); Self.unregister("", panes: ["plugin-store"]) })
+        add("pluginStore", "Plugin Store", "Browse and install community plugins.", "Checks defaults and updates daily while on.", start: { PluginStore.register() }, stop: { PluginStore.disable(); Self.unregister("", panes: ["plugin-store"]) })
         add("keyboard", "Keyboard & Open Nook", "Command palette and global Open Nook shortcut.", "One shared shortcut tap, only when needed.", start: { KeyboardActions.shared.start(); NativeShortcutIntegration.register() }, stop: { KeyboardActions.shared.stop(); ShortcutRegistry.unregister(prefix: "keyboard."); ShortcutRegistry.unregister(prefix: "navigation.") })
         add("windows", "Window Management", "Position windows with Accessibility and shortcuts.", tabs: ["windows"], start: { WindowManager.shared.start(); NativeShortcutIntegration.registerWindows() }, stop: { WindowManager.disable(); Self.unregister("windows", panes: ["windows"]); ShortcutRegistry.unregister(prefix: "windows.") })
         add("files", "File Search", "Filename index, folder watcher and Spotlight fallback.", "Off releases the packed index and query cursors.", tabs: ["files"], start: { FileSearchService.shared.register() }, stop: { FileSearchService.disable(); Self.unregister("files", panes: ["files"]) })
         add("clipboard", "Clipboard History", "Save clipboard text, images and files.", "Off releases history, thumbnails and polling.", tabs: ["clips"], start: { ClipboardHistory.shared.start(); ClipsFeature.start() }, stop: { ClipboardHistory.disable(); ClipsThumbnails.shared.clear(); ClipsFeature.reconcile() })
         add("screenshots", "Screenshots & Recordings", "Watch the capture folder and recognize screenshot text.", "Off closes the folder watcher and drops OCR/cache state.", tabs: ["clips"], start: { CaptureFeatureSettings.register(); ClipsFeature.start(); ScreenCaptureIndex.shared.start(directory: Services.supportDir.appendingPathComponent("Clips"), accessAllowed: { FileSearchAccessPolicy.current().allows($0.path) }) }, stop: { ScreenCaptureIndex.disable(); ClipsThumbnails.shared.clear(); SettingsRegistry.unregister("screenshots"); ClipsFeature.reconcile() })
-        add("mouse", "Mouse", "Wheel smoothing and extra button mappings.", tabs: ["mouse"], start: { s.mouse.registerBridge(); s.mouse.start() }, stop: { s.release("mouse") { ($0 as? MouseFixService)?.shutdown() }; Self.unregister("mouse") })
         add("launcher", "Launcher", "Search applications, commands and plugins.", "Off drops app metadata, icons, Spotlight and FSEvents.", start: { LauncherFeature.start() }, stop: { LauncherFeature.stop(); Self.unregister("", panes: ["launcher"]); ShortcutRegistry.unregister(prefix: "launcher.") })
         add("smartAnswers", "Smart Answers", "Local calculator, conversions and other launcher answers.", dependencies: ["launcher"], stop: { LauncherAnswers.disable() })
         add("launcherFiles", "Launcher File Source", "Include files in launcher searches.", dependencies: ["launcher", "files"])
@@ -71,7 +70,14 @@ final class Features: ObservableObject, @unchecked Sendable { // mutable state i
     }
     func registerPlugins(_ tabs: [TabItem]) {
         for tab in tabs where !all.contains(where: { $0.tabs.contains(tab.id) }) {
-            lifecycle.register(Feature(id: "plugin:" + tab.id, title: tab.name, summary: "Plugin tab.", memoryNote: "Web content exists only while visible.", tabs: [tab.id]))
+            let id = "plugin:" + tab.id
+            if UserDefaults.standard.object(forKey: FeatureLifecycle.key(id)) == nil,
+               let previous = UserDefaults.standard.object(forKey: FeatureLifecycle.key(tab.id)) as? Bool {
+                UserDefaults.standard.set(previous, forKey: FeatureLifecycle.key(id))
+            }
+            lifecycle.register(Feature(id: id, title: tab.name, summary: "Store or Developer plugin.",
+                                       memoryNote: "Turning off stops its helper and releases its page.",
+                                       defaultEnabled: !FeatureLifecycle.raycastIDs.contains(tab.id), tabs: [tab.id]))
         }
         lifecycle.reconcile()
         changed()

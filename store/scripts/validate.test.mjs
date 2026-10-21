@@ -92,11 +92,12 @@ test('generator produces a complete, stable catalog without an existing Git repo
   try {
     await cp(new URL('../plugins/', import.meta.url), join(temporary, 'plugins'), { recursive: true });
     await mkdir(join(temporary, 'scripts'));
-    for (const name of ['validate.mjs', 'generate-index.mjs']) await cp(new URL(name, import.meta.url), join(temporary, 'scripts', name));
+    for (const name of ['validate.mjs', 'validate-v2.mjs', 'generate-index.mjs']) await cp(new URL(name, import.meta.url), join(temporary, 'scripts', name));
     execFileSync(process.execPath, [join(temporary, 'scripts/generate-index.mjs')]);
     const first = await readFile(join(temporary, 'index.json'), 'utf8');
     const index = JSON.parse(first);
-    assert.equal(index.length, 1);
+    assert.equal(index.length, 2);
+    index.sort((a, b) => a.id === 'word-count' ? -1 : 1);
     assert.equal(index[0].path, 'plugins/word-count');
     assert.equal(index[0].sha, await treeSHA(join(temporary, 'plugins/word-count')));
     assert.ok(index[0].author && index[0].updatedAt && Array.isArray(index[0].screenshots));

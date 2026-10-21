@@ -7,7 +7,7 @@ import AppKit
 /// clicks and pointer movement are never touched. The tap drains outstanding releases before stopping.
 final class MouseFixService {
     /// Stamped on events we post so our own tap lets them through.
-    static let marker = NookSyntheticInput.mouseMarker
+    static let marker: Int64 = 0x4E4F_4F4B
 
     private let lock = NSLock()
     private var _config = MouseConfig.load()

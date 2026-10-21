@@ -28,7 +28,6 @@ final class Services: ObservableObject {
     var proxy: ProxyService { service("proxy", ProxyService.init) }
     var dictation: DictationService { service("dictation", DictationService.init) }
     var audio: AudioMixer { service("audio", AudioMixer.init) }
-    var mouse: MouseFixService { service("mouse", MouseFixService.init) }
     var links: LinkCatcher { service("links", LinkCatcher.init) }
     var commands: AICommands {
         service("commands") {
@@ -46,9 +45,11 @@ final class Services: ObservableObject {
     @MainActor func start() {
         Features.shared.start(self)
         plugins.start()
+        PluginEngine.start()
     }
 
     func shutdown() {
+        PluginEngine.shared.shutdown()
         Features.shared.shutdown()
         SettingsPersistence.shared.flush()
         instances.removeAll()

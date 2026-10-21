@@ -95,7 +95,12 @@ final class WindowManager {
 }
 final class AppDelegate: NSObject, NSApplicationDelegate { func showSettings(pane: String?) {} }
 final class NotchPanel: NSPanel {}
-enum PluginEvents { static func emit(_ event: String, _ payload: Any) {} }
+enum PluginEvents { static func emit(_ event: String, _ payload: Any, to pluginID: String? = nil) {} }
+enum PluginContributions { static let actionOwner = "plugin-engine" }
+final class PluginHostAPI {
+    static let shared = PluginHostAPI()
+    func captureBeforeOpen(_ vm: NotchViewModel) {}
+}
 extension Notification.Name { static let nookKeyboardFocus = Notification.Name("nookKeyboardFocus") }
 
 // Native Files owns its local shortcuts only while its view is present.

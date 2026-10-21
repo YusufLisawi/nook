@@ -1,0 +1,18 @@
+{
+  "id": "mouse",
+  "name": "Mouse",
+  "symbol": "computermouse.fill",
+  "entry": "index.html",
+  "order": 47,
+  "height": 260,
+  "apiVersion": 2,
+  "version": "2.0.0",
+  "native": {
+    "command": "bin/helper",
+    "background": true,
+    "permissions": [
+      "accessibility",
+      "background"
+    ]
+  }
+}

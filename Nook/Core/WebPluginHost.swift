@@ -19,12 +19,15 @@ final class WebPluginHost: NSObject {
         evictions.values.forEach { $0.cancel() }
         work.values.forEach { $0.cancel() }
         for view in views.values { view.stopLoading(); view.configuration.userContentController.removeScriptMessageHandler(forName: "nook") }
+        PluginEngine.shared.removeOwner(keyboardID)
+        views.keys.forEach { PluginEngine.shared.releasePage($0) }
         KeyboardActions.shared.remove(ownerID: keyboardID)
     }
 
     init(vm: NotchViewModel) {
         self.vm = vm
         super.init()
+        PluginHostAPI.shared.register(vm)
         observers.append(NotificationCenter.default.addObserver(forName: .nookPluginEvent, object: nil, queue: .main) { [weak self] note in
             guard let event = note.userInfo?["event"] as? String else { return }
             self?.emit(event, note.userInfo?["payload"] ?? NSNull(), to: note.userInfo?["plugin"] as? String)
@@ -34,12 +37,13 @@ final class WebPluginHost: NSObject {
             for id in Array(self.views.keys) where !Features.shared.tabEnabled(id) { self.unload(id) }
             for view in self.views.values {
                 let context = Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: self.vm) : ""
-                view.evaluateJavaScript(BridgeRegistry.javascript + "\n" + context)
+                view.evaluateJavaScript(BridgeRegistry.javascript + "\n" + context + "\n" + PluginEngine.javascript)
             }
         })
     }
 
     private func unload(_ id: String) {
+        PluginEngine.shared.releasePage(id)
         evictions.removeValue(forKey: id)?.cancel()
         work.removeValue(forKey: id)?.cancel()
         guard let view = views.removeValue(forKey: id) else { return }
@@ -48,6 +52,7 @@ final class WebPluginHost: NSObject {
         KeyboardActions.shared.remove(ownerID: keyboardID, pluginID: id)
     }
     func visibilityChanged() {
+        PluginEngine.shared.setVisible(owner: keyboardID, plugin: vm?.isOpen == true && vm?.launcherPresented == false ? vm?.tab : nil)
         FeatureVisibility.set(owner: keyboardID, plugin: vm?.isOpen == true && vm?.launcherPresented == false ? vm?.tab : nil)
         for id in Array(views.keys) {
             let visible = vm?.isOpen == true && vm?.tab == id && vm?.launcherPresented == false
@@ -67,7 +72,11 @@ final class WebPluginHost: NSObject {
         if current != revision {
             revision = current
             KeyboardActions.shared.remove(ownerID: keyboardID)
-            views.values.forEach { $0.reload() } // pick up edited files without losing the view
+            for (id, view) in views {
+                guard let tab = Services.shared.plugins.tabs.first(where: { $0.id == id }), case let .web(dir, entry) = tab.kind else { continue }
+                injectScripts(view.configuration.userContentController, tab: tab, dir: dir)
+                view.loadFileURL(dir.appendingPathComponent(entry), allowingReadAccessTo: dir)
+            } // Refresh SDK/entry too, including a v1 → v2 Store update, without discarding web views.
         }
         if let view = views[tab.id] { return view }
         work[tab.id] = PluginWork()
@@ -89,8 +98,7 @@ final class WebPluginHost: NSObject {
         let config = WKWebViewConfiguration()
         let content = config.userContentController
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
-        let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + (Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: vm) : "") + "\n" + KeyboardWebSupport.script, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        injectScripts(content, tab: tab, dir: dir)
         let view = DropWebView(frame: .zero, configuration: config)
         view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")
@@ -100,9 +108,19 @@ final class WebPluginHost: NSObject {
         return view
     }
 
+    private func injectScripts(_ content: WKUserContentController, tab: TabItem, dir: URL) {
+        let pluginInfo: [String: Any] = ["id": tab.id, "name": tab.name, "apiVersion": (try? PluginManifestV2(directory: dir).apiVersion) ?? 1]
+        let info = (try? JSONSerialization.data(withJSONObject: pluginInfo)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        content.removeAllUserScripts()
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + (Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: vm) : "") + "\n" + KeyboardWebSupport.script + "\n" + PluginEngine.javascript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+    }
+
     // MARK: Bridge
 
     fileprivate func handle(pluginID: String, fn: String, args: [Any], reply: @escaping (Any?, String?) -> Void) {
+        guard Features.shared.tabEnabled(pluginID) else { return reply(nil, "This plugin is turned off in Settings → Features.") }
+        guard let directory = Services.shared.plugins.tabs.first(where: { $0.id == pluginID })?.dir else { return reply(nil, "Plugin is no longer installed.") }
+        if PluginEngine.shared.intercept(id: pluginID, directory: directory, method: fn, args: args, vm: vm, reply: reply) { return }
         guard Features.shared.tabEnabled(pluginID), Features.shared.allowsBridge(fn) else { reply(nil, "This feature is turned off in Settings → Features."); return }
         if fn == "system", vm?.isOpen != true || vm?.tab != pluginID { reply(nil, "System stats are sampled only while visible."); return }
         let s = Services.shared

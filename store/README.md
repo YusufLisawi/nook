@@ -46,3 +46,19 @@ npm run generate
 The index is a JSON array with `id`, `name`, `description`, `author`, `version`, `symbol`, `tags`, `screenshots`, `path`, `sha`, and `updatedAt`. `sha` is the Git tree SHA-1 for the plugin folder; the native client fetches that immutable tree and verifies every file's blob hash. Current packages use GitHub's raw CDN (usually one API request per installation); an outdated CDN file falls back to its exact Git blob. `updatedAt` is the last plugin change's commit timestamp, preserved when its content hasn't changed. Empty directories aren't packaged. The generated index does not depend on the repository's own commit SHA.
 
 MIT licensed. Contributions must be original or MIT-compatible; keep third-party notices with their files.
+
+## Plug-and-play native plugins (v2)
+
+Use [SKILL.md](SKILL.md) as the complete agent/human build guide. `nook new <id> --native swift|rust|node|python`
+scaffolds a web control panel and a working JSON-RPC helper from [templates](templates/). `nook dev <path>`
+syncs edits to an already running Nook with hot reload. Helpers run in separate supervised processes; the
+native permission sheet explains unsandboxed user privileges and effective macOS privacy grants. Revocation
+stops the helper. [Mouse](plugins/mouse) is the first native proof, with source and a universal development binary.
+Build it with `bash plugins/mouse/build.sh`; public distribution still needs signing/notarization review.
+
+The catalog now includes `sha256` and `default`. `default:true` in store.json opts into first-launch preinstall.
+V2 packages require SHA-256 in addition to immutable Git tree/blob verification. Hashing includes executable
+modes: only helpers under bin/ may be executable. No install scripts run. Defaults/update checks work offline
+with installed copies; app-managed updates ask before adding permissions. The shared Plugin Store feature
+controls update networking; Features and Tabs & Plugins share each plugin's enable state. Preinstalled Mouse stays
+off until explicitly enabled and approved. Developer copies aren't auto-updated.

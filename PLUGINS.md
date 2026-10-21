@@ -107,23 +107,25 @@ nook.dictation.retry(id) / remove(id) / copy(id) / paste(id) / clear()
 nook.dictation.state()   // → { recording, transcribing, holdShortcut: "⌃⌥", toggleShortcut: "⌥Space", hasKey }
 nook.dictation.toggle()  // start/stop recording
 
-nook.mouse.state()       // → { config, trusted, running, learning, error: string|null, actions: [{ id, label }] }
-                         //   config: { enabled, smoothness: off|low|regular|high, speed 0.3–3, acceleration 0–1, reverse, filterChatter (default false),
-                         //             horizontalModifier|preciseModifier|quickModifier: none|shift|option|control|command,
-                         //             buttons: { "<button number>": { click, hold, drag } } }   (2 = middle, 3 = back, 4 = forward…)
-nook.mouse.set({ smoothness: "high" })       // merge top-level settings (not `buttons`: use setButton); each call returns the new state
-nook.mouse.setButton("3", { click: "back" })   // click/hold = an action id, drag = "none" | "spaces"
-nook.mouse.removeButton("3") / learn(true|false) / openPrivacy()   // learn: the next button pressed arrives as nook.on('mouse', { button })
-                         // nook.on('mouse') also fires with { running: true } once the engine is up, and { learning: false } when learning ends
+// Mouse now runs entirely in a Store helper (API v2).
+nook.native.call('mouse.state', {args: []})
+nook.native.call('mouse.set', {args: [{smoothness: 'high'}]})
+nook.native.on('mouse', state => { /* refresh controls */ })
 ```
 
-Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`; `'mouse'` gets a small notice (see above), so call `nook.mouse.state()` to read the new state.
+Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`. Mouse helper notices use `nook.native.on('mouse', cb)`; refresh with `nook.native.call('mouse.state', {args:[]})`.
 
-## Mouse controls — `nook.mouse`
+## Mouse controls — Store helper
 
-The Mouse namespace is registered through `BridgeRegistry` at startup; its UI is a normal bundled web plugin.
+Mouse is an API v2 Store plugin under `store/plugins/mouse`, with its event-tap implementation in a separate
+universal helper. There is no in-app Mouse service or bundled Mouse tab. Build/install the Store package (or use
+`nook dev` with the built folder), approve its Accessibility/background declaration, then turn on its own Enable
+switch. Its controls send `nook.native.call('mouse.<method>', {args:[...]})`; events use `nook.native.on('mouse')`.
+Methods retain `state`, `set`, `setButton`, `removeButton`, `learn`, `openPrivacy`. Configuration retains smoothing,
+speed/acceleration, reverse/chatter, modifier choices and extra-button click/hold/drag mappings. State includes
+`config`, `trusted`, `running`, `learning`, `error`, `actions`.
 It is off by default. `set({enabled:true})` and `learn(true)` can request Accessibility; other edits do not prompt.
-`state().error` reports event-tap failures. While enabled or learning, permission/tap availability is checked every
+The state result’s `error` reports event-tap failures. While enabled or learning, permission/tap availability is checked every
 two seconds and retried automatically. `mouse` notices cover startup, failure, recovery and learning; reload state
 after a notice. Each mutation returns the updated state. No native Settings pane is added.
 
@@ -403,7 +405,7 @@ nook publish ./my-plugin --yes    # authenticated gh: fork, contribution branch,
 
 The public repository's complete initial contents live in this source tree's `store/` folder. Each `plugins/<id>/` contains a valid Nook plugin and `store.json` with `description`, `author`, semantic `version`, `tags: []`, and `screenshots: []` (local relative image paths). `node scripts/validate.mjs` checks every package; `node scripts/generate-index.mjs` generates the catalog. CI validates PRs and regenerates the index on `main`.
 
-The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow only regular non-executable files (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
+The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow regular files, with executable helpers under `bin/` (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
 
 
 ## Native Settings and shortcuts
@@ -568,6 +570,188 @@ outside the answer budget, then call completion to re-evaluate the current query
 callbacks from superseded searches cannot change the card. Test fixtures belong in `tests/answers/`, including positives,
 ordinary searches that must return nil, malformed inputs, and warmed timing checks. Run `bash tests/answers/run.sh`.
 
+## API v2
+
+`apiVersion: 2` opts into permission checks and separate native helper processes. Omitting it keeps the
+existing v1 web format working during migration. V2 never loads plugin native code into Nook.
+
+```json
+{
+  "id": "example", "name": "Example", "apiVersion": 2,
+  "version": "1.0.0", "symbol": "puzzlepiece.extension", "entry": "index.html",
+  "permissions": ["clipboard"],
+  "native": {
+    "command": "bin/helper", "background": true,
+    "permissions": ["background", "accessibility"]
+  },
+  "contributes": {
+    "launcherItems": [], "answerProviders": [], "hotkeys": [], "settings": [],
+    "menuBar": [], "notchActivity": [], "urlHandlers": [], "backgroundJobs": []
+  }
+}
+```
+
+`native` and `contributes` are optional. Web-only v2 plugins put permissions at the top level. Native and
+top-level permissions are combined. Use either `command` (a relative executable inside the plugin),
+`run: ["node", "helper.mjs"]`, or `command: {"run": ["python3", "helper.py"]}`. Interpreters supported by
+phase 1 are node, python3, ruby, swift, bash and sh; the second argument must be a relative script, never an
+interpreter switch. Interpreter availability is checked when running/validating, not while installing.
+For `bin/helper`, Nook prefers `bin/arm64/helper` or `bin/x86_64/helper`, then a universal `bin/helper`.
+No build script is executed at installation: ship compiled helpers, use an interpreter, or build locally.
+
+`background: true` requires `background` permission and runs while the plugin is enabled. Otherwise the
+helper runs only while its tab is open on at least one display. Disable/revoke/uninstall stops its process
+and contributions. Helpers must exit on stdin EOF and handle SIGTERM; after two seconds Nook escalates to
+SIGKILL. An internal CLI exec trampoline gives production helpers a separate process group, so ordinary
+child processes are stopped too. Deliberately daemonized, unsandboxed processes are outside this guarantee.
+A crash fails outstanding requests and retries after 1, 2, 4, 8, 16, 32, then 60 seconds; 60 seconds of healthy
+uptime resets backoff. UI reloads/file edits restart helpers. Helpers are never launched by `nook validate`.
+
+### One host surface, two transports
+
+In web JavaScript call `await nook.host.call(method, params)` (or new v2 conveniences such as `nook.ai.complete(params)`, `nook.files.read(params)` and `nook.hotkeys.register(params)`); in the helper send a JSON-RPC request named
+`host.<method>` with the **same params object and result**. Existing web conveniences such as
+`nook.clipboard.read/write`, `nook.storage.*`, `nook.settings.*`, `nook.shell`, `nook.fetch`, `nook.notify`,
+`nook.activity.*` and `nook.notch.*` pass through the v2 permission gate too. Old feature-specific namespaces
+(`mouse`, `audio`, `proxy`, `commands`, etc.) are v1 APIs; v2 feature behavior belongs in helpers.
+
+| Method | Params / result | Permission |
+|---|---|---|
+| `notch.open`, `notch.close` | `{}`; open this plugin on the current display | approval only |
+| `notch.pin`, `notch.togglePin` | `{enabled: boolean}` / `{}` | approval only |
+| `notch.setHeight` | `{height: number}`; clamped 80–400 | approval only |
+| `activity.set` / `notch.activity`, `activity.clear` | `{text,symbol?,color?}` / `{}` | approval only |
+| `storage.get`, `storage.set`, `storage.all` | `{key}`, `{key,value}`, `{}`; per-plugin JSON | approval only |
+| `features.list` | `{}` → `[{id,title,enabled}]`; effective shared feature state | approval only |
+| `settings.get`, `settings.set`, `settings.open` | `{}`, `{key,value}`, `{}`; declared options only | approval only |
+| `clipboard.read`, `clipboard.write`, `clipboard.watch` | `{}`, `{text}`, `{enabled}`; `clipboard` events each changed sample (1 s) | clipboard |
+| `files.read`, `files.write` | `{path}` → UTF-8 text; `{path,text}` (4 MB limit) | files |
+| `files.open`, `files.reveal`, `files.trash` | `{path}`; Trash semantics | files |
+| `fetch` / `network.fetch` | `{url,options?:{method,headers,body}}` → `{status,headers,body}`; HTTP(S) | network |
+| `network.open` | `{url}`; HTTP(S)/mailto, opens the default app | network |
+| `shell` | `{command,options?:{timeout}}` → `{code,stdout,stderr}`; timeout 1–120 s | shell |
+| `notifications.post` / `notify` | `{title,body}`; macOS notification consent still applies | notifications |
+| `ai.complete` | `{prompt,provider?:"codex"|"groq"|"openai",model?,effort?}` → text via AIBrain | ai |
+| `selection.get`, `selection.paste` | `{}` → selected text; `{text,keepOnClipboard?}` | accessibility |
+| `windows.frontmost` | `{}` → `{name,bundleID,pid,accessibility,title?,frame?}`; title when AX trusted | windows |
+| `accessibility.perform` | `{action:"press"|"raise"|"increment"|"decrement"|"confirm"|"cancel"}` on focused element | accessibility |
+| `secrets.get`, `secrets.set`, `secrets.remove` | `{key}`, `{key,value}`, `{key}`; per-plugin Keychain service, never host AI keys | secrets |
+| `hotkeys.register`, `hotkeys.unregister` | `{id,keyCode,modifiers,title?,display?}`, `{id}`; CGEventFlags, emits `hotkey` | hotkeys |
+| `launcher.items` / `actions.register` | `{items:[{id,title,subtitle?,shortcut?}]}`; emits `action` / `actionAlternate` | launcher |
+| `launcher.answers` | `{id,prefix,method}`; helper query params `{query}` → `{result,copyValue?,section?}` | launcher |
+| `jobs.register`, `jobs.unregister` | `{id,interval}` (1–86400 s), `{id}`; emits `job` | background |
+| `log` | `{level,message}` → `nook logs <id>` | approval only |
+
+File paths may be relative to `NOOK_DATA_DIR` or absolute inside a folder chosen during consent. Both lexical
+scope and resolved ancestors are checked, including nonexistent write targets. This is a host API boundary,
+not a filesystem sandbox: trusted native helpers and shell commands run as the user. Concurrent external
+symlink replacement remains a limitation; use helpers/security-scoped file APIs for adversarial file trees.
+Selection uses AI Commands' SelectionGrabber, including its clipboard and select-all fallback. Only request
+selection/paste after an explicit user action. When approved Accessibility plugins are enabled, the host captures
+the external text target before the notch opens; fallback/paste closes the notch, restores it, and refuses a
+changed/unavailable target. Helpers calling while closed use the current external target. Generic AX actions use the
+currently focused element; exact captured-window layouts remain in the existing Windows feature until migration.
+`ai.complete` defaults to Codex/gpt-6-luna/medium; supply a matching model when selecting Groq/OpenAI.
+
+### Helper protocol and web messaging
+
+Stdin and stdout carry **newline-delimited UTF-8 JSON-RPC 2.0** objects, one per LF; CRLF and empty lines are
+accepted. This is not LSP Content-Length framing. Embedded newlines must be JSON escaped. Each frame is at
+most 1 MiB, there are at most 128 pending requests in each direction, and web-to-helper calls time out after
+15 seconds. Keep stdout exclusively for protocol messages; stderr is bounded into the plugin log. IDs may
+be strings or numbers; responses must carry exactly one of `result` or `error`. Nook uses string request IDs.
+
+```js
+// Web → helper method; params must be a JSON object or array.
+const value = await nook.native.call('hello', {name: 'Nook'});
+// Helper notifications, scoped to this plugin on all displays.
+nook.native.on('progress', data => { /* update UI */ });
+nook.native.on('ready', () => { /* helper started/restarted; refresh state */ });
+```
+
+```json
+{"jsonrpc":"2.0","id":"ui-1","method":"hello","params":{"name":"Nook"}}
+{"jsonrpc":"2.0","id":"ui-1","result":{"message":"Hello, Nook!"}}
+{"jsonrpc":"2.0","method":"progress","params":{"percent":50}}
+{"jsonrpc":"2.0","id":7,"method":"host.clipboard.read","params":{}}
+{"jsonrpc":"2.0","id":7,"result":"clipboard text"}
+{"jsonrpc":"2.0","id":8,"error":{"code":-32001,"message":"Permission denied: clipboard."}}
+```
+
+Nook sends `host.ready` with `{apiVersion:2,pluginID}` after spawning, and `host.event` with `{event,data}` for
+settings, clipboard, hotkey, action, job, menuBar and URL events. A notification has no `id` and gets no response.
+Respond to every request, correlate responses by ID, ignore unknown notifications, and handle host errors.
+Do not synchronously block a request handler waiting for the host: continue reading both directions.
+The helper gets `NOOK_PLUGIN_ID`, `NOOK_PLUGIN_DIR`, `NOOK_DATA_DIR`, a standard PATH and basic user/locale
+variables. Nook does not forward arbitrary injected environment variables or AI credentials. Save data only
+in `NOOK_DATA_DIR`; it survives package replacement and uninstall. Never daemonize the helper.
+
+### Contributions
+
+Every `contributes` value is an array, up to 100 entries, with unique `id`s. All registrations are removed on
+disable/revoke/uninstall. Declarative hotkeys/items/jobs match the parameter shapes above. `answerProviders`
+uses `{id,prefix,method}`; the native launcher reads a bounded cache, asks the helper asynchronously, shows a
+loading/error result, and never blocks its 2 ms native answer budget. Prefixes should be specific. Entries and
+answers require Launcher enabled, and answers also require Smart Answers. Keyboard & Open Nook may be off.
+Phase 1 integrates with the existing native launcher pending its migration.
+`settings` entries `{id,title?}` add grouped native Settings panes using the plugin's top-level `settings` schema.
+`menuBar` entries `{id,title?,symbol?}` create an SF Symbol status item and emit `menuBar: {id}` on activation.
+`urlHandlers` entries `{id}` accept `nook://plugin/<plugin-id>/<handler-id>?...`, emitting `{handler,url}`.
+`notchActivity` reserves named activities; plugins publish/clear active text through `activity.set/clear`.
+
+### Permissions, trust and Store updates
+
+Declarations are not grants. A native consent sheet lists permissions in plain words before a v2 Store
+install/update or first enable. Developer copies are marked **Developer**. Use Settings → Tabs & Plugins →
+Permissions & Trust to review/revoke; revocation disables the plugin and immediately stops helper resources. Unknown host methods
+and undeclared permissions reject. Available permissions are `files`, `clipboard`, `accessibility`, `microphone`,
+`network`, `shell`, `ai`, `background`, `hotkeys`, `notifications`, `launcher`, `windows`, `secrets`.
+
+**Helpers are unsandboxed child processes, not a security boundary.** They can access files/network directly
+and may use Nook's effective TCC grants. TCC attributes requests to responsible code, so launched-via-Nook
+and launched-via-Terminal/Xcode can behave differently. An update/signing identity change or particular
+service may require a helper-specific grant. The consent sheet explicitly says this. Check in a signed build
+on a clean macOS profile before distributing Accessibility/microphone plugins; do not modify TCC databases.
+See [Apple DTS on responsible code and file permissions](https://developer.apple.com/forums/thread/678819).
+
+The Store index adds `default: true` and `sha256`. On the first successful online bootstrap Nook installs
+missing defaults; failures retry at a later check and never remove bundled or installed plugins. Nook checks
+daily and on Settings open (30-second debounce) while the Plugin Store feature is on. Turning it off cancels
+Store networking and its update timer. Preinstall does not enable a default-off feature: Mouse appears as
+`plugin:mouse` in the shared Features registry and starts only after its existing switch is enabled and trust is approved.
+Unchanged permission/trust grants update silently; added
+permissions or a newly introduced helper require consent before the app replaces the old package. CLI
+installs/updates verify packages; the running host requests approval before executing newly granted capabilities.
+Offline, existing packages and bundled v1 plugins continue working.
+
+The Store keeps its immutable Git tree/blob checks and adds a canonical SHA-256 for **all** package files:
+UTF-8 path, NUL, Git mode (`100644` or `100755`), NUL, decimal byte count, NUL, raw bytes, repeated in UTF-8
+path order. The receipt itself is excluded. V2 Store installs require SHA-256. Only regular files are packaged;
+executable files must be under `bin/`. No symlinks, hidden files, traversal, CDNs or automatic install scripts.
+Limits remain 200 files, 5 MB/file, 20 MB/package. Hashes prove integrity relative to the catalog, not author identity
+or safety; review the source and helper binary provenance. Updates preserve local edits and Trash the old copy.
+
+### Developing and publishing
+
+`nook new <id> --native swift|rust|node|python [--output <parent>]` creates a working hello helper and UI.
+Swift/Rust scaffolds need `bash build.sh` first; Node/Python need the named runtime installed. Rust uses
+serde_json rather than an unsafe handwritten JSON parser; Nook gains no app dependency. Templates are in
+`store/templates/`. `nook validate <folder>` validates v2 paths, permissions and helper availability without
+executing code. `nook dev <path>` mirrors into the watched plugin folder and follows edits, including helper
+binaries. It never launches Nook or executes a build script; use an already running app and approve Developer
+access. Stop dev before changing the plugin id. `--once` performs one safe sync. Existing unrelated plugins
+or edits to the mirror are preserved/refused. `NOOK_SUPPORT_DIR` isolates CLI new/dev operations in tests.
+
+Use `nook logs <id>` for web/helper diagnostics. Test JS with a mocked `window.nook` and test RPC with pipes
+and an isolated `NOOK_DATA_DIR`. Build helper code before validating/publishing. Add `store.json`, increment
+both versions, run Store validation/index generation, review `nook publish <path>`'s preview, and submit through
+the Store PR workflow. Source review, deterministic binaries, signing/notarization and any runtime dependencies
+belong in the plugin's documentation. The full build guide ships as `store/SKILL.md` and in `skill/nook/plugin-v2.md`.
+
+V2 host shell commands belong to their plugin: stdout/stderr drain concurrently (1 MiB captured each),
+timeouts stop the process group, and disabling/revoking cancels them. In-flight HTTP and AI tasks are cancelled too. V2 page resources are released when the last visible page
+unloads, except resources owned by an enabled background helper. A second visible display keeps them alive.
+
 
 ## Feature availability and page lifetime
 
@@ -589,7 +773,8 @@ agent chats and native countdowns belong to their native services, not a page. D
 outside the shell's process tree are outside page lifetime control.
 
 Native feature IDs include `launcher`, `smartAnswers`, `launcherFiles`, `files`, `clipboard`, `screenshots`, `windows`,
-`mouse`, `commands`, `agents`, `dictation`, `links`, `proxy`, `mixer`, `monitor`, `media`, `timers`, `keyboard`,
+`commands`, `agents`, `dictation`, `links`, `proxy`, `mixer`, `monitor`, `media`, `timers`, `keyboard`,
 `teleprompter`, `cleaner`, `pluginStore`, `home`, `notes`, `scratch`, and `shelf`. Other discovered plugins use
-`plugin:<id>`. Clipboard and screenshot history share the Clips tab; either can run independently. `system` calls require
+`plugin:<id>`, including `plugin:mouse` for the migrated Mouse plugin. Features and Tabs & Plugins share
+one enable state; revocation turns that same state off. Clipboard and screenshot history share the Clips tab; either can run independently. `system` calls require
 Monitor and a visible calling tab. Home checks capabilities before invoking stats/timer APIs.

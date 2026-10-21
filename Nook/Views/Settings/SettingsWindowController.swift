@@ -14,6 +14,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func show(pane: String?) {
+        Task { @MainActor in await PluginAutomaticUpdates.shared.check(settingsOpened: true) }
         if let pane, SettingsRouter.isKnown(pane) { SettingsRouter.shared.pane = Features.shared.paneEnabled(pane) ? pane : "features" }
         prepare()
         NSApp.activate(ignoringOtherApps: true)

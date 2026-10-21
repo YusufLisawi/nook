@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.5.0</title>
+  <pubDate>Wed, 21 Oct 2026 15:03:09 GMT</pubDate>
+  <sparkle:version>12</sparkle:version>
+  <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Agents: chat with your own Codex agents in the notch (full tool access, tool-call cards, auto-pin)</li><li>Keyboard-first: Open Nook hotkey, ⌘K palette, ⌘1–9, arrows/Enter everywhere</li><li>Clips: clipboard history + screenshots &amp; recordings with text search</li><li>File Search: fast Spotlight search with previews and Quick Look</li><li>Window management: halves, thirds, move between displays and desktops</li><li>Plugin Store: install, update, share plugins (nook://install links)</li><li>Tabs: hide tabs from the dock, group plugins into decks</li><li>Settings: faster, cleaner, new Shortcuts + About panes, search</li><li>Privacy: hide Nook from screen sharing and recordings</li><li>Fixes: switching tabs never closes the notch; Cleaner skips protected files instead of failing</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.5.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="exViX+zT0RclpphUnJhCDNKQZ/foqWlLzchgfUTu+lNMBGb8LHU8sNMDnOdO8B5bWMstl19Rl6OqpPF4GZCvDQ==" length="10018908"/>
+</item>
+<item>
   <title>Nook 1.4.1</title>
   <pubDate>Wed, 21 Oct 2026 13:56:24 GMT</pubDate>
   <sparkle:version>11</sparkle:version>

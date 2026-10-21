@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.6.4</title>
+  <pubDate>Wed, 21 Oct 2026 16:34:39 GMT</pubDate>
+  <sparkle:version>20</sparkle:version>
+  <sparkle:shortVersionString>1.6.4</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Dictation: fixed empty transcriptions after the Mac sleeps (the mic was sending silence); a silent mic now shows a clear message</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.6.4/Nook.dmg" type="application/octet-stream" sparkle:edSignature="scT6x/jSIPIvpg2Mf5gYJuDF+KdZ04ItRHr/Jk789zSGU2H1jE2dem95xmlOts7z966ksTpEt9tPCMatmmvKAg==" length="10493351"/>
+</item>
+<item>
   <title>Nook 1.6.3</title>
   <pubDate>Wed, 21 Oct 2026 16:26:35 GMT</pubDate>
   <sparkle:version>19</sparkle:version>

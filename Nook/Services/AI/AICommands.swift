@@ -92,7 +92,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
             let needsSelection = command.prompt.contains("{selection}") || command.output == "replace" || command.output == "paste"
             let selection = needsSelection ? await SelectionGrabber.selectedText() : ""
             if command.prompt.contains("{selection}"), selection.isEmpty {
-                finish(runID, command, status: "error", text: "", error: "Select some text first, then run “\(command.name)”.", selection: "")
+                finish(runID, command, status: "error", text: "", error: "No text to work with — select some, or put your cursor in a text box with text.", selection: "")
                 return
             }
             let prompt = Self.expand(command.prompt, selection: selection, clipboard: clipboard, app: app)
@@ -329,6 +329,43 @@ enum SelectionGrabber {
     /// Accessibility first (no clipboard involved); falls back to a quick ⌘C with the clipboard restored after.
     static func selectedText() async -> String {
         if let text = axSelection(), !text.isEmpty { return text }
+        let copied = await copySelection()
+        if !copied.isEmpty { return copied }
+        // Nothing selected but the cursor is in a text box → use (and select) everything in it.
+        return await selectAllInFocusedInput()
+    }
+
+    private static func focusedElement() -> AXUIElement? {
+        let system = AXUIElementCreateSystemWide()
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let element = focused, CFGetTypeID(element) == AXUIElementGetTypeID() else { return nil }
+        return (element as! AXUIElement)
+    }
+
+    private static func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
+    }
+
+    /// Text fields, text areas, search fields, combo boxes — and editable web content (contenteditable, inputs).
+    private static func isTextInput(_ element: AXUIElement) -> Bool {
+        let role = attribute(element, kAXRoleAttribute) as? String ?? ""
+        if ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField"].contains(role) { return true }
+        return attribute(element, "AXEditableAncestor") != nil
+    }
+
+    private static func selectAllInFocusedInput() async -> String {
+        guard let element = focusedElement(), isTextInput(element) else { return "" }
+        if let value = attribute(element, kAXValueAttribute) as? String, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            var range = CFRange(location: 0, length: (value as NSString).length)
+            if let axRange = AXValueCreate(.cfRange, &range),
+               AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axRange) == .success {
+                return value // selected via Accessibility, so "replace" swaps exactly this
+            }
+        }
+        press(key: 0, flags: .maskCommand) // ⌘A — only ever inside a confirmed text input
+        try? await Task.sleep(nanoseconds: 80_000_000)
         return await copySelection()
     }
 

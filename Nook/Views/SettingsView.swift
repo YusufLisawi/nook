@@ -46,7 +46,8 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 
 final class SettingsRouter: ObservableObject {
     static let shared = SettingsRouter()
-    @Published var pane: SettingsPane? = .general
+    /// A built-in SettingsPane rawValue or a SettingsRegistry extension id.
+    @Published var pane: String? = SettingsPane.general.rawValue
 }
 
 struct SettingsView: View {
@@ -55,34 +56,57 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(SettingsPane.allCases, selection: $router.pane) { pane in
-                Label {
-                    Text(pane.title)
-                } icon: {
-                    Image(systemName: pane.symbol)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 22, height: 22)
-                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(pane.tint.gradient))
+            List(selection: $router.pane) {
+                ForEach(SettingsPane.allCases) { pane in
+                    SidebarRow(title: pane.title, symbol: pane.symbol, tint: pane.tint).tag(pane.rawValue)
                 }
-                .tag(pane)
+                if !SettingsRegistry.panes.isEmpty {
+                    Section("Extensions") {
+                        ForEach(SettingsRegistry.panes) { ext in
+                            SidebarRow(title: ext.title, symbol: ext.symbol, tint: ext.tint).tag(ext.id)
+                        }
+                    }
+                }
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 240)
         } detail: {
+            let id = router.pane ?? SettingsPane.general.rawValue
             Group {
-                switch router.pane ?? .general {
-                case .general: GeneralPane(onScreensChanged: onScreensChanged)
-                case .tabs: TabsPane()
-                case .commands: CommandsPane()
-                case .ai: AIPane()
-                case .dictation: DictationPane()
-                case .updates: Form { UpdatesSection() }.formStyle(.grouped)
-                case .tools: Form { ToolsSection() }.formStyle(.grouped)
+                if let ext = SettingsRegistry.panes.first(where: { $0.id == id }) {
+                    ext.view()
+                } else {
+                    switch SettingsPane(rawValue: id) ?? .general {
+                    case .general: GeneralPane(onScreensChanged: onScreensChanged)
+                    case .tabs: TabsPane()
+                    case .commands: CommandsPane()
+                    case .ai: AIPane()
+                    case .dictation: DictationPane()
+                    case .updates: Form { UpdatesSection() }.formStyle(.grouped)
+                    case .tools: Form { ToolsSection() }.formStyle(.grouped)
+                    }
                 }
             }
-            .navigationTitle((router.pane ?? .general).title)
+            .navigationTitle(SettingsRegistry.panes.first(where: { $0.id == id })?.title ?? (SettingsPane(rawValue: id) ?? .general).title)
         }
         .frame(minWidth: 760, idealWidth: 820, minHeight: 540, idealHeight: 600)
+    }
+}
+
+struct SidebarRow: View {
+    let title: String
+    let symbol: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(tint.gradient))
+        }
     }
 }
 

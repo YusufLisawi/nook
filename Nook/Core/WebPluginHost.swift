@@ -44,7 +44,7 @@ final class WebPluginHost: NSObject {
         let content = config.userContentController
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
         let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info), injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let view = DropWebView(frame: .zero, configuration: config)
         view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")
@@ -116,7 +116,8 @@ final class WebPluginHost: NSObject {
         case let f where f.hasPrefix("commands."): s.commands.handle(String(f.dropFirst(9)), args: args, reply: reply)
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
-        default: reply(nil, "Unknown nook call: \(fn)")
+        default:
+            if !BridgeRegistry.handle(fn, args: args, pluginID: pluginID, reply: reply) { reply(nil, "Unknown nook call: \(fn)") }
         }
     }
 

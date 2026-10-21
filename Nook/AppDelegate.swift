@@ -141,7 +141,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Opens (or brings back) the Settings window, optionally on a pane ("commands", "ai", …).
     func showSettings(pane: String?) {
-        if let pane, let target = SettingsPane(rawValue: pane) { SettingsRouter.shared.pane = target }
+        if let pane, SettingsPane(rawValue: pane) != nil || SettingsRegistry.panes.contains(where: { $0.id == pane }) {
+            SettingsRouter.shared.pane = pane
+        }
         if settingsWindow == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(onScreensChanged: { [weak self] in self?.rebuildNotches() })))
             window.title = "Nook Settings"

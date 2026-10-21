@@ -7,6 +7,7 @@ enum PluginEvents {
 final class Services {
     static let shared = Services()
     let dictation = Dictation()
+    let hotkeys = HotkeyMonitor()
     final class Dictation {
         let hotkeys = HotkeyMonitor()
         func reloadShortcuts() {}

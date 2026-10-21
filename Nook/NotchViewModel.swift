@@ -19,6 +19,10 @@ final class NotchViewModel: ObservableObject {
     static let dockHeight: CGFloat = 30
 
     @Published var state: NotchState = .closed
+    /// Whether the open notch's content is in the view tree. It is removed with animations off the moment the notch starts
+    /// closing: SwiftUI keeps a removed view (and anything backed by an NSView: web tabs, tooltips, drag handlers) alive until
+    /// the notch's size animation settles, which left the content hanging around as a ghost.
+    @Published private(set) var showsContent = false
     @Published var tab: String = "home" {
         willSet {
             if newValue != tab, launcherPresented {
@@ -60,6 +64,7 @@ final class NotchViewModel: ObservableObject {
     /// The notch's shape before a tab switch; still counts as hovered (see `tab`).
     var holdRect: CGRect?
     private var pendingOpen: DispatchWorkItem?
+    private var pendingReveal: DispatchWorkItem?
     private var bag = Set<AnyCancellable>()
 
     init(geometry: NotchGeometry) {
@@ -165,6 +170,11 @@ final class NotchViewModel: ObservableObject {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         }
         withAnimation(Self.spring) { state = .open }
+// Content fades in once the notch has mostly grown, so it never pokes out of the shape.
+        pendingReveal?.cancel()
+        let reveal = DispatchWorkItem { [weak self] in withAnimation(.easeOut(duration: 0.18)) { self?.showsContent = true } }
+        pendingReveal = reveal
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: reveal)
         if !launcherPresented { web.emit("open", self.tab) }
     }
 
@@ -196,7 +206,14 @@ final class NotchViewModel: ObservableObject {
         holdRect = nil
         pinned = false
         showingSettings = false
+        pendingReveal?.cancel()
         withAnimation(Self.spring) { state = .closed }
+        // A separate update pass: when it shared one with the animated resize, SwiftUI could leave the shape at its open size.
+        DispatchQueue.main.async { [weak self] in
+            var instant = Transaction()
+            instant.disablesAnimations = true
+            withTransaction(instant) { self?.showsContent = false }
+        }
         web.emit("close", tab)
         onClose?()
     }

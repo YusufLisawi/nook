@@ -9,22 +9,27 @@ struct NotchRootView: View {
     var body: some View {
         let size = vm.contentSize
         let flare: CGFloat = vm.isOpen ? 12 : 6
+        let shape = NotchShape(topRadius: flare, bottomRadius: vm.isOpen ? 24 : 10)
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                NotchShape(topRadius: flare, bottomRadius: vm.isOpen ? 24 : 10)
+                shape
                     .fill(Color.black)
                     .shadow(color: .black.opacity(vm.isOpen ? 0.45 : (clickToOpenHover ? 0.35 : 0)), radius: vm.isOpen ? 18 : 8, y: vm.isOpen ? 8 : 3)
                 Group {
-                    if vm.isOpen {
+                    if vm.showsContent {
                         Group {
                             if vm.launcherPresented { LauncherView(vm: vm) }
                             else { ExpandedView(vm: vm) }
-                        }.transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
-                    } else {
+                        }.transition(.opacity)
+                    } else if !vm.isOpen {
                         CollapsedView(vm: vm).transition(.opacity)
                     }
                 }
                 .padding(.horizontal, flare)
+                // A fixed frame, not a flexible one: a flexible frame never goes smaller than its content, so the clip
+                // would stay at the open size. Clip to the springing shape so the notch reveals/hides the content.
+                .frame(width: size.width + flare * 2, height: size.height, alignment: .top)
+                .clipShape(shape)
             }
             .frame(width: size.width + flare * 2, height: size.height)
             .contentShape(Rectangle())

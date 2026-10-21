@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.10.0</title>
+  <pubDate>Wed, 21 Oct 2026 20:18:43 GMT</pubDate>
+  <sparkle:version>28</sparkle:version>
+  <sparkle:shortVersionString>1.10.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Much lighter: idle CPU 7.8% → 0.1%, wakeups 806/s → 8/s, memory 134 MB → 19 MB</li><li>Settings → Features: turn any feature off; off means it doesn&#x27;t run or use memory</li><li>Launcher, File Search, Clipboard/Screenshots history, Window Management and Mouse are off by default (turn them on in Settings → Features)</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.10.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="EugzhT5fhPSQNaPTVwLNT4lb9pPsEqP9W2yzvguH5T35XxWFatqIMAscMqIeskq9vFitlTAz0G4MwCeCEDdACA==" length="12002285"/>
+</item>
+<item>
   <title>Nook 1.9.2</title>
   <pubDate>Wed, 21 Oct 2026 19:27:55 GMT</pubDate>
   <sparkle:version>27</sparkle:version>

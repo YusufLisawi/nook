@@ -34,6 +34,7 @@ final class Services: ObservableObject {
     }
 
     func shutdown() {
+        SettingsPersistence.shared.flush()
         proxy.shutdown()
         audio.shutdown() // remove taps so no app is left muted
     }
@@ -62,20 +63,13 @@ enum PluginEvents {
 
 /// Small JSON-file secret store (0600), like FreeFlow's `.settings`.
 enum Secrets {
-    private static var url: URL { Services.supportDir.appendingPathComponent(".secrets") }
+    private static let store = SettingsJSONFile<[String: String]>(
+        url: { Services.supportDir.appendingPathComponent(".secrets") }, fallback: [:], permissions: 0o600)
 
-    static func get(_ key: String) -> String? { load()[key].flatMap { $0.isEmpty ? nil : $0 } }
+    static func get(_ key: String) -> String? { store.read()[key].flatMap { $0.isEmpty ? nil : $0 } }
 
     static func set(_ key: String, _ value: String?) {
-        var dict = load()
-        dict[key] = value
-        guard let data = try? JSONSerialization.data(withJSONObject: dict) else { return }
-        try? data.write(to: url, options: .atomic)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-    }
-
-    private static func load() -> [String: String] {
-        guard let data = try? Data(contentsOf: url) else { return [:] }
-        return (try? JSONSerialization.jsonObject(with: data)) as? [String: String] ?? [:]
+        guard store.read()[key] != value else { return }
+        store.update { $0[key] = value }
     }
 }

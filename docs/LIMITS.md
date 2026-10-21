@@ -61,3 +61,8 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
 - About shows the app version/build, project links, MIT license, and the shared Sparkle update action.
 - The last pane and window frame persist in preferences. The Settings hosting controller pre-warms in a hidden window
   shortly after launch, without activating the app or opening a second instance.
+- Codex/PATH discovery, microphone enumeration, login-item queries, custom icons, plugin options, and explicit plugin
+  reload/copy/revert work run outside the UI thread. Status snapshots are reused across pane switches and refreshed
+  on activation or request; Settings has no recurring polling timers. File edits take effect in memory immediately,
+  with coalesced background JSON writes (up to 150 ms) and a normal-quit flush. Direct changes to cached JSON files
+  require restarting Nook; force-quitting can lose the most recent unflushed edit.

@@ -190,8 +190,12 @@ private struct PromptEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let view = scroll.documentView as? NSTextView else { return }
         if let token = insert {
+            // Inserting text publishes a command update, which can render again before the next run loop.
+            guard !context.coordinator.inserting else { return }
+            context.coordinator.inserting = true
             view.insertText(token, replacementRange: view.selectedRange())
-            DispatchQueue.main.async { insert = nil }
+            let coordinator = context.coordinator
+            DispatchQueue.main.async { insert = nil; coordinator.inserting = false }
         } else if view.string != text {
             view.string = text
         }
@@ -201,6 +205,7 @@ private struct PromptEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         let parent: PromptEditor
+        var inserting = false
         init(_ parent: PromptEditor) { self.parent = parent }
         func textDidChange(_ notification: Notification) {
             guard let view = notification.object as? NSTextView else { return }

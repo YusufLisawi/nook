@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// A JSON scalar (manifest defaults + saved values).
-enum JSONValue: Codable, Equatable {
+enum JSONValue: Codable, Equatable, Sendable {
     case bool(Bool), number(Double), string(String), null
 
     init(from decoder: Decoder) throws {
@@ -82,13 +82,14 @@ struct PluginSetting: Decodable, Identifiable, Equatable {
 
 /// Saved setting values per plugin: Data/<id>.settings.json. Changes are pushed to the plugin as `nook.on('settings')`.
 enum PluginSettingsStore {
+    private static let lock = NSLock()
+    private static var stores: [String: SettingsJSONFile<[String: JSONValue]>] = [:]
     private static func url(_ id: String) -> URL {
         Services.supportDir.appendingPathComponent("Data/\(id).settings.json")
     }
 
     static func saved(_ id: String) -> [String: JSONValue] {
-        guard let data = try? Data(contentsOf: url(id)) else { return [:] }
-        return (try? JSONDecoder().decode([String: JSONValue].self, from: data)) ?? [:]
+        store(id).read()
     }
 
     /// Defaults from the manifest, overridden by saved values.
@@ -99,16 +100,26 @@ enum PluginSettingsStore {
     }
 
     static func set(_ tab: TabItem, _ key: String, _ value: JSONValue) {
-        var dict = saved(tab.id)
-        dict[key] = value
-        write(tab, dict)
+        let dict = store(tab.id).update { $0[key] = value }
+        emit(tab, dict)
     }
 
-    static func reset(_ tab: TabItem) { write(tab, [:]) }
+    static func reset(_ tab: TabItem) {
+        store(tab.id).update { $0 = [:] }
+        emit(tab, [:])
+    }
 
-    private static func write(_ tab: TabItem, _ dict: [String: JSONValue]) {
-        try? FileManager.default.createDirectory(at: url(tab.id).deletingLastPathComponent(), withIntermediateDirectories: true)
-        if let data = try? JSONEncoder().encode(dict) { try? data.write(to: url(tab.id), options: .atomic) }
-        PluginEvents.emit("settings", values(for: tab).mapValues(\.any), to: tab.id)
+    private static func store(_ id: String) -> SettingsJSONFile<[String: JSONValue]> {
+        lock.lock()
+        defer { lock.unlock() }
+        if let store = stores[id] { return store }
+        let store = SettingsJSONFile<[String: JSONValue]>(url: { url(id) }, fallback: [:])
+        stores[id] = store
+        return store
+    }
+
+    private static func emit(_ tab: TabItem, _ saved: [String: JSONValue]) {
+        let values = Dictionary(uniqueKeysWithValues: tab.settings.map { ($0.key, $0.fallback) }).merging(saved) { _, new in new }
+        PluginEvents.emit("settings", values.mapValues(\.any), to: tab.id)
     }
 }

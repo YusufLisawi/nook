@@ -19,16 +19,26 @@ enum CodexLink {
 
     /// The `codex` command from the user's login shell (bun/npm/brew installs live in different places).
     static func cliPath() -> String? {
-        if let cached = cachedPath { return cached }
+        pathLock.lock()
+        defer { pathLock.unlock() }
+        if pathLoaded { return cachedPath }
         let shell = run("/bin/zsh", ["-lic", "command -v codex"]).trimmingCharacters(in: .whitespacesAndNewlines)
         let candidates = [shell] + ["/opt/homebrew/bin/codex", "/usr/local/bin/codex",
                                      NSHomeDirectory() + "/.bun/bin/codex", NSHomeDirectory() + "/.local/bin/codex"]
         cachedPath = candidates.first { !$0.isEmpty && FileManager.default.isExecutableFile(atPath: $0) }
+        pathLoaded = true
         return cachedPath
     }
 
-    static func refresh() { cachedPath = nil }
+    static func refresh() {
+        pathLock.lock()
+        defer { pathLock.unlock() }
+        cachedPath = nil
+        pathLoaded = false
+    }
+    private static let pathLock = NSLock()
     private static var cachedPath: String?
+    private static var pathLoaded = false
 
     /// The ChatGPT email inside the id_token (a JWT) Codex stored.
     private static func email() -> String? {
@@ -52,8 +62,12 @@ enum CodexLink {
         return "npm install -g @openai/codex"
     }
 
-    static func install() { runInTerminal(installCommand + " && codex login") }
-    static func signIn() { runInTerminal("codex login") }
+    static func install() async -> String? {
+        await Task.detached(priority: .userInitiated) { runInTerminal(installCommand + " && codex login") }.value
+    }
+    static func signIn() async -> String? {
+        await Task.detached(priority: .userInitiated) { runInTerminal("codex login") }.value
+    }
 
     /// A real round-trip through the user's subscription: (ok, seconds, message).
     static func test() async -> (Bool, Double, String) {
@@ -67,11 +81,13 @@ enum CodexLink {
         }
     }
 
-    private static func runInTerminal(_ command: String) {
+    private static func runInTerminal(_ command: String) -> String? {
         let escaped = command.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let script = "tell application \"Terminal\"\nactivate\ndo script \"\(escaped)\"\nend tell"
+        guard let appleScript = NSAppleScript(source: script) else { return "Couldn’t prepare the Terminal command. Try again." }
         var error: NSDictionary?
-        NSAppleScript(source: script)?.executeAndReturnError(&error)
+        appleScript.executeAndReturnError(&error)
+        return error?["NSAppleScriptErrorMessage"] as? String ?? error?.description
     }
 
     @discardableResult

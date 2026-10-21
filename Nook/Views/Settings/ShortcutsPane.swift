@@ -5,7 +5,6 @@ struct ShortcutsPane: View {
     @ObservedObject private var commands = Services.shared.commands
     @State private var revision = 0
     @State private var trusted = AXIsProcessTrusted()
-    private let poll = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
         let _ = revision
@@ -53,7 +52,10 @@ struct ShortcutsPane: View {
         }
         .formStyle(.grouped)
         .onReceive(NotificationCenter.default.publisher(for: .nookShortcutsChanged)) { _ in revision += 1 }
-        .onReceive(poll) { _ in trusted = AXIsProcessTrusted() }
+        .onAppear { trusted = AXIsProcessTrusted() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            trusted = AXIsProcessTrusted()
+        }
     }
 
     private func shortcutSection(_ title: String, items: [SettingsShortcutItem]) -> some View {

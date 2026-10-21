@@ -3,15 +3,17 @@ import SwiftUI
 // MARK: ChatGPT & Codex
 
 struct AIPane: View {
-    @State private var state: CodexLink.State = .notInstalled
-    @State private var path: String?
-    @State private var refreshing = false
-    @State private var loaded = false
+    @ObservedObject private var connection = SettingsSnapshots.codex
     @State private var testing = false
     @State private var testResult: (Bool, Double, String)?
-    @State private var groqKey = Secrets.get(DictationService.Keys.groqSecret) ?? ""
-    @State private var openAIKey = Secrets.get(AIBrain.openAISecret) ?? ""
-    private let poll = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+    @State private var groqKey = ""
+    @State private var openAIKey = ""
+    @State private var keysLoaded = false
+    @State private var launchingTerminal = false
+    @State private var setupError: String?
+    private var state: CodexLink.State { connection.value?.state ?? .notInstalled }
+    private var path: String? { connection.value?.path }
+    private var loaded: Bool { connection.value != nil }
 
     var body: some View {
         Form {
@@ -37,7 +39,7 @@ struct AIPane: View {
                             .foregroundStyle(.green).font(.callout)
                             .lineLimit(2).truncationMode(.middle).textSelection(.enabled).help(path)
                     } else {
-                        Button("Install Codex") { CodexLink.install() }
+                        Button("Install Codex") { beginSetup(install: true) }.disabled(launchingTerminal)
                     }
                 }
                 LabeledContent("ChatGPT account") {
@@ -47,10 +49,15 @@ struct AIPane: View {
                             .foregroundStyle(.green).font(.callout).textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
                     case .apiKey:
-                        Button("Sign in with ChatGPT instead") { CodexLink.signIn() }
+                        Button("Sign in with ChatGPT instead") { beginSetup(install: false) }.disabled(launchingTerminal || path == nil)
                     default:
-                        Button("Sign in with ChatGPT") { CodexLink.signIn() }.disabled(!loaded || path == nil)
+                        Button("Sign in with ChatGPT") { beginSetup(install: false) }.disabled(launchingTerminal || !loaded || path == nil)
                     }
+                }
+                if launchingTerminal { ProgressView("Opening Terminal…").controlSize(.small) }
+                if let setupError {
+                    Label(setupError, systemImage: "exclamationmark.triangle")
+                        .font(.callout).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                 }
                 LabeledContent("Connection") {
                     HStack(spacing: 8) {
@@ -63,6 +70,9 @@ struct AIPane: View {
                             }
                         }
                         .disabled(testing || !isReady)
+                        Button("Refresh Status") { Task { await connection.refresh(force: true) } }
+                            .disabled(connection.refreshing)
+                        if connection.refreshing { ProgressView().controlSize(.small).accessibilityLabel("Refreshing connection") }
                     }
                 }
                 if let testResult {
@@ -79,30 +89,39 @@ struct AIPane: View {
             }
             Section {
                 SecureField("Groq API key", text: $groqKey)
-                    .onChange(of: groqKey) { _, key in Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) }
+                    .onChange(of: groqKey) { _, key in if keysLoaded { Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) } }
                 SecureField("OpenAI API key", text: $openAIKey)
-                    .onChange(of: openAIKey) { _, key in Secrets.set(AIBrain.openAISecret, key.trimmingCharacters(in: .whitespaces)) }
+                    .onChange(of: openAIKey) { _, key in if keysLoaded { Secrets.set(AIBrain.openAISecret, key.trimmingCharacters(in: .whitespaces)) } }
             } header: {
                 Text("Other providers (optional)")
             } footer: {
                 Text("Pick them per command in AI Commands. Groq also powers dictation clean-up and nook.ai in plugins.").font(.caption)
             }
+            .disabled(!keysLoaded)
         }
         .formStyle(.grouped)
-        .task { await refresh() }
-        .onReceive(poll) { _ in Task { await refresh() } }
+        .task {
+            async let status: Void = connection.refresh()
+            let keys = await Task.detached(priority: .utility) {
+                (Secrets.get(DictationService.Keys.groqSecret) ?? "", Secrets.get(AIBrain.openAISecret) ?? "")
+            }.value
+            groqKey = keys.0
+            openAIKey = keys.1
+            keysLoaded = true
+            await status
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await connection.refresh(force: true) }
+        }
     }
 
-    @MainActor private func refresh() async {
-        guard !refreshing else { return }
-        refreshing = true
-        let result = await Task.detached(priority: .utility) {
-            return (CodexLink.state(), CodexLink.cliPath())
-        }.value
-        state = result.0
-        path = result.1
-        loaded = true
-        refreshing = false
+    @MainActor private func beginSetup(install: Bool) {
+        launchingTerminal = true
+        setupError = nil
+        Task {
+            setupError = install ? await CodexLink.install() : await CodexLink.signIn()
+            launchingTerminal = false
+        }
     }
 
     private var isReady: Bool { if case .ready = state { true } else { false } }

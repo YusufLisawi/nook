@@ -141,6 +141,22 @@ hold.set(.defaultHold)
 check(hold.get() == .defaultHold, "Dictation default restores")
 tab.set(nil)
 check(TabHotkeys.get(registry.tabs[0].id) == nil, "Clearing tab assignment updates original storage")
+
+// Settings discovery reads only this harness's temporary plugin directory and publishes on the main actor.
+let fixture = Services.supportDir.appendingPathComponent("Plugins/settings-fixture", isDirectory: true)
+try FileManager.default.createDirectory(at: fixture, withIntermediateDirectories: true)
+let manifest = fixture.appendingPathComponent("plugin.json")
+try Data(#"{"id":"settings-fixture","name":"Fixture","order":5,"height":180}"#.utf8).write(to: manifest)
+let beforeReload = registry.revision
+let beforeOrder = registry.customOrder
+await registry.reloadForSettings()
+check(registry.tabs.contains { $0.id == "settings-fixture" && $0.name == "Fixture" }, "Background Settings discovery publishes file plugins")
+check(PluginRegistry.nativeTabs.allSatisfy { native in registry.tabs.contains { $0.id == native.id } }, "Background discovery retains native tabs")
+check(registry.revision == beforeReload + 1, "Settings reload notifies live web hosts")
+check(registry.customOrder == beforeOrder, "Settings reload preserves dock order")
+try Data(#"{"id":"settings-fixture","name":"Changed","order":5,"height":180}"#.utf8).write(to: manifest)
+registry.reload()
+check(registry.tabs.contains { $0.id == "settings-fixture" && $0.name == "Changed" }, "Existing synchronous reload uses the same discovery rules")
 print("Passed \(checks) Settings regression checks; all preferences and services were in memory.")
 '''
 with tempfile.TemporaryDirectory(prefix="nook-settings-tests-") as temp:

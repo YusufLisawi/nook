@@ -2,30 +2,31 @@ import SwiftUI
 
 struct ToolsPane: View {
     @AppStorage(ToolsInstaller.autoKey) private var auto = true
-    @State private var cli = ToolsInstaller.cliInstalled
-    @State private var onPath: Bool?
+    @ObservedObject private var tools = SettingsSnapshots.tools
     @State private var installing = false
     @State private var log: [String] = []
-    @State private var installedAgents: Set<String> = []
-    private var agents: [(name: String, dir: URL, always: Bool)] {
-        ToolsInstaller.agents.filter { $0.always || FileManager.default.fileExists(atPath: $0.dir.path) }
-    }
+    private var cli: Bool { tools.value?.cli ?? false }
 
     var body: some View {
         Form {
             Section {
                 LabeledContent("nook command") {
-                    if let onPath {
-                        status(cli && onPath, cli ? (onPath ? "Installed" : "Installed — not on PATH") : "Not installed")
+                    if let snapshot = tools.value {
+                        status(cli && snapshot.onPath, cli ? (snapshot.onPath ? "Installed" : "Installed — not on PATH") : "Not installed")
                     } else {
                         ProgressView().controlSize(.small).accessibilityLabel("Checking command line tools")
                     }
                 }
-                if cli, onPath == false {
+                if cli, tools.value?.onPath == false {
                     Button("Add ~/.local/bin to PATH") {
-                        ToolsInstaller.addToPath()
-                        refresh()
+                        installing = true
+                        Task {
+                            await Task.detached(priority: .userInitiated) { ToolsInstaller.addToPath() }.value
+                            await tools.refresh(force: true)
+                            installing = false
+                        }
                     }
+                    .disabled(installing)
                     Text("Adds the command to ~/.zprofile. Open a new Terminal window to use the updated PATH.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
@@ -37,11 +38,12 @@ struct ToolsPane: View {
                 Text("Use nook new, nook open, and nook logs to build and manage plugins from Terminal.")
             }
             Section {
-                ForEach(agents, id: \.name) { agent in
+                ForEach(tools.value?.agents ?? [], id: \.name) { agent in
                     LabeledContent(agent.name) {
-                        status(installedAgents.contains(agent.name), installedAgents.contains(agent.name) ? "Installed" : "Not installed")
+                        status(agent.installed, agent.installed ? "Installed" : "Not installed")
                     }
                 }
+                if tools.value == nil { ProgressView("Checking installed skills…").controlSize(.small) }
             } header: {
                 Text("AI Agent Skills")
             } footer: {
@@ -54,12 +56,15 @@ struct ToolsPane: View {
                         installing = true
                         Task { @MainActor in
                             log = await Task.detached(priority: .userInitiated) { ToolsInstaller.install() }.value
+                            await tools.refresh(force: true)
                             installing = false
-                            refresh()
                         }
                     }
-                    .disabled(installing)
+                    .disabled(installing || tools.value == nil || tools.refreshing)
                     if installing { ProgressView().controlSize(.small) }
+                    Spacer(minLength: 0)
+                    Button("Refresh Status") { Task { await tools.refresh(force: true) } }
+                        .disabled(installing || tools.refreshing)
                 }
             }
             if !log.isEmpty {
@@ -73,15 +78,9 @@ struct ToolsPane: View {
             }
         }
         .formStyle(.grouped)
-        .task { refresh() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
-    }
-
-    private func refresh() {
-        cli = ToolsInstaller.cliInstalled
-        installedAgents = Set(agents.filter { ToolsInstaller.skillInstalled(in: $0.dir) }.map(\.name))
-        Task { @MainActor in
-            onPath = await Task.detached(priority: .utility) { ToolsInstaller.cliOnPath }.value
+        .task { await tools.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await tools.refresh(force: true) }
         }
     }
 

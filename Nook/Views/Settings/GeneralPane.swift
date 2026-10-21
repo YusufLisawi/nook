@@ -13,7 +13,8 @@ struct GeneralPane: View {
     @AppStorage(Prefs.showMusic) private var showMusic = true
     @AppStorage(Prefs.showTimer) private var showTimer = true
     @AppStorage(Prefs.preferredScreen) private var screenSetting = ""
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @ObservedObject private var login = SettingsSnapshots.login
+    @State private var changingLogin = false
     @State private var loginError: String?
     @State private var screens = NSScreen.screens
 
@@ -32,7 +33,7 @@ struct GeneralPane: View {
                         Text("\(screenSetting) (Disconnected)").tag(screenSetting)
                     }
                     Divider()
-                    ForEach(screens, id: \.localizedName) { Text($0.localizedName).tag($0.localizedName) }
+                    ForEach(screens, id: \.self) { Text($0.localizedName).tag($0.localizedName) }
                 }
                 .onChange(of: screenSetting) { _, _ in onScreensChanged() }
                 Toggle("Hide when an app is full screen", isOn: $hideInFullscreen)
@@ -51,16 +52,22 @@ struct GeneralPane: View {
                 Toggle("Show a running timer", isOn: $showTimer)
             }
             Section {
-                Toggle("Launch at login", isOn: Binding(get: { launchAtLogin }, set: { on in
-                    do {
-                        if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-                        loginError = nil
-                    } catch {
-                        loginError = error.localizedDescription
+                Toggle("Launch at login", isOn: Binding(get: { login.value == .enabled }, set: { on in
+                    changingLogin = true
+                    Task {
+                        loginError = await Task.detached(priority: .userInitiated) { () -> String? in
+                            do {
+                                if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+                                return nil
+                            } catch { return error.localizedDescription }
+                        }.value
+                        await login.refresh(force: true)
+                        changingLogin = false
                     }
-                    launchAtLogin = SMAppService.mainApp.status == .enabled
                 }))
-                if SMAppService.mainApp.status == .requiresApproval {
+                .disabled(login.value == nil || changingLogin || login.refreshing)
+                if login.value == nil || changingLogin { ProgressView().controlSize(.small).accessibilityLabel("Updating login item") }
+                if login.value == .requiresApproval {
                     Button("Open Login Items Settings…") { SMAppService.openSystemSettingsLoginItems() }
                 }
                 if let loginError {
@@ -69,11 +76,12 @@ struct GeneralPane: View {
             }
         }
         .formStyle(.grouped)
+        .task { await login.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
             screens = NSScreen.screens
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            Task { await login.refresh(force: true) }
         }
     }
 }

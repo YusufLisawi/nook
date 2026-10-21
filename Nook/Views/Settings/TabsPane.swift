@@ -4,6 +4,7 @@ struct TabsPane: View {
     @ObservedObject private var plugins = Services.shared.plugins
     @AppStorage(Prefs.disabledTabs) private var disabledTabs = ""
     @State private var selection: String?
+    @State private var reloading = false
 
     var body: some View {
         HSplitView {
@@ -11,7 +12,7 @@ struct TabsPane: View {
                 List(selection: $selection) {
                     ForEach(plugins.orderedTabs) { tab in
                         HStack(spacing: 9) {
-                            SettingsTabIcon(tab: tab)
+                            SettingsTabIcon(tab: tab, revision: plugins.revision)
                             Text(tab.name).lineLimit(1).help(tab.name)
                                 .foregroundStyle(enabled(tab.id).wrappedValue ? .primary : .secondary)
                             Spacer(minLength: 2)
@@ -37,9 +38,14 @@ struct TabsPane: View {
                     HStack {
                         Button("Plugins Folder", systemImage: "folder") { NSWorkspace.shared.open(PluginRegistry.userDir) }
                             .help("Open Plugins Folder")
+                        if reloading { ProgressView().controlSize(.small).accessibilityLabel("Reloading plugins") }
                         Spacer(minLength: 4)
                         Menu {
-                            Button("Reload Plugins") { plugins.reload(); plugins.touch() }
+                            Button("Reload Plugins") {
+                                reloading = true
+                                Task { await plugins.reloadForSettings(); reloading = false }
+                            }
+                            .disabled(reloading)
                             Button("Reset Tab Order") { plugins.resetOrder() }.disabled(plugins.customOrder.isEmpty)
                         } label: { Image(systemName: "ellipsis.circle") }
                         .menuStyle(.borderlessButton).fixedSize()
@@ -54,7 +60,7 @@ struct TabsPane: View {
                 Form {
                     Section {
                         HStack(spacing: 12) {
-                            SettingsTabIcon(tab: tab, size: 28)
+                            SettingsTabIcon(tab: tab, size: 28, revision: plugins.revision)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(tab.name).font(.headline).textSelection(.enabled)
                                 Text(tab.isWeb ? (plugins.isBundled(tab) ? "Built-in plugin" : "Custom plugin") : "Built-in tab")
@@ -108,10 +114,12 @@ struct TabsPane: View {
 private struct SettingsTabIcon: View {
     let tab: TabItem
     var size: CGFloat = 18
+    var revision = 0
+    @State private var image: NSImage?
 
     var body: some View {
         Group {
-            if let icon = tab.icon, let image = NSImage(contentsOf: icon) {
+            if let image {
                 Image(nsImage: image).resizable().scaledToFit()
             } else {
                 Image(systemName: tab.symbol).resizable().scaledToFit().foregroundStyle(.secondary)
@@ -119,5 +127,12 @@ private struct SettingsTabIcon: View {
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
+        .task(id: "\(tab.icon?.path ?? ""):\(revision)") {
+            image = nil
+            guard let url = tab.icon else { return }
+            let loaded = await Task.detached(priority: .utility) { NSImage(contentsOf: url) }.value
+            guard !Task.isCancelled else { return }
+            image = loaded
+        }
     }
 }

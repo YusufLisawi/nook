@@ -9,6 +9,9 @@ struct PluginSettingsForm: View {
     @State private var confirmingRevert = false
     var onDone: (() -> Void)?
     @State private var values: [String: JSONValue]
+    @State private var valuesLoaded = false
+    @State private var working = false
+    @State private var actionError: String?
     @ObservedObject private var plugins = Services.shared.plugins
 
     init(tab: TabItem, compact: Bool = false, grouped: Bool = false, onDone: (() -> Void)? = nil) {
@@ -16,7 +19,7 @@ struct PluginSettingsForm: View {
         self.compact = compact
         self.grouped = grouped
         self.onDone = onDone
-        _values = State(initialValue: PluginSettingsStore.values(for: tab))
+        _values = State(initialValue: [:])
     }
 
     var body: some View {
@@ -24,7 +27,10 @@ struct PluginSettingsForm: View {
             if grouped {
                 Section("Appearance") { heightControl }
                 if !tab.settings.isEmpty {
-                    Section("Plugin Options") { settingControls }
+                    Section("Plugin Options") {
+                        if !valuesLoaded { ProgressView("Loading options…").controlSize(.small) }
+                        settingControls.disabled(!valuesLoaded)
+                    }
                 }
                 if tab.isWeb || !tab.settings.isEmpty {
                     Section {
@@ -44,15 +50,24 @@ struct PluginSettingsForm: View {
                         Text("No additional options. Edit the plugin’s code to customize it.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    settingControls
+                    settingControls.disabled(!valuesLoaded)
                     actions
                 }
                 .font(.system(size: compact ? 12 : 13))
                 .tint(.orange)
             }
         }
+        .task(id: tab.id) {
+            guard !tab.settings.isEmpty else { valuesLoaded = true; return }
+            let snapshot = await Task.detached(priority: .utility) { PluginSettingsStore.values(for: tab) }.value
+            guard !Task.isCancelled else { return }
+            values = snapshot
+            valuesLoaded = true
+        }
         .confirmationDialog("Revert \(tab.name) to the built-in plugin?", isPresented: $confirmingRevert) {
-            Button("Move Custom Copy to Trash", role: .destructive) { plugins.revert(tab) }
+            Button("Move Custom Copy to Trash", role: .destructive) {
+                perform { await SettingsPluginActions.revert(tab) }
+            }
         } message: {
             Text("Your edited plugin folder will move to the Trash. Saved settings will be kept.")
         }
@@ -75,21 +90,36 @@ struct PluginSettingsForm: View {
     }
 
     private var actions: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { codeActions; Spacer(minLength: 0); resetAction; doneAction }
-            VStack(alignment: .leading, spacing: 12) { codeActions; resetAction; doneAction }
+        VStack(alignment: .leading, spacing: 8) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { codeActions; Spacer(minLength: 0); resetAction; doneAction }
+                VStack(alignment: .leading, spacing: 12) { codeActions; resetAction; doneAction }
+            }
+            .disabled(working)
+            if working { ProgressView("Updating plugin…").controlSize(.small) }
+            if let actionError {
+                Text(actionError).font(.caption).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+            }
         }
         .controlSize(compact ? .small : .regular)
     }
 
     @ViewBuilder private var codeActions: some View {
         if tab.isWeb {
-            Button(plugins.isBundled(tab) ? "Edit Code…" : "Show Code") { plugins.customize(tab) }
+            Button(plugins.isBundled(tab) ? "Edit Code…" : "Show Code") {
+                perform { await SettingsPluginActions.customize(tab) }
+            }
                 .help(plugins.isBundled(tab) ? "Copy this plugin into your Plugins folder and reveal it in Finder" : "Open the plugin folder")
             if plugins.overridesBundled(tab) {
                 Button("Revert to Built-in…") { confirmingRevert = true }
             }
         }
+    }
+
+    @MainActor private func perform(_ action: @escaping () async -> String?) {
+        working = true
+        actionError = nil
+        Task { actionError = await action(); working = false }
     }
 
     @ViewBuilder private var resetAction: some View {
@@ -98,6 +128,7 @@ struct PluginSettingsForm: View {
                 PluginSettingsStore.reset(tab)
                 values = PluginSettingsStore.values(for: tab)
             }
+            .disabled(!valuesLoaded)
         }
     }
 

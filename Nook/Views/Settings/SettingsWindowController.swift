@@ -9,7 +9,16 @@ final class SettingsWindowController {
     init(onScreensChanged: @escaping () -> Void) { self.onScreensChanged = onScreensChanged }
 
     func prewarm() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in self?.prepare() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            self?.prepare()
+            Task { @MainActor in
+                async let codex: Void = SettingsSnapshots.codex.refresh()
+                async let tools: Void = SettingsSnapshots.tools.refresh()
+                async let microphones: Void = SettingsSnapshots.microphones.refresh()
+                async let login: Void = SettingsSnapshots.login.refresh()
+                _ = await (codex, tools, microphones, login)
+            }
+        }
     }
 
     func show(pane: String?) {

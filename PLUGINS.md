@@ -154,3 +154,10 @@ it does not grant web plugins new key-tap access or add a JavaScript bridge API.
 
 The sidebar searches pane titles and setting keywords. Settings remembers the selected pane and window frame,
 and `nook://settings/shortcuts` / `nook://settings/about` open the new built-in panes.
+
+Settings pre-warms its window and caches background discovery for Codex, command-line tools, login items, and
+microphones. Status refreshes when returning to Nook; ChatGPT & Codex and Command Line also have **Refresh Status**.
+Plugin reloads, editable-copy creation, and reverting to the Trash run in the background with inline progress/errors.
+Plugin options apply immediately to the running plugin. Settings and command JSON writes coalesce for up to 150 ms
+on a utility queue and flush when Nook quits normally. Use the Settings UI or bridge to edit options; direct edits
+to cached settings/secret files are read on the next app launch.

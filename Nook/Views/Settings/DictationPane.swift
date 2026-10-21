@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 // MARK: Dictation
 
@@ -10,7 +11,8 @@ struct DictationPane: View {
     @AppStorage(DictationService.Keys.engine) private var engine = "chatgpt"
     @AppStorage(DictationService.Keys.micUID) private var micUID = ""
     @AppStorage(DictationService.Keys.keepAudioHours) private var keepAudioHours = 24.0
-    @State private var mics = MicRecorder.microphones()
+    @ObservedObject private var devices = SettingsSnapshots.microphones
+    private var mics: [MicRecorder.Mic] { devices.value ?? [] }
 
     var body: some View {
         Form {
@@ -33,6 +35,9 @@ struct DictationPane: View {
                         Text("Selected microphone (unavailable)").tag(micUID)
                     }
                     ForEach(mics) { Text($0.name).tag($0.id) }
+                }
+                if devices.value == nil {
+                    ProgressView("Finding microphones…").controlSize(.small)
                 }
                 Picker("Transcription", selection: $engine) {
                     Text("ChatGPT (Codex login)").tag("chatgpt")
@@ -63,6 +68,16 @@ struct DictationPane: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { mics = MicRecorder.microphones() }
+        // A device may have changed while this pane was absent and its notification subscription was inactive.
+        .task { await devices.refresh(force: true) }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await devices.refresh(force: true) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasConnectedNotification)) { _ in
+            Task { await devices.refresh(force: true) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.wasDisconnectedNotification)) { _ in
+            Task { await devices.refresh(force: true) }
+        }
     }
 }

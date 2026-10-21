@@ -49,3 +49,14 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
 - **One plugin, every screen:** with "All screens" on, each notch has its own web view of your plugin (state is shared only via `nook.storage`).
 - **Debugging:** `nook logs <id> -f` (console + uncaught errors), or Safari → Develop → [your Mac] → Nook to inspect a plugin's DOM.
 - **Size:** the content area is the hard constraint. Design for 650 × 210 first.
+
+## Native File Search
+
+`nook.files.*` provides live Spotlight filename search, scope/kind filters, ranked results, bounded text previews,
+QuickLookThumbnailing PNG previews, a native Quick Look panel, Finder reveal, open/open-with, and path/file copy.
+Settings → File Search controls the default scope, excluded folders, and hidden files. No helper or extra dependency
+is required. Queries only see indexed, accessible files; Spotlight Privacy exclusions remain in effect. There is no
+fallback filesystem crawl. Broad searches cap candidate enumeration at 20,000, and return `truncated: true`.
+Warm cached candidates return immediately; cold index latency depends on Spotlight and mounted volumes, so a universal
+sub-100 ms guarantee is not possible. Live queries stop on plugin close, replacement, or inactivity expiry.
+See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract and lifecycle.

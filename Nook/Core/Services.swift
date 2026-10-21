@@ -25,6 +25,7 @@ final class Services: ObservableObject {
     @Published var pluginActivity: PluginActivity?
 
     func start() {
+        FileSearchService.shared.register()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

@@ -110,6 +110,52 @@ nook.dictation.toggle()  // start/stop recording
 
 Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`.
 
+## File Search (`nook.files`)
+
+Native Spotlight search with incremental, live results; no shell or filesystem crawl.
+
+```js
+const options = { clientID: 'my-view', requestID: '1', scope: 'home', kind: 'all', limit: 60 };
+const initial = await nook.files.search('report', options);
+nook.on('files', update => {
+  // Keep only your clientID and latest requestID (events go to every screen of this plugin).
+  // Same shape as initial: { clientID, requestID, query, scope, kind, results,
+  //   gathering, truncated, elapsedMs, error? }
+});
+await nook.files.cancel('my-view');             // stop this client's live query on close
+await nook.files.keepAlive('my-view');          // every 30 s while visible → true if live; false means rerun search
+const preview = await nook.files.preview('/absolute/path');
+// → { path, name, kind, size, modified, text?, truncated?, thumbnail?, notice? }
+// thumbnail is a PNG data URL; text reads at most 20 KB; timestamps are Unix seconds.
+await nook.files.open(path);
+await nook.files.reveal(path);                 // select in Finder
+await nook.files.quickLook(path);              // native Quick Look; same file toggles it
+await nook.files.copyPath(path);               // clipboard string
+await nook.files.copyFile(path);               // clipboard file URL, pasteable in Finder
+const apps = await nook.files.openWith(path);  // [{ name, path }] available applications
+await nook.files.openWith(path, apps[0].path);
+```
+
+`scope`: `home`, `Developer` (~/Developer), `Downloads` (~/Downloads), or `all` (all indexed local locations).
+Omit it to follow Settings → File Search. `kind`: `all`, `folder`, `app`, `document`, `image`, `pdf`, or `code`.
+`limit`: 1–100 (default 60). Each result is `{ path, name, kind, category, size, modified, lastUsed }`.
+An empty query shows recently used files. Name ranking is prefix, then word start, then substring, with recent/frequent
+use breaking ties within each tier. Queries debounce for 25 ms and replace the same client's previous query.
+Use a unique `clientID` per web view and a new `requestID` per search; the defaults are `default` and an empty string.
+The first reply may contain cached candidates; subsequent `files` events replace that list.
+`gathering: false` means the current gather is complete; live updates can still follow.
+Broad searches examine up to 20,000 indexed candidates and set `truncated` if more exist.
+
+`filesSettings` fires when native preferences change; rerun active searches. `node_modules`, `.git`, and Library
+caches/logs/developer data are always excluded. Hidden paths and user-excluded folders follow the native Settings pane.
+The Code filter also recognizes common source/config extensions when Spotlight has no source-code type label.
+Spotlight indexing, Privacy exclusions, filesystem permissions, and file availability still apply.
+Previews are cached in memory only; cloud-only iCloud items show a download hint without requesting a download.
+Queries without a heartbeat expire after 120 seconds; the bundled tab restarts expired queries after sleep.
+
+The bundled tab uses ↑↓, Enter, ⌘Enter, Space, ⌘C, ⌘⇧C, and ⌘K. Shift-Space inserts a space into a filename query;
+Tab moves through the scope/kind filters and controls. Space/Esc dismiss native Quick Look.
+
 ## Developer tools
 
 ```bash

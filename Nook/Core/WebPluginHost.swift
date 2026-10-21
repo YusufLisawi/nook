@@ -105,6 +105,7 @@ final class WebPluginHost: NSObject {
             ok()
         case "notch.close": vm?.close(); ok()
         case "notch.pin": vm?.pinned = arg(0) as? Bool ?? false; ok()
+        case "notch.togglePin": vm?.pinned.toggle(); ok()
         case "notch.setHeight":
             if let h = arg(0) as? Double { withAnimation(NotchViewModel.spring) { vm?.heightOverrides[pluginID] = CGFloat(h) } }
             ok()

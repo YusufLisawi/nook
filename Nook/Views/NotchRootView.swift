@@ -14,6 +14,8 @@ struct NotchRootView: View {
             ZStack(alignment: .top) {
                 shape
                     .fill(Color.black)
+                    // Double-click any empty part of the open notch to pin/unpin it.
+                    .onTapGesture(count: 2) { if vm.isOpen { vm.pinned.toggle() } }
                     .shadow(color: .black.opacity(vm.isOpen ? 0.45 : (clickToOpenHover ? 0.35 : 0)), radius: vm.isOpen ? 18 : 8, y: vm.isOpen ? 8 : 3)
                 Group {
                     if vm.showsContent {

@@ -8,6 +8,16 @@
   const items = group => [...group.querySelectorAll('[data-nk-item]')].filter(el => el.closest('.nk-roving') === group && visible(el));
   let lastFocus = null, requested = false;
 
+  // Double-click on empty space (not text, controls, rows or media) pins/unpins the notch, same as the native chrome.
+  const content = controls + ',[data-nk-item],[role="button"],[role="option"],img,video,canvas,svg,pre,code,label,li,td,th,p,h1,h2,h3,h4,summary';
+  document.addEventListener('dblclick', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || target.closest(content)) return;
+    if ([...target.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim())) return;
+    window.getSelection()?.removeAllRanges();
+    window.webkit?.messageHandlers?.nook?.postMessage({ fn: 'notch.togglePin', args: [] });
+  });
+
   function remember(el) {
     const group = el.closest('.nk-roving');
     const item = el.closest('[data-nk-item]');

@@ -38,6 +38,8 @@ final class NotchViewModel: ObservableObject {
 
     let services = Services.shared
     lazy var web = WebPluginHost(vm: self)
+    lazy var keyboard = NotchKeyboardState(vm: self)
+    var keyboardRun: ((NotchKeyboardState.Entry, Bool) -> Void)?
     var onClose: (() -> Void)?
     private var pendingOpen: DispatchWorkItem?
     private var bag = Set<AnyCancellable>()
@@ -121,7 +123,7 @@ final class NotchViewModel: ObservableObject {
     func hoverEnded() {
         pendingOpen?.cancel()
         withAnimation(Self.spring) { isHovering = false }
-        if !pinned { close() }
+        if !pinned && !keyboard.engaged { close() }
     }
 
     func open(tab: String? = nil) {

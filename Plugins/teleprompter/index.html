@@ -38,10 +38,10 @@
             <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Start</span>
           </button>
         </header>
-        <textarea id="script" aria-label="Script" placeholder="What would you like to say?&#10;Paste a script, take a breath, and look at the camera." spellcheck="true" disabled></textarea>
+        <textarea id="script" data-nk-autofocus aria-label="Script" placeholder="What would you like to say?&#10;Paste a script, take a breath, and look at the camera." spellcheck="true" disabled></textarea>
         <footer class="editor-footer">
           <span id="script-summary">Your next great take starts here.</span>
-          <span class="shortcut-hint"><kbd>space</kbd> to begin</span>
+          <span class="shortcut-hint"><kbd>⌘↩</kbd> to begin · ⌘K Actions</span>
         </footer>
       </div>
 
@@ -74,7 +74,7 @@
         <div id="progress" class="progress" role="progressbar" aria-label="Script progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
       </div>
       <div class="play-controls">
-        <button id="stop" class="subtle-button back-button" type="button" title="Back to edit (Esc)"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Edit <kbd>esc</kbd></button>
+        <button id="stop" class="subtle-button back-button" type="button" title="Back to edit"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg>Edit</button>
         <span id="time-left" class="time-left">0:00 left</span>
         <button id="play-pause" class="play-pause" type="button" title="Pause (Space)"><svg class="icon" aria-hidden="true"><use id="play-pause-icon" href="#i-pause"/></svg><span id="play-pause-label">Pause</span></button>
         <div class="speed-stepper" aria-label="Playback speed">
@@ -85,5 +85,6 @@
       </div>
     </section>
   </main>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

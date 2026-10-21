@@ -4,12 +4,14 @@ struct IconButton: View {
     let symbol: String
     var size: CGFloat = 13
     let action: () -> Void
+    let initialTab: String?
     @State private var hovering = false
 
-    init(_ symbol: String, size: CGFloat = 13, action: @escaping () -> Void) {
+    init(_ symbol: String, size: CGFloat = 13, initialTab: String? = nil, action: @escaping () -> Void) {
         self.symbol = symbol
         self.size = size
         self.action = action
+        self.initialTab = initialTab
     }
 
     var body: some View {
@@ -21,6 +23,8 @@ struct IconButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .keyboardFocusRing(initialTab: initialTab)
+        .onKeyPress(.return) { action(); return .handled }
         .onHover { hovering = $0 }
     }
 }

@@ -28,7 +28,7 @@ async function call(fn, ...args) {
     showPermission();
   } catch (err) {
     showError(`Couldn't ${fn.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${err.message || err}`);
-  }
+  } finally { $('loading').hidden = true; }
 }
 
 function showPermission() {
@@ -58,6 +58,12 @@ function slider({ id, value, max, muted, onInput }) {
   const track = document.createElement('div');
   track.className = 'track';
   track.dataset.id = id;
+  track.tabIndex = 0;
+  track.setAttribute('role', 'slider');
+  track.setAttribute('aria-orientation', 'vertical');
+  track.setAttribute('aria-valuemin', '0');
+  track.setAttribute('aria-valuemax', String(max * 100));
+  track.setAttribute('aria-label', 'Volume');
   const fill = document.createElement('div');
   fill.className = 'fill';
   track.append(fill);
@@ -68,6 +74,9 @@ function slider({ id, value, max, muted, onInput }) {
     track.append(tick);
   }
   const paint = (v) => {
+    track.dataset.value = v;
+    track.setAttribute('aria-valuenow', String(Math.round(v * 100)));
+    track.setAttribute('aria-valuetext', muted ? `Muted, ${pct(v)}` : pct(v));
     fill.style.height = `${Math.min(1, v / max) * 100}%`;
     track.classList.toggle('boost', v > 1.001);
     track.classList.toggle('muted', !!muted);
@@ -79,6 +88,14 @@ function slider({ id, value, max, muted, onInput }) {
     if (max > 1 && Math.abs(v - 1) < 0.04) v = 1; // gentle snap to 100%
     return Math.round(Math.max(0, Math.min(max, v)) * 100) / 100;
   };
+  track.addEventListener('keydown', (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const current = Number(track.dataset.value ?? value);
+    const delta = (event.shiftKey ? 0.1 : 0.01) * (['ArrowUp', 'ArrowRight'].includes(event.key) ? 1 : -1);
+    const v = event.key === 'Home' ? 0 : event.key === 'End' ? max : Math.round(Math.max(0, Math.min(max, current + delta)) * 100) / 100;
+    paint(v); onInput(v);
+  });
   track.addEventListener('pointerdown', (e) => {
     dragging = id;
     track.setPointerCapture(e.pointerId);
@@ -114,6 +131,9 @@ function channel({ id, name, head, value, max, muted, playing, onVolume, onMute,
   const el = document.createElement('div');
   el.className = `channel${master ? ' master' : ''}`;
   el.title = name;
+  el.dataset.nkItem = id;
+  el.setAttribute('role', 'group');
+  el.setAttribute('aria-label', name);
   const top = document.createElement('div');
   top.className = 'head';
   top.append(head);
@@ -126,6 +146,7 @@ function channel({ id, name, head, value, max, muted, playing, onVolume, onMute,
   };
   setLabel(value);
   const { track } = slider({ id, value, max, muted, onInput: (v) => { setLabel(v); onVolume(v); } });
+  track.setAttribute('aria-label', `${name} volume`);
   const foot = document.createElement('div');
   foot.className = 'foot';
   foot.append(
@@ -206,6 +227,8 @@ function renderInput(device) {
   $('mics').replaceChildren(...state.input.devices.map((d) => {
     const row = document.createElement('div');
     row.className = 'nk-item mic-row';
+    row.dataset.nkItem = d.uid;
+    row.setAttribute('aria-label', `${d.name}${d.isDefault ? ', selected' : ''}`);
     row.innerHTML = `<svg class="check ${d.isDefault ? '' : 'off'}"><use href="#i-check"/></svg>`;
     const name = Object.assign(document.createElement('span'), { className: 'nk-fill nk-ellipsis', textContent: d.name });
     row.append(name);

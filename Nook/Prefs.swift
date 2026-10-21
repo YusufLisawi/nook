@@ -11,6 +11,7 @@ enum Prefs {
     static let disabledTabs = "disabledTabs"
     static let scratch = "scratch"
     static let swipes = "trackpadSwipes"
+    static let openNookShortcut = "openNookShortcut" // TabHotkey JSON data; empty data = disabled
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [

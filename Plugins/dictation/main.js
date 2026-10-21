@@ -134,6 +134,8 @@
       content.textContent = transcript || 'No transcript was returned.';
       content.dataset.entryId = entry.id;
       content.dataset.action = 'expand';
+      content.dataset.nkItem = entry.id;
+      content.addEventListener('nk:alt', () => { void rowAction(entry.id, 'copy'); });
       content.setAttribute('aria-expanded', String(expanded.has(entry.id)));
       content.setAttribute('aria-label', `${expanded.has(entry.id) ? 'Collapse' : 'Expand'} transcript: ${transcript}`);
       content.addEventListener('click', () => {
@@ -158,6 +160,8 @@
         detail.setAttribute('aria-label', 'Expand or collapse transcription error');
         detail.dataset.entryId = entry.id;
         detail.dataset.action = 'expand';
+        detail.dataset.nkItem = entry.id;
+        detail.addEventListener('nk:alt', () => { void rowAction(entry.id, 'retry'); });
         detail.addEventListener('click', () => {
           if (expanded.has(entry.id)) expanded.delete(entry.id); else expanded.add(entry.id);
           renderHistory();

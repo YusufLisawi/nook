@@ -31,7 +31,9 @@
     <div class="warning-card" id="key-warning" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span>Add a Groq API key in Nook Settings</span></div>
     <div class="error-card" id="error-card" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span id="error-text"></span><button class="icon-button" id="retry-load" aria-label="Refresh dictation" title="Refresh dictation"><svg class="icon" aria-hidden="true"><use href="#icon-retry"/></svg></button></div>
     <div class="clear-confirm" id="clear-confirm" role="alert" hidden><span>Clear all dictation history?</span><button class="small-button" id="cancel-clear">Cancel</button><button class="small-button destructive" id="confirm-clear">Clear all</button></div>
-    <section class="history-list" id="history-list" aria-label="Dictation entries"><div class="empty-state"><span class="spinner" aria-hidden="true"></span><span>Loading your dictations…</span></div></section>
+    <section class="history-list nk-roving" id="history-list" aria-label="Dictation entries"><div class="empty-state"><span class="spinner" aria-hidden="true"></span><span>Loading your dictations…</span></div></section>
+    <footer class="nk-shortcuts">↑↓ History  ↩ Expand  ⌘↩ Copy / Retry  ⌘K Actions</footer>
   </main>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

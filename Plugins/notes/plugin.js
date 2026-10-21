@@ -107,6 +107,8 @@
       button.className = 'note-button';
       button.type = 'button';
       button.dataset.noteId = note.id;
+      button.dataset.nkItem = note.id;
+      button.addEventListener('nk:alt', () => selectNote(note.id));
       button.setAttribute('aria-current', String(note.id === selectedId));
       button.setAttribute('aria-label', `${note.pinned ? 'Pinned, ' : ''}${titleFor(note)}, ${relativeDate(note.updatedAt)}`);
       const heading = document.createElement('span');
@@ -280,7 +282,7 @@
     if (button) selectNote(button.dataset.noteId);
   });
   ui.list.addEventListener('keydown', (event) => {
-    if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+    if (event.defaultPrevented || !['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
     const button = event.target.closest('[data-note-id]');
     if (!button) return;
     const visible = visibleNotes();

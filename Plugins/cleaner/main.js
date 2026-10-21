@@ -96,6 +96,10 @@ function categoryRow(category) {
   const active = enabled(id);
   const row = element('div', `nk-item category${active && record.available ? '' : ' disabled-category'}`);
   row.dataset.category = id;
+  row.dataset.nkItem = id;
+  row.setAttribute('aria-label', `Select ${name}`);
+  row.setAttribute('aria-disabled', String(!active || !record.available || busy === 'cleaning' || busy === 'loading'));
+  row.onclick = (event) => { if (event.target === row) check.click(); };
   const check = element('input', 'category-check');
   check.type = 'checkbox';
   check.id = `select-${id}`;

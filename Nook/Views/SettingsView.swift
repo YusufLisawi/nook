@@ -127,6 +127,7 @@ private struct GeneralPane: View {
     var body: some View {
         Form {
             Section("Notch") {
+                OpenNookShortcutRow()
                 Picker("Open the notch", selection: $openOnHover) {
                     Text("When I hover").tag(true)
                     Text("When I click").tag(false)

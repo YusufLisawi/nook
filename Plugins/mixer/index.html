@@ -20,26 +20,29 @@
       <select id="device" class="nk-input picker" title="Output device"></select>
       <button id="pin" class="nk-icon-btn" title="Keep as default"><svg><use href="#i-pin"/></svg></button>
       <span class="nk-fill"></span>
-      <div class="nk-seg" id="view">
-        <button data-view="output" class="nk-on">Sound</button>
-        <button data-view="input">Mic</button>
+      <div class="nk-seg nk-roving" data-nk-orientation="horizontal" id="view">
+        <button data-view="output" data-nk-item="output" class="nk-on">Sound</button>
+        <button data-view="input" data-nk-item="input">Mic</button>
       </div>
     </header>
 
     <div id="error" class="nk-error" hidden></div>
+    <div id="loading" class="nk-empty" role="status"><span class="nk-spinner"></span><span>Loading audio devices…</span></div>
 
-    <section id="output" class="strip nk-fill"></section>
+    <section id="output" class="strip nk-fill nk-roving" data-nk-orientation="horizontal"></section>
 
     <section id="input" class="nk-col nk-fill" hidden>
       <div class="nk-card nk-tight mic-volume">
         <svg class="mic-icon"><use href="#i-mic"/></svg>
         <span class="nk-small nk-muted">Input volume</span>
-        <input id="micVolume" type="range" min="0" max="100" class="nk-fill">
+        <input id="micVolume" aria-label="Input volume" type="range" min="0" max="100" class="nk-fill">
         <b id="micValue" class="nk-num">—</b>
       </div>
-      <div id="mics" class="nk-list nk-scroll nk-fill"></div>
+      <div id="mics" class="nk-list nk-scroll nk-fill nk-roving"></div>
     </section>
+    <footer class="nk-shortcuts">Tab Controls  ↑↓ Volume  ⇧↑↓ 10%  ⌘K Actions</footer>
   </main>
   <script src="main.js"></script>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

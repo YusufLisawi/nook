@@ -14,12 +14,13 @@
       <button id="setup" class="nk-btn nk-primary">Set up</button>
     </div>
 
-    <section id="deck" class="deck nk-fill"></section>
+    <div id="loading" class="nk-empty" role="status"><span class="nk-spinner"></span><span>Loading commands…</span></div>
+    <section id="deck" class="deck nk-fill nk-roving" data-nk-orientation="horizontal" aria-label="AI Commands"></section>
     <div id="empty" class="nk-empty" hidden><b>No commands yet</b><span>Create them in Settings → AI Commands.</span></div>
     <div id="error" class="nk-error" hidden></div>
 
     <footer class="foot">
-      <span id="hint" class="nk-small nk-muted">Select text in any app, then pick a command.</span>
+      <span id="hint" class="nk-small nk-muted">←→ Choose  ↩ Run  ⌘↩ Edit  ⌘K Actions</span>
       <button id="edit" class="nk-btn nk-ghost">Edit in Settings</button>
     </footer>
 
@@ -38,5 +39,6 @@
     </section>
   </main>
   <script src="main.js"></script>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

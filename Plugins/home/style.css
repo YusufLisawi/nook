@@ -55,3 +55,6 @@ button:active{opacity:.72}
 
 .app.solo{grid-template-columns:minmax(0,1fr)}
 [hidden]{display:none!important}
+
+.item:focus-within .del{opacity:1}
+.todos:has(#error:not([hidden])) .empty{display:none}

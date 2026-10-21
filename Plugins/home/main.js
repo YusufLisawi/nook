@@ -8,10 +8,21 @@
   };
   let todos = [];
   let visible = false;
+  let loaded = false;
+  let loading = true;
+  const errors = new Map();
+
+  function showError(key, error) {
+    if (error) errors.set(key, String(error.message || error)); else errors.delete(key);
+    $('error').hidden = errors.size === 0;
+    $('error-text').textContent = [...errors.values()].join(' ');
+    $('retry').hidden = loaded || loading;
+  }
 
   // ---- To-dos -------------------------------------------------------------
 
-  const save = () => nook.storage.set('todos', todos);
+  const save = () => nook.storage.set('todos', todos).then(() => showError('save', null))
+    .catch(error => showError('save', `Couldn't save to-dos: ${error.message || error}`));
 
   function render() {
     // Open items first (newest on top), done items after.
@@ -19,6 +30,10 @@
     ui.list.replaceChildren(...sorted.map((t) => {
       const li = document.createElement('li');
       li.className = `item${t.done ? ' done' : ''}`;
+      li.dataset.nkItem = t.id;
+      li.setAttribute('aria-label', `${t.text}, ${t.done ? 'done' : 'to do'}`);
+      li.onclick = (event) => { if (event.target === li) li.querySelector('.box').click(); };
+      li.addEventListener('nk:alt', () => li.querySelector('.text').ondblclick());
       li.innerHTML = '<button class="box" type="button"><svg class="icon"><use href="#i-check"/></svg></button><span class="text"></span><button class="del" type="button" title="Delete"><svg class="icon"><use href="#i-x"/></svg></button>';
       const text = li.querySelector('.text');
       text.textContent = t.text;
@@ -27,17 +42,22 @@
       li.querySelector('.del').onclick = () => { todos = todos.filter((x) => x.id !== t.id); save(); render(); };
       // Double-click to edit in place; Enter or blur saves, Escape cancels.
       text.ondblclick = () => {
-        text.contentEditable = 'plaintext-only';
+        text.setAttribute('contenteditable', 'plaintext-only');
+        text.tabIndex = -1;
         text.focus();
         getSelection().selectAllChildren(text);
       };
       text.onkeydown = (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); text.blur(); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          text.blur();
+          [...ui.list.children].find(row => row.dataset.nkItem === t.id)?.focus();
+        }
         if (e.key === 'Escape') { text.textContent = t.text; text.blur(); }
       };
       text.onblur = () => {
-        if (text.contentEditable !== 'plaintext-only') return;
-        text.contentEditable = 'false';
+        if (text.getAttribute('contenteditable') !== 'plaintext-only') return;
+        text.setAttribute('contenteditable', 'false');
         const value = text.textContent.trim();
         if (value && value !== t.text) update(t.id, { text: value });
         else text.textContent = t.text;
@@ -47,6 +67,8 @@
     const open = todos.filter((t) => !t.done).length;
     const done = todos.length - open;
     ui.empty.hidden = sorted.length > 0;
+    ui.empty.textContent = !loaded ? loading ? 'Loading to-dos…' : 'To-dos unavailable. Try loading again.' : settings.emptyText || 'Nothing to do.';
+    ui.input.disabled = !loaded;
     ui.count.textContent = todos.length ? `${open} left` : '';
     ui.clear.hidden = done === 0;
   }
@@ -60,7 +82,7 @@
   ui.add.onsubmit = (e) => {
     e.preventDefault();
     const text = ui.input.value.trim();
-    if (!text) return;
+    if (!text || !loaded) return;
     todos.push({ id: crypto.randomUUID(), text, done: false, created: Date.now() });
     ui.input.value = '';
     save();
@@ -94,15 +116,21 @@
     ui.timerStop.hidden = !running;
   }
 
+  async function timerAction(fn, ...args) {
+    try { showTimer(await nook.timer[fn](...args)); showError('timer', null); }
+    catch (error) { showError('timer', `Couldn't update timer: ${error.message || error}`); }
+  }
+
   document.querySelectorAll('.chips button').forEach((b) => {
-    b.onclick = async () => showTimer(await nook.timer.start(Number(b.dataset.min)));
+    b.onclick = () => timerAction('start', Number(b.dataset.min));
   });
-  ui.timerStop.onclick = async () => showTimer(await nook.timer.stop());
+  ui.timerStop.onclick = () => timerAction('stop');
 
   // Poll only while this tab is on screen.
   async function tick() {
     if (!visible) return;
-    await Promise.all([tickStats(), nook.timer.state().then(showTimer)]).catch(() => {});
+    try { await Promise.all([tickStats(), nook.timer.state().then(showTimer)]); showError('live', null); }
+    catch (error) { showError('live', `Couldn't refresh status: ${error.message || error}`); }
   }
   nook.on('open', (tab) => { visible = tab === nook.plugin.id; tick(); });
   nook.on('show', (tab) => { visible = tab === nook.plugin.id; tick(); });
@@ -125,19 +153,31 @@
     chips.replaceChildren(...(minutes.length ? minutes : [15, 30, 60]).map((m) => {
       const b = document.createElement('button');
       b.type = 'button';
+      b.dataset.nkItem = String(m);
       b.textContent = m % 60 === 0 ? `${m / 60}h` : `${m}m`;
-      b.onclick = async () => showTimer(await nook.timer.start(m));
+      b.onclick = () => timerAction('start', m);
       return b;
     }));
     render();
   }
   nook.on('settings', applySettings);
-  nook.settings.get().then(applySettings).catch(() => applySettings());
+  nook.settings.get().then(applySettings).catch(error => { applySettings(); showError('settings', error); });
 
-  nook.storage.get('todos').then((saved) => {
-    todos = Array.isArray(saved) ? saved : [];
+  async function loadTodos() {
+    loading = true;
     render();
-  });
+    try {
+      const saved = await nook.storage.get('todos');
+      todos = Array.isArray(saved) ? saved : [];
+      loaded = true;
+      showError('load', null);
+    } catch (error) { showError('load', `Couldn't load to-dos: ${error.message || error}`); }
+    loading = false;
+    $('retry').hidden = loaded;
+    render();
+  }
+  $('retry').onclick = loadTodos;
+  void loadTodos();
   visible = true;
   tick();
 })();

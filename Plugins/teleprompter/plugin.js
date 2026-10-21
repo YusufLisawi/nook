@@ -366,7 +366,13 @@
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.defaultPrevented || event.isComposing) return;
+    if (event.metaKey && event.key === 'Enter' && !event.ctrlKey && !event.altKey) {
+      event.preventDefault();
+      if (!event.repeat) togglePlayback();
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === 'Escape' && (mode === 'play' || busy)) {
       event.preventDefault();
       void stopPlayback();

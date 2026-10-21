@@ -14,6 +14,8 @@ function render() {
   $('empty').hidden = visible.length > 0;
   $('deck').replaceChildren(...visible.map((c) => {
     const pill = document.createElement('button');
+    pill.dataset.nkItem = c.id;
+    pill.addEventListener('nk:alt', () => $('edit').click());
     pill.className = 'pill' + (c.id === runningId ? ' running' : '');
     pill.title = c.output === 'notch' ? 'Shows the answer here' : c.output === 'copy' ? 'Copies the answer' : 'Replaces your selection';
     if (c.id === runningId) pill.append(Object.assign(document.createElement('span'), { className: 'dot' }));
@@ -61,8 +63,8 @@ $('r-copy').onclick = async () => {
 };
 $('r-retry').onclick = () => { if (shownRun) run(shownRun.commandId); };
 $('r-close').onclick = () => { $('result').hidden = true; shownRun = null; };
-$('edit').onclick = () => nook.open('nook://settings/commands');
-$('setup').onclick = () => nook.open('nook://settings/ai');
+$('edit').onclick = () => nook.open('nook://settings/commands').catch(err => showError(err.message || String(err)));
+$('setup').onclick = () => nook.open('nook://settings/ai').catch(err => showError(err.message || String(err)));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('result').hidden) { e.stopPropagation(); $('r-close').click(); } });
 
 async function load() {
@@ -76,7 +78,7 @@ async function load() {
     if (last && (last.status === 'running' || (last.output === 'notch' && Date.now() - Number(last.runId) < 120000))) showRun(last);
   } catch (err) {
     showError(err.message || String(err));
-  }
+  } finally { $('loading').hidden = true; }
 }
 nook.on('show', (tab) => { if (tab === nook.plugin.id) load(); });
 load();

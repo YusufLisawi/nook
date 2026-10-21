@@ -29,7 +29,7 @@
       <div class="header-actions"><button class="button disconnect" id="disconnect" hidden>Disconnect</button><button class="icon-button" id="refresh" aria-label="Refresh connection and public IP" title="Refresh connection and public IP"><svg class="icon" aria-hidden="true"><use href="#icon-refresh"/></svg></button></div>
     </header>
     <div class="message" id="message" role="status" hidden><svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg><span id="message-text"></span><button class="icon-button" id="dismiss-message" aria-label="Dismiss message"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
-    <section class="proxy-list" id="proxy-list" aria-label="Saved proxies"><div class="empty-state"><span class="spinner" aria-hidden="true"></span><span>Loading saved proxies…</span></div></section>
+    <section class="proxy-list nk-roving" id="proxy-list" aria-label="Saved proxies"><div class="empty-state"><span class="spinner" aria-hidden="true"></span><span>Loading saved proxies…</span></div></section>
     <section class="add-panel">
       <div class="add-heading"><button class="add-toggle" id="add-toggle" aria-expanded="false" aria-controls="add-form"><svg class="icon chevron" aria-hidden="true"><use href="#icon-chevron"/></svg>Add proxies</button><span id="add-result" role="status"></span></div>
       <form id="add-form" hidden>
@@ -37,7 +37,8 @@
         <button class="button add-button" id="add-button" type="submit"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>Add</span></button>
       </form>
     </section>
-    <footer>Applies to apps that use the macOS system proxy.</footer>
+    <footer>↑↓ Choose  ↩ Connect  ⌘↩ Rename  ⌘K Actions</footer>
   </main>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

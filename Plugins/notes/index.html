@@ -31,18 +31,18 @@
       <aside class="sidebar" aria-label="Your notes">
         <div class="search-field">
           <svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>
-          <input id="search" type="search" placeholder="Search notes" aria-label="Search notes" autocomplete="off" spellcheck="false" disabled>
+          <input id="search" data-nk-autofocus type="search" placeholder="Search notes" aria-label="Search notes" autocomplete="off" spellcheck="false" disabled>
           <button id="clear-search" class="clear-search" type="button" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
         </div>
 
         <div class="list-wrap">
-          <ul id="note-list" class="note-list" aria-label="Notes"></ul>
+          <ul id="note-list" class="note-list nk-roving" aria-label="Notes"></ul>
           <div id="list-empty" class="list-empty"><span id="list-empty-title">Loading notes…</span><span id="list-empty-hint">A moment for your thoughts.</span></div>
         </div>
 
         <div class="sidebar-footer">
           <button id="new-note" class="new-note" type="button" title="New note (⌘N)" disabled><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg><span>New note</span></button>
-          <span id="note-count" class="note-count">⌘N</span>
+          <span class="nk-shortcuts">⌘K Actions</span><span id="note-count" class="note-count">⌘N</span>
         </div>
       </aside>
 
@@ -72,5 +72,6 @@
     </div>
   </main>
   <script src="plugin.js"></script>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

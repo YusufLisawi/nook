@@ -172,6 +172,7 @@ struct ExpandedView: View {
                     .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(white: 0.09)))
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
+                KeyboardPalette(vm: vm)
             }
             .frame(maxWidth: .infinity)
             .frame(height: vm.contentHeight, alignment: .topLeading)
@@ -182,6 +183,7 @@ struct ExpandedView: View {
         .padding(.horizontal, 14)
         .padding(.bottom, 10)
         .foregroundStyle(.white)
+        .environment(\.nookKeyboardOwner, vm.web.keyboardID)
     }
 
     @ViewBuilder private var content: some View {
@@ -209,14 +211,18 @@ struct TabDock: View {
         HStack(spacing: 4) {
             ForEach(vm.enabledTabs) { tab in
                 let selected = vm.tab == tab.id
-                Image(systemName: tab.symbol)
+                Button { vm.select(tab.id) } label: { Image(systemName: tab.symbol)
                     .font(.system(size: 13, weight: .semibold))
                     .frame(width: 34, height: 26)
                     .background(Capsule().fill(Color.white.opacity(selected ? 0.16 : 0)))
                     .foregroundStyle(selected ? .white : .secondary)
                     .opacity(dragging == tab.id ? 0.35 : 1)
                     .contentShape(Capsule())
-                    .onTapGesture { vm.select(tab.id) }
+                }
+                    .buttonStyle(.plain)
+                    .keyboardFocusRing()
+                    .onKeyPress(.return) { vm.select(tab.id); return .handled }
+                    .accessibilityLabel(tab.name)
                     .onDrag {
                         dragging = tab.id
                         return NSItemProvider(object: tab.id as NSString)

@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.6.0</title>
+  <pubDate>Wed, 21 Oct 2026 16:00:20 GMT</pubDate>
+  <sparkle:version>16</sparkle:version>
+  <sparkle:shortVersionString>1.6.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Launcher (⌃⌥Space): Raycast-style search in the notch — apps, AI commands, plugins, actions, Ask AI. ↩ open · ⌘K actions · Tab Quick AI</li><li>nook://launcher/&lt;text&gt; opens it pre-filled</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.6.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="Xymu88AdQjOjSaqkxzHcDN6i3iEHDpaN9YYkwK9Cpjt+2Mu9LFNSPHT3xcH/AqqeeXN+qnkVJKAAT9oakO/BDg==" length="10516725"/>
+</item>
+<item>
   <title>Nook 1.5.3</title>
   <pubDate>Wed, 21 Oct 2026 15:20:31 GMT</pubDate>
   <sparkle:version>15</sparkle:version>

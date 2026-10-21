@@ -251,12 +251,23 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         resize()
     }
 
+    private var pendingHeight: CGFloat?
+
+    /// Coalesced and applied on the next run-loop turn: setting the height re-enters `resize()` through SwiftUI updates,
+    /// and a nested animated change inside the first one left the black shape stuck at the old (taller) size.
     func resize() {
-        guard let vm else { return }
+        guard vm != nil else { return }
         let height: CGFloat = chatQuery == nil ? 62 + 24 + CGFloat(max(1, min(8, results.count))) * 44 + 42 + (error == nil ? 0 : 26) : 470
-        guard vm.launcherHeight != height else { return }
-        vm.holdRect = vm.liveRect.union(vm.holdRect ?? .null)
-        withAnimation(NotchViewModel.spring) { vm.launcherHeight = height }
+        let scheduled = pendingHeight != nil
+        pendingHeight = height
+        guard !scheduled else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let vm = self.vm, let target = self.pendingHeight else { return }
+            self.pendingHeight = nil
+            guard vm.launcherHeight != target else { return }
+            vm.holdRect = vm.liveRect.union(vm.holdRect ?? .null)
+            withAnimation(NotchViewModel.spring) { vm.launcherHeight = target }
+        }
     }
 
     func move(_ delta: Int) {

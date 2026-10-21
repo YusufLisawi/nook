@@ -1,0 +1,11 @@
+{
+  "description": "Private clipboard, screenshot and recording history with local OCR. Disabled until enabled.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": false,
+  "tags": [
+    "clips",
+    "native"
+  ],
+  "screenshots": []
+}

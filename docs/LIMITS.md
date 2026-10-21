@@ -13,7 +13,7 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | Remember things | `nook.storage` (per-plugin JSON, survives restarts) |
 | Read the machine | `nook.system()` — CPU, memory, disk, network, battery, thermal |
 | Clipboard, open URLs/files, notifications | `nook.clipboard.*`, `nook.open`, `nook.notify` |
-| Clipboard history and searchable screenshots/recordings | `nook.clips.*`: native capture, local OCR, Quick Look thumbnails, copy/paste, pin, open/reveal, Trash; Settings → Clipboard |
+| Clipboard history and searchable screenshots/recordings | Store `clips` helper: capture, local OCR, thumbnails, copy/paste, pins and Trash; plugin Settings |
 | Show status on the closed notch | `nook.activity.set/clear` |
 | Control the notch | `nook.notch.close/pin/setHeight` |
 | Take dropped files/folders | `nook.on('drop', …)` gives real paths |
@@ -66,116 +66,40 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
   may continue work. Quitting interrupts active chats; saved Codex sessions can be resumed after reopening.
 
 
-## Window management limits
+## Store File Search, Clips and Windows
 
-Window actions require Accessibility and an app that exposes a movable/resizable focused AX window. Layouts use each
-display's `visibleFrame`, leaving the menu bar and Dock available. App minimum sizes and fixed-size windows can prevent
-a layout; Nook reports the constraint and retains a Restore frame. Stage Manager's recent-app strip is not separately
-reserved. Maximize is a frame resize, not native full screen. Restore is in-memory geometry history, not Space history.
+These features ship as separate, default-off v2 Store plugins, not app services. Install from Settings → Plugin Store,
+then enable/approve. Off/uninstalled means no feature helper, timer, watcher, index, answer table or feature hotkey.
+The generic panel, permission UI, helper supervisor and native search renderer remain host infrastructure.
 
-Desktop moves use a title-bar drag plus the configured macOS Mission Control shortcut, with Space membership verified
-afterward. This works without changing SIP and follows the window to the adjacent desktop; it does not create desktops
-or wrap. Leave full screen/Split View, disable an app's All Desktops assignment, and release shortcut keys before moving.
-Custom title bars, a disabled Mission Control shortcut, third-party shortcut interception, user pointer movement, or macOS
-animation/behavior changes can prevent a move. When Nook cannot safely identify a title bar or confirm the result, it
-reports an error and releases the drag; check Mission Control if the desktop changed but the window did not.
+**File Search** owns the packed C matcher, FSEvents, cache/frecency, Spotlight, previews and Quick Look. Startup never
+requests protected-folder access: Desktop/Documents/Downloads, media/cloud/Library and network/removable roots are
+gated before traversal. Choose protected roots in Permissions & Trust; OS TCC may still need approval for the helper.
+Spotlight uses symbolic home scope and can return only metadata macOS permits (20,000-candidate fallback limit).
+Own-index search has no candidate cap. Symlink roots are refused; descendant links are references, never traversed.
+Automatic previews remain bounded (20 KB text). Explicit Open/Quick Look may trigger OS access/download behavior.
+Index-cache migration copies old data but changed scope/cache fingerprints require a first rebuild.
 
-Read-only SkyLight/AX symbols identify Spaces and window membership. They are resolved at runtime and can disappear
-in a future macOS release, in which case desktop moves fall back to an explanatory error and manual Mission Control.
-Nook does not use private Space mutation APIs, SIP exemptions, code injection, or helpers. Hands-on macOS 26 testing
-remains necessary for each app's title bar. Other applications' global shortcuts cannot be enumerated; Settings blocks
-conflicts within Nook and known/enabled macOS keyboard shortcuts. ⌃⌥ plus a key cancels the default dictation hold.
+**Clips** owns private clipboard copies, privacy markers/ignored apps, 2-second polling, 30-day/500-unpinned defaults,
+screenshot/recording indexing and local Vision OCR. Pins survive retention/capacity. Changes replaced within a polling
+interval can be missed. Concealed/transient/generated items, text over 1 MiB and images over 32 MiB/40 MP are skipped.
+The pre-start clipboard is never captured. UI history uses pages under 1 MiB, snippets up to 16,000 characters/32 paths;
+full native Copy/Paste and saved history retain originals. Screenshots stay in place and require an approved folder.
+This feature does not capture the screen: reading existing recordings needs folder access, not a new screen-capture API.
+Accessibility is required to paste, with original-app focus checked. File-reference/capture deletion trashes originals;
+Clear/retention only trash owned images. Migration copies images/history and rewrites only the private image paths.
 
-
-### Clipboard and screen-capture history
-
-The bundled **Clips** tab uses native services through `nook.clips` (see `PLUGINS.md`). Clipboard capture polls
-every 750 ms while Nook runs. It skips concealed, transient, and autogenerated pasteboard markers, ignored
-frontmost applications (1Password, Bitwarden, Keychain Access by default), and Nook's temporary AI clipboard use.
-Rich text becomes plain text; PNG/TIFF images get private PNG copies in `Clips/Images`. Defaults are 30 days and
-500 unpinned items; pins survive both limits. Age pruning runs at least once a minute while Nook runs.
-Text over 1 MiB and image representations over 32 MiB / 40 megapixels are skipped. Changes faster than the polling
-interval may be missed. The pre-launch clipboard is deliberately not captured.
-
-Screenshots/recordings are indexed in the macOS screenshot location (normally `~/Desktop`), or the Settings override.
-Only this folder's immediate regular image/movie files are scanned: names matching common screenshot/recording
-patterns or Spotlight's `kMDItemIsScreenCapture`. Renamed files need Spotlight metadata; unsupported localized names
-without that attribute may be missed. The directory is watched with a short settle delay and rescanned every 30 seconds.
-The newest 2,000 unpinned captures plus pins are indexed; files are never removed by this limit. Folder access may need
-Files & Folders permission. Quick Look creates bounded in-memory thumbnails; Vision recognizes screenshot text locally
-one image at a time and caches results, including empty/unsupported results until the file changes. Recordings have
-thumbnails and filename search, without video OCR. Turning OCR off stops new work; cached text stays searchable.
-
-`copy` preserves images as image data. `paste` closes the notches, activates the last external app, and sends ⌘V only
-after verifying that app still has focus; Accessibility permission is required. Quick Look and interactive paste still
-need manual verification on a running app. `delete` moves associated files (including original file references) to Trash.
-Clear/retention only remove clipboard entries and Nook's image copies. Screenshot originals and referenced files stay
-in place during clear/retention. Clipboard text and OCR caches are stored locally with user-only file permissions;
-they are not encrypted separately from the user's account.
-
-- **Store:** the public GitHub catalog is cached for offline browsing; installing/updating requires GitHub and is subject to its public API rate limits. An unpublished repository is shown as an empty Store. Packages are pinned to Git tree hashes and limited to 200 regular non-executable files, 5 MB each, 20 MB total. Updates refuse local edits; replaced/uninstalled copies go to Trash while saved data remains. `nook publish <path>` previews a validated contribution and requires `--yes` before using authenticated `gh` to fork, branch, upload, and open a PR. Store validation is a packaging/UI check, not a security review.
-
-
-## Native File Search
-
-Files uses a native SwiftUI tab and its own packed, in-memory name index, shared with `nook.files.*` and the
-launcher (`file:` / `f ` prefixes). It searches names, not file contents. Newest added/modified files appear
-in Recent even if never opened; name-match tiers dominate recency/frecency on nonempty queries. Date Added
-uses the filesystem's added-to-directory date, falling back to creation; filesystems/providers may omit it.
-
-Home is indexed by default, excluding Library, hidden files, dependencies/caches/builds and common app/package
-contents. Native Settings configures additional folders, exclusions and inclusion switches. Common package and
-kind recognition uses extension heuristics; custom package extensions can be explicitly excluded. Root and
-descendant symlinks are never followed; paths are normalized lexically without filesystem probes.
-
-Permission requests are opt-in. Without Full Disk Access, startup excludes Desktop/Documents/Downloads,
-Pictures/Movies/Music, Library (including iCloud Drive/Mobile Documents/CloudStorage), and removable/network
-mounts before stat/open. Include Library and additional roots cannot bypass this gate. The native Files row
-(⇧⌘A) and Settings → File Search explicitly request Desktop/Documents/Downloads, remembering only successful
-directory reads. A denied request is not retried at startup. Forget Folder Access removes Nook's remembered
-choice, not the macOS TCC grant. Previously successful grants are reused; there is no public silent per-folder
-preflight, so if TCC is reset separately, forget Nook's choice before the next launch. Full Disk Access is tested
-by opening (without reading) the TCC database, which silently denies access when unavailable. All detection,
-root validation, scanning and persistence run off main; the UI and query queue do not wait for a disk walk.
-Pictures/media, cloud data, Library and removable/network roots require Full Disk Access. Mount-table exclusions
-and a C scanner device boundary prevent walking onto mounted volumes beneath the home folder.
-
-Spotlight uses only NSMetadataQueryUserHomeScope; explicit Desktop/Documents/Downloads scopes caused TCC
-prompts in an independent, non-FDA standalone probe on this Mac and are not used. The symbolic home query
-completed without a folder prompt, but macOS withheld protected-folder rows in that probe. Results macOS does
-expose are merged into Recent and queries with the same ranking, including in the launcher. Withheld results
-require Allow access; this cannot be bypassed safely. Spotlight Privacy does not exclude names from the own
-index: use File Search's exclusions. Automatic previews never open a gated path; explicit Open/Quick Look may
-request access in response to that action. Cloud previews still require availability; no bulk downloads occur.
-The Clips screenshot watcher shares the access gate, so it cannot request Desktop access at startup either.
-
-The private binary catalog under `~/Library/Caches/com.yusuf.nook/FileIndex` stores names/paths, sizes, dates,
-Nook-opened counts/dates and an FSEvents watermark, without contents or query history. It loads at launch and
-replays events missed while quit. Changed scope/journal identity, corrupt cache, root changes or lost FSEvents
-history cause a background rebuild. Updates normally settle within FSEvents' 150 ms batch interval plus disk
-work. Large directory moves, rebuilds and cache compaction can take longer; merging a very large subtree briefly
-shares the search lock. Checkpoints are throttled to five seconds, with a normal-quit flush. Force quitting loses
-at most uncheckpointed Nook-opened history; filesystem changes replay from the older watermark.
-
-The own index searches all candidates and returns up to 100 rows. A character mask, C/NEON matching, bounded
-ranking heap and complete-candidate incremental narrowing avoid Spotlight latency. Benchmarks cover this Mac's
-home folder and one million synthetic names (see docs/reports/files2.md); they measure the engine, not rendered-frame
-latency. Larger catalogs/complex OR queries, busy disks, network volumes or permission prompts can exceed one
-frame. Paths are bounded to 4,095 bytes and traversal to 256 levels; the string table uses 32-bit offsets.
-During builds and for gated folders, Spotlight provides partial candidates capped at 20,000; filters are applied
-with the same query compiler. Coverage depends on Spotlight Privacy, importer metadata and macOS access.
-
-Native actions include bounded text/Quick Look thumbnail previews, Quick Look panel, open/reveal, path/name
-copy, file drag-out and explicitly confirmed Move to Trash. `nook.files.trash(path, {confirm:true})` requires
-caller confirmation and uses `FileManager.trashItem`; configured roots cannot be trashed. The plugin bridge
-retains open-with and file-URL copy. The native Files tab can still be overridden by a user web plugin.
-See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for syntax, lifecycle, settings and keyboard controls.
-
-- **Keyboard:** the global Open Nook shortcut uses the existing Accessibility event tap. Plugins' action
-  shortcuts only work inside their selected tab. macOS symbolic shortcuts are checked for the default;
-  private shortcuts in other apps cannot be discovered. Actions appear once a plugin has loaded on that
-  display; disabled tabs are excluded. ⌘Enter sends the optional `actionAlternate` event.
-
+**Windows** owns all AX layouts, display moves, frame history and Space policy. Accessibility and a movable normal
+window are required; app minimum sizes, full screen/Split View and Stage Manager can constrain geometry. The host
+captures only an opaque window/process identity before opening; a helper refuses a missing/changed target. Captures
+are per notch, including separate pinned displays. Restore is bounded in-memory frame history, not Space history.
+Desktop moves use a checked title-bar drag plus the configured Mission Control shortcut; private read-only symbols
+identify membership. They require no SIP changes or private mutation API, do not create/wrap desktops, and can fail
+for custom title bars, disabled/intercepted shortcuts, All Desktops assignment, user pointer movement or OS changes.
+Graceful stop releases a held drag synchronously. SIGKILL/crash cannot run cleanup; verify pointer/window state after a
+forced termination. Helpers are universal/ad-hoc signed here; signed clean-profile TCC and live display/desktop tests
+remain necessary. Global hotkey conflicts are checked against Nook and known macOS shortcuts; other apps cannot all
+be enumerated.
 
 ## Native Settings
 
@@ -231,37 +155,16 @@ estimate covers the standard `~/Library/Caches/Homebrew` root, not a custom `HOM
 - All native shortcut assignments share conflict detection, including Open Nook, Window Management, groups, and
   read-only navigation reservations. This does not enumerate private shortcuts in other applications.
 
-## Native Launcher
+## Native search mode
 
-- The launcher is a SwiftUI mode of the existing notch panel (720 pt content width; up to eight visible rows).
-  It shares the notch shape/spring, CaptureShield, keyboard key-panel behavior and held hit rectangle. It does not
-  add a dock tab or a separate launcher window. Selection is a soft rounded white tint; search has no border or ring.
-- Apps are discovered on a utility queue from `/Applications`, `/System/Applications`,
-  `/System/Applications/Utilities`, `~/Applications`, running apps and Spotlight's application-bundle index.
-  FSEvents and live Spotlight updates refresh discovery. Spotlight Privacy, unmounted volumes and unreadable folders
-  can limit discovery; standard folders still work without Spotlight. Application metadata and 64 px PNG icons are
-  cached in `~/Library/Caches/com.yusuf.nook/Launcher`; icons are loaded lazily off the UI thread.
-- Launch counts/last-used dates are bounded to 500 entries and saved in Nook preferences. Queries, selected text,
-  and Quick AI answers are not included in recents. Clearing recents removes this history. Cold indexing and AX
-  responsiveness depend on macOS/other applications; the <50 ms first-frame target still requires an interactive
-  measurement on the lead's running build. Prepared filtering of 500 apps is covered by a <5 ms performance test.
-- The global shortcut needs the existing Accessibility permission. Defaults check enabled macOS shortcuts and
-  Nook's registered/tab/group/AI/dictation assignments before trying ⌥Space then ⌃⌥Space. If both
-  are occupied it starts unassigned; record an available shortcut in Settings. Private shortcuts belonging to
-  Raycast or other apps cannot be enumerated. Settings can change or disable the assignment.
-- AI Commands snapshot accessible selected text before focus changes; unselected native text inputs snapshot their
-  contents and restore their selection when executed. Providers that do not expose AX selection use the existing
-  clipboard fallback after restoring the captured app. An app that has quit cannot receive output. Remote AX
-  providers may time out; nonstandard editors may need an explicit selection. Clipboard fallback and replacement
-  still require Accessibility and a usable original input. Existing command output modes/providers remain intact.
-- Plugin actions appear after their plugin has loaded on that display; disabled tabs' actions are excluded.
-  ⌘Return opens the action's plugin without emitting an action. The first saved agent is the Quick AI default;
-  the bundled Agents tab must be enabled and finish loading. Agent failures remain inline. Native Quick AI fallback
-  requires the existing ChatGPT/Codex login and model access, and is an ephemeral chat rather than saved agent history.
-- Empty Trash (Finder), Sleep and Quit require a second explicit activation; Escape cancels. Finder emptying applies
-  to all mounted volumes and may need Automation permission. Dark Mode uses System Events and may also need
-  Automation permission. Lock Screen sends macOS's ⌃⌘Q shortcut through the existing Accessibility capability.
-  These system operations are never part of indexing or automated tests. Quit follows Nook's normal shutdown path.
+The core keeps a value-only SwiftUI search surface for notch geometry, keyboard/text focus and asynchronous results.
+The default-off Store `launcher` helper owns application discovery/cache, ranking/history, commands, Quick AI and all
+answer providers. `file-search` contributes from its own single index. Core does no app/file discovery or answer math.
+New generic `searchProviders` require `launcher` permission; query work is coalesced per provider/display, replies are
+bounded and stale generations are ignored. Prefix `answerProviders` continue to use the bounded async cache.
+Local answers remain local except cached exchange-rate fetching; Quick AI explicitly uses the host AI transport and
+user credentials. First-enable history/settings/cache migration leaves old defaults/files intact. The current native
+renderer uses SF Symbols for generic items rather than loading application icons, and fixed search-mode height.
 
 ## Mouse controls
 
@@ -285,42 +188,14 @@ waits for attachment and early typing is replayed after focus is ready; closing 
 The launcher's header crossfade/spring and instant resizing while typing are retained. Visual ghosting, actual first-key
 focus, and permission toggles require a manual check in a single running Nook instance; automated tests never launch it.
 
-## Native launcher smart answers
+## Store launcher smart answers
 
-- Smart answers run locally without AI. They never replace normal search results. The native card, actions and height
-  changes are shared by every provider; adding a file that subclasses `LauncherAnswerModule` and conforms to
-  `LauncherAnswerProvider` installs a new provider after rebuilding. Web plugins do not inject native answer providers.
-- Answer queries are bounded to 512 UTF-8 bytes. Every provider runs off the main thread on a serial queue with a 2 ms
-  result deadline; late answers are ignored and busy providers cannot accumulate work. Swift cannot forcibly stop a
-  provider function: a slow implementation can finish in its own queue, while later searches skip it. OS scheduling is
-  not a real-time guarantee. Providers must use bounded computation/caches; shipped warmed p95 timings are tested below 2 ms.
-- Math is a hand-written, finite-result, depth/token-bounded parser, never NSExpression/eval. Unary functions require
-  parentheses, trig uses radians, `log` is base 10, and `ln` is natural log. `%` is percentage (not remainder): `150 + 20%`
-  adds 20% of 150. Power is right-associative and binds before unary minus. Bare numbers and unknown names are not answers.
-  Both decimal separators work; a single comma means a decimal mark, while mixed marks use the final mark as decimal.
-  Floating-point rounding and a 13-significant-digit copy limit apply; this is not arbitrary-precision arithmetic.
-- Unit conversions cover length, mass, volume, temperature, speed, area, bytes/bits, durations, energy, pressure and angle.
-  Cups/spoons/gallons/pints/fluid ounces are US measures unless explicitly `imperial gallon`. KB/MB/GB are decimal;
-  KiB/MiB/GiB are binary. Below-absolute-zero temperatures and incompatible dimensions are rejected. Implicit conversions
-  prefer the locale's measurement system, using the counterpart when already in that system. Months/years are not fixed
-  duration units. Currency symbols/aliases take precedence over ambiguous bare unit names such as `pounds`.
-- Currency is the only network-backed answer. The fixed, no-key ExchangeRate-API USD feed supplies cross rates, refreshed
-  at most hourly (daily source updates); failures are throttled too. Only rate/cache timestamps persist alongside the
-  rates in the disposable Launcher cache. No amounts/queries are transmitted or saved. Offline use keeps the last good
-  rates with an age/Offline note. First use without cached rates shows unavailable/loading instead of invented values.
-  Copying is disabled in those states. The source attribution link is in currency actions. Rates are indicative.
-- City names and IANA identifiers use macOS time-zone data; bundled country aliases use capitals/mainland zones (Spain =
-  Madrid, US = New York, Australia = Sydney). Specify a city/IANA ID for another region. Zone conversions use today's date
-  in the source zone; nonexistent DST times are rejected, repeated times use the first occurrence. Relative days/weeks
-  use calendar days in the destination zone; hours/minutes/seconds use elapsed time. Time output is 24-hour; Unix means
-  seconds. Date differences count Gregorian calendar days in the local zone; Christmas means the next December 25.
-- Colors accept opaque #RGB/#RRGGBB, integer RGB and HSL. Base conversion supports signed magnitudes up to UInt64.max,
-  with 0x/0b/0o prefixes; no fractional bases or two's-complement inference. Percentage change uses the absolute starting
-  value as denominator and rejects a zero start. Unsupported/invalid expressions simply leave regular results visible.
-- Return copies and restores the original app; Command Return checks Accessibility and the captured application's identity
-  before sending Command V. It leaves the result on the clipboard. If the app quits or loses focus, no paste is sent.
-  Real focus/paste, screen-reader behavior, multi-display layout and notch resizing still need manual review in a single
-  running Nook instance; automated tests use inert output and offscreen rendering, never launch Nook or type into apps.
+All seven providers (math, units, currency, time/place names, color, base, percentage), provider discovery and place
+data live in `store/plugins/launcher`. Adding an answer still means adding one provider file. The 2 ms cooperative
+provider budget, input limits, cancellation, cached/offline currency behavior and local time-zone rules remain.
+Queries are not stored in history or sent for exchange-rate fetching; Quick AI is a separate explicit action.
+Native helper code is unsandboxed: host capability gates are not process confinement. TCC can be attributed to Nook,
+the helper or launch ancestry depending on signing/macOS; approve the responsible identity in System Settings.
 
 ## Plugin engine v2 (phase 1)
 
@@ -380,14 +255,13 @@ timeouts stop the process group, and disabling/revoking cancels them. In-flight 
 - Settings → Features owns optional native lifetimes. The same switch state is reflected in Tabs & Plugins. Disabled
   owners leave the dock, launcher/palette, native Settings panes/rows and shortcut routing, while saved data and shortcut
   assignments remain on disk. The notch and its basic pointer/navigation infrastructure remain available.
-- Launcher, smart answers, launcher file source, File Search, clipboard history, screenshot/recording history, window
-  management and Mouse default off. A one-time migration (`features.raycastMigration.v1`) applies those choices before
-  any service starts on the next launch. Existing choices for other tabs are respected. No installer/build/test writes
-  the running user's preferences. The Features pane re-enables them explicitly.
+- File Search, Clips, Windows and Launcher are optional Store plugins (`default:false`) and their first discovered
+  enable state is off. Mouse also remains disabled until enabled. Install through Plugin Store; explicitly enable
+  through Features/Tabs & Plugins. Existing settings/history migrate on helper first run, not at app startup.
 - Disabling File Search cancels Spotlight clients, removes FSEvents/access/local-key observers, cancels scans between
   filesystem operations, destroys C storage/query cursors, and drops previews. Launcher releases its app index, icons,
   query/watchers and state. Smart-answer location tables are provider-owned and can be released. Enabling Launcher File
-  Source requires both Launcher and File Search; enabling Smart Answers requires Launcher.
+  Source is an independent contribution of the enabled File Search helper; Smart Answers is a Launcher plugin option.
 - Clipboard and screenshot lifetimes are independent. Off stops clipboard polling, closes the capture-folder descriptor,
   cancels Vision/thumbnail requests and drops in-memory history/OCR data. Saved history and originals remain in place.
   Dictation off cancels recording/transcription, preserves interrupted history for Retry, and drops its in-memory data.
@@ -396,7 +270,8 @@ timeouts stop the process group, and disabling/revoking cancels them. In-flight 
   icons/levels in memory. Its enforcement poll exists only with a non-default saved app level. Window targets/Restore
   history and lazily opened SkyLight handles are released when Window Management is off. Proxy off finishes system-proxy
   cleanup before closing its forwarder. Agent processes are cancelled and chat/history state is released.
-- One shared global keyboard tap runs only for enabled, assigned shortcuts or dictation gestures. Dictation off does not
+- Plugin hotkeys use host-owned Carbon registrations, removed on disable. The shared global keyboard tap runs only
+  for remaining enabled native shortcuts or dictation gestures. Dictation off does not
   reserve its default gestures. Turning Keyboard & Open Nook off removes the palette/Open Nook assignment from runtime;
   other enabled features may still need the shared tap. Saved assignments are retained for re-enable.
 - Pointer hover/click-through and fullscreen changes use input/workspace events, with no per-display polling timer.

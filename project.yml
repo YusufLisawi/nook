@@ -19,10 +19,6 @@ targets:
     platform: macOS
     sources:
       - path: Nook
-        excludes:
-          - Services/Files/FileNameIndex.c
-      - path: Nook/Services/Files/FileNameIndex.c
-        compilerFlags: -O3 # Keep the filename matcher optimized independently of app size optimization.
       - path: Plugins
         type: folder
         buildPhase: resources
@@ -74,7 +70,6 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.yusuf.nook
-        SWIFT_OBJC_BRIDGING_HEADER: Nook/Services/Files/NookFiles-Bridging.h
         CODE_SIGN_IDENTITY: "Developer ID Application"
         OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
         CODE_SIGN_STYLE: Manual

@@ -241,8 +241,6 @@ final class NotchKeyboardController {
         guard let vm else { return false }
         vm.keyboard.engaged = true
         if vm.launcherPresented { return vm.launcherKeyHandler?(event) ?? false }
-        if vm.tab == "files", vm.currentTab?.isWeb == false, !vm.keyboard.isPresented,
-           FileSearchTabState.handle(event, owner: vm.web.keyboardID) { return true }
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 { escape(); return true }
@@ -303,10 +301,6 @@ final class NotchKeyboardController {
                 $0.enabled && $0.hotkey?.keyCode == Int(event.keyCode) && $0.hotkey?.modifiers == modifiers.rawValue
             }) {
                 if !event.isARepeat { vm.services.commands.run(command.id, fromNotch: true) }
-                return true
-            }
-            if Features.shared.enabled("windows"), WindowShortcuts.shared.action(key: Int64(event.keyCode), modifiers: modifiers) != nil {
-                if !event.isARepeat { _ = WindowManager.shared.handleShortcut(key: Int64(event.keyCode), modifiers: modifiers, from: vm) }
                 return true
             }
             if let group = NativeShortcutIntegration.group(key: Int64(event.keyCode), modifiers: modifiers) {

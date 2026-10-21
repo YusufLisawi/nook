@@ -15,7 +15,7 @@ struct Feature {
 
 final class FeatureLifecycle {
     static let migrationKey = "features.raycastMigration.v1"
-    static let raycastIDs: Set<String> = ["launcher", "smartAnswers", "launcherFiles", "files", "clipboard", "screenshots", "windows", "mouse"]
+    static let raycastIDs: Set<String> = ["launcher", "smartAnswers", "launcherFiles", "files", "clipboard", "screenshots", "windows", "mouse", "file-search", "clips"]
     private(set) var features: [Feature] = []
     private(set) var running = Set<String>()
     let defaults: UserDefaults

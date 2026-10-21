@@ -1,5 +1,59 @@
 [
   {
+    "id": "clips",
+    "name": "Clips",
+    "description": "Private clipboard, screenshot and recording history with local OCR. Disabled until enabled.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "doc.on.clipboard",
+    "tags": [
+      "clips",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/clips",
+    "sha": "6df44b8901f4b76abd26ccb8e7a3c7feb46d1b44",
+    "sha256": "604352bc28a3183a0eb4a27ff968b2944249125da6847436a475cec20f0b3009",
+    "default": false,
+    "updatedAt": "2026-10-21T21:28:35Z"
+  },
+  {
+    "id": "file-search",
+    "name": "File Search",
+    "description": "Fast local filename search, live index and Spotlight fallback in an isolated native helper. Disabled until enabled.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "doc.text.magnifyingglass",
+    "tags": [
+      "file-search",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/file-search",
+    "sha": "e4be27d14325bbb32061ceefa61338153fb7f346",
+    "sha256": "6481c0e9329205fd0c9d96e0ced57e95912b62dfb5326885b21530a942aa6c2c",
+    "default": false,
+    "updatedAt": "2026-10-21T21:26:29Z"
+  },
+  {
+    "id": "launcher",
+    "name": "Launcher",
+    "description": "Application search, local smart answers and system commands for native notch search mode. Disabled until enabled.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "magnifyingglass",
+    "tags": [
+      "launcher",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/launcher",
+    "sha": "c2d016b248f0c3c860b72ad6ae10978abd26e7b8",
+    "sha256": "66f8a46a50a08263d15dbe3decdb75836a33ef0327a62b54dac3827dbd079ff9",
+    "default": false,
+    "updatedAt": "2026-10-21T21:30:00Z"
+  },
+  {
     "id": "mouse",
     "name": "Mouse",
     "description": "Smooth discrete mouse wheels and remap extra buttons with an isolated Swift helper. Accessibility required; disabled until you turn it on.",
@@ -17,6 +71,24 @@
     "sha256": "2076e17937a87fb9ae29be991a3e42ae8becf3b957acc1ef0739a88767b72b7a",
     "default": true,
     "updatedAt": "2026-10-21T20:19:40Z"
+  },
+  {
+    "id": "windows",
+    "name": "Windows",
+    "description": "Window layouts, displays and desktop moves with Accessibility. Disabled until enabled.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "macwindow",
+    "tags": [
+      "windows",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/windows",
+    "sha": "038626238aaefba45bb311c490ccea11f33763b6",
+    "sha256": "24eaa45247f540c48d77c015d549885bbc16768b57adfb5a79df0e51c83aff18",
+    "default": false,
+    "updatedAt": "2026-10-21T21:26:30Z"
   },
   {
     "id": "word-count",

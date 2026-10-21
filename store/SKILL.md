@@ -239,3 +239,21 @@ daily/Settings checks update unedited Store packages while Plugin Store is enabl
 cancels its requests/update timer. Preinstall does not enable a default-off plugin such as Mouse. Same grants update silently; expanded grants ask first in
 app. Existing installs/bundled v1 plugins work offline. Data/settings survive updates/uninstall; old packages go
 to Trash. Developer copies never auto-update. Don't bundle migrated native features back into Nook.
+
+## Search/shortcut migration contract
+
+- `contributes.searchProviders`: `{id,method,actionMethod}`, native helper + `launcher` permission. The host sends
+  `{query,items}` and renders `{items:[{id,title,subtitle?,symbol?,kind?,confirm?,keyEquivalent?}],answer?}`. Activation sends
+  `{id,alternate,confirmed}`; reply `{answer}` or `{hostItemID}` for a supplied Nook catalog entry. See PLUGINS.md.
+  Only one active/newest queued query per provider/display, at most 16 providers, 100 rows/provider. Emit
+  `searchChanged` to invalidate visible searches. `host.launcher.open {}` opens native search mode.
+- `host.files.scopes {}` returns approved roots, requires `files`. Consult before protected traversal/watching;
+  it is metadata, not an OS grant or process sandbox. No plugin-specific host file/clip/window-action bridges remain.
+- `type: "shortcut"` settings require `hotkeys`. Persist a JSON-encoded `{keyCode,modifiers,display}` string or `""`;
+  use `shortcut.<host-hotkey-id>` and register via `host.hotkeys.*`. Nook provides the native conflict-aware recorder.
+- Approved `windows`+`accessibility` helpers get `beforeOpen {context,pid?,windowNumber?}`; native web RPC receives
+  reserved `__context` for the originating notch. Resolve exactly the captured window or refuse. Never re-target
+  from UI state calls. Private geometry/Space heuristics stay in the helper, not the generic host.
+- Helpers migrate old data read-only into `NOOK_DATA_DIR`. Use private copies, reject symlinked cache/history roots,
+  keep subsequent edits, and retain the old data. `file-search`, `clips`, `windows`, `launcher` are default:false and
+  remain disabled until explicitly enabled. Each has its tests adjacent to the package. Build before validating.

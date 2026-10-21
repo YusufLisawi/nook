@@ -25,7 +25,7 @@ final class PluginContributions: NSObject {
             var key = EventHotKeyID()
             guard GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &key) == noErr else { return OSStatus(eventNotHandledErr) }
             let owner = Unmanaged<PluginContributions>.fromOpaque(context).takeUnretainedValue()
-            if let (id, action) = owner.hotkeyActions[key.id] { PluginEvents.emit("hotkey", ["id": action], to: id) }
+            if let (id, action) = owner.hotkeyActions[key.id] { PluginEvents.emit("hotkey", ["id": action, "context": PluginHostAPI.shared.shortcutContext as Any? ?? NSNull()], to: id) }
             return noErr
         }, 1, &type, Unmanaged.passUnretained(self).toOpaque(), &handler)
     }
@@ -33,6 +33,7 @@ final class PluginContributions: NSObject {
     func install(_ manifest: PluginManifestV2) {
         guard installed.insert(manifest.id).inserted else { return }
         let id = manifest.id
+        PluginSearch.install(manifest)
         for row in manifest.contributes["hotkeys"] ?? [] { attempt(id) { try self.registerHotkey(id, row) } }
         if let rows = manifest.contributes["launcherItems"], !rows.isEmpty { attempt(id) { try self.registerItems(id, rows) } }
         for row in manifest.contributes["backgroundJobs"] ?? [] { attempt(id) { try self.registerJob(id, row) } }
@@ -60,15 +61,28 @@ final class PluginContributions: NSObject {
         let current = "\(Features.shared.enabled("launcher")):\(Features.shared.enabled("smartAnswers"))"
         guard current != consumers else { return }
         consumers = current
-        Array(installed).forEach(remove)
+        // Consumer changes must not unregister a running helper's unrelated hotkeys/jobs/settings.
+        for key in Array(answers.keys) {
+            answers.removeValue(forKey: key)?.deactivate()
+            LauncherAnswers.unregisterIfLoaded("plugin:" + key)
+        }
+        for id in installed {
+            KeyboardActions.shared.remove(ownerID: Self.actionOwner, pluginID: id)
+            guard let manifest = PluginEngine.shared.manifests[id] else { continue }
+            if Features.shared.enabled("launcher"), let rows = manifest.contributes["launcherItems"], !rows.isEmpty { attempt(id) { try self.registerItems(id, rows) } }
+            if Features.shared.enabled("smartAnswers") {
+                for row in manifest.contributes["answerProviders"] ?? [] { attempt(id) { try self.registerAnswer(id, row) } }
+            }
+        }
     }
     func reconcile(active: Set<String>) { for id in installed.subtracting(active) { remove(id) } }
     func remove(_ id: String) {
         installed.remove(id)
+        PluginSearch.remove(id)
         for key in Array(hotkeys.keys) where key.hasPrefix(id + "/") { unregisterHotkey(key) }
         for key in Array(menus.keys) where key.hasPrefix(id + "/") { if let item = menus.removeValue(forKey: key) { NSStatusBar.system.removeStatusItem(item) } }
         for key in Array(jobs.keys) where key.hasPrefix(id + "/") { jobs.removeValue(forKey: key)?.invalidate() }
-        for key in Array(answers.keys) where key.hasPrefix(id + "/") { answers.removeValue(forKey: key)?.deactivate(); if Features.shared.enabled("smartAnswers") { LauncherAnswers.shared.unregister("plugin:" + key) } }
+        for key in Array(answers.keys) where key.hasPrefix(id + "/") { answers.removeValue(forKey: key)?.deactivate(); LauncherAnswers.unregisterIfLoaded("plugin:" + key) }
         for pane in settings.filter({ $0.value == id }).keys { SettingsRegistry.unregister(pane); settings.removeValue(forKey: pane) }
         KeyboardActions.shared.remove(ownerID: Self.actionOwner, pluginID: id)
     }
@@ -176,7 +190,7 @@ final class PluginLauncherAnswerProvider: LauncherAnswerProvider, LauncherAnswer
         guard query.hasPrefix(prefix) else { return nil }
         lock.lock(); defer { lock.unlock() }
         guard active else { return nil }
-        return cache[query] ?? LauncherAnswer(section: "Plugin", expression: query, leftBadge: "", result: "Loading…", rightBadge: "", copyValue: "", isAvailable: false)
+        return cache[query] ?? LauncherAnswer(pluginID: pluginID, section: "Plugin", expression: query, leftBadge: "", result: "Loading…", rightBadge: "", copyValue: "", isAvailable: false)
     }
     func refine(for query: String, context: LauncherAnswerContext, completion: @escaping () -> Void) {
         lock.lock()
@@ -191,7 +205,7 @@ final class PluginLauncherAnswerProvider: LauncherAnswerProvider, LauncherAnswer
                 let row = result as? [String: Any] ?? [:]
                 let text = String((row["result"] as? String ?? error ?? "No answer").prefix(2000))
                 if self.cache.count >= 32 { self.cache.removeAll() }
-                self.cache[query] = LauncherAnswer(section: row["section"] as? String ?? "Plugin", expression: query, leftBadge: "", result: text, rightBadge: "", note: error, copyValue: row["copyValue"] as? String ?? text, isAvailable: error == nil && row["result"] != nil)
+                self.cache[query] = LauncherAnswer(pluginID: self.pluginID, section: row["section"] as? String ?? "Plugin", expression: query, leftBadge: "", result: text, rightBadge: "", note: error, copyValue: row["copyValue"] as? String ?? text, isAvailable: error == nil && row["result"] != nil)
                 DispatchQueue.main.async(execute: completion)
             }
         }

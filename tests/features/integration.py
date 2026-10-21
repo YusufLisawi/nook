@@ -14,6 +14,9 @@ assert 'nookFeaturesChanged' in web and 'self.unload(id)' in web
 assert 'settingsController.prewarm()' not in Path('Nook/AppDelegate.swift').read_text()
 print('Features: startup, bridge, view eviction and event-driven hover guards passed')
 
-launcher = Path('Nook/Services/Launcher/LauncherFeature.swift').read_text()
-assert 'if vm.isEnabled("agents"), let agent = AgentService.shared' in launcher
+launcher = Path('Nook/Core/PluginSearchMode.swift').read_text()
+assert 'LauncherApplicationIndex' not in launcher and 'FileSearchService' not in launcher
+for folder in ['Files', 'Clips', 'Windows', 'Launcher']:
+    assert not list(Path('Nook/Services', folder).glob('*.swift')), folder
+assert 'Services/Files/FileNameIndex.c' not in Path('project.yml').read_text()
 assert 'var hold: DictationShortcut? = .defaultHold' not in Path('Nook/Services/Dictation/HotkeyMonitor.swift').read_text()

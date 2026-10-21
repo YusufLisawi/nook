@@ -117,7 +117,7 @@ func validate(_ p: Plugin) -> (errors: [String], warnings: [String]) {
     if m["symbol"] == nil { warnings.append("no \"symbol\" — the dock shows a puzzle piece. Pick an SF Symbol (e.g. \"sparkles\")") }
     if let icon = m["icon"] as? String, !fm.fileExists(atPath: p.dir.appendingPathComponent(icon).path) { errors.append("icon \"\(icon)\" is missing") }
 
-    let types = ["toggle", "text", "secret", "textarea", "number", "select", "color"]
+    let types = ["toggle", "text", "secret", "textarea", "number", "select", "color", "shortcut"]
     var keys = Set<String>()
     if let settings = m["settings"] {
         if let list = settings as? [[String: Any]] {

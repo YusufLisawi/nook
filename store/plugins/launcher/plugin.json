@@ -1,0 +1,89 @@
+{
+  "id": "launcher",
+  "name": "Launcher",
+  "symbol": "magnifyingglass",
+  "entry": "index.html",
+  "height": 210,
+  "order": 45,
+  "apiVersion": 2,
+  "version": "2.0.0",
+  "native": {
+    "command": "bin/helper",
+    "background": true,
+    "permissions": [
+      "launcher",
+      "hotkeys",
+      "network",
+      "clipboard",
+      "accessibility",
+      "background",
+      "shell",
+      "ai"
+    ]
+  },
+  "settings": [
+    {
+      "key": "smartAnswers",
+      "label": "Smart answers",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "applications",
+      "label": "Applications",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "systemCommands",
+      "label": "System commands",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "shortcut.open",
+      "label": "Open Launcher",
+      "type": "shortcut",
+      "default": "{\"keyCode\":49,\"modifiers\":524288,\"display\":\"\u2325Space\"}"
+    },
+    {
+      "key": "aiCommands",
+      "label": "AI commands",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "plugins",
+      "label": "Plugins and groups",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "actions",
+      "label": "Plugin actions",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "quickAI",
+      "label": "Quick AI",
+      "type": "toggle",
+      "default": true
+    }
+  ],
+  "contributes": {
+    "settings": [
+      {
+        "id": "preferences",
+        "title": "Launcher"
+      }
+    ],
+    "searchProviders": [
+      {
+        "id": "search",
+        "method": "launcher.search",
+        "actionMethod": "launcher.activate"
+      }
+    ]
+  }
+}

@@ -15,7 +15,7 @@ struct PluginManifestV2 {
         let background: Bool
     }
     static let permissions: Set<String> = ["files", "clipboard", "accessibility", "microphone", "network", "shell", "ai", "background", "hotkeys", "notifications", "launcher", "windows", "secrets"]
-    static let contributionNames: Set<String> = ["hotkeys", "launcherItems", "answerProviders", "settings", "menuBar", "notchActivity", "urlHandlers", "backgroundJobs"]
+    static let contributionNames: Set<String> = ["hotkeys", "launcherItems", "answerProviders", "searchProviders", "settings", "menuBar", "notchActivity", "urlHandlers", "backgroundJobs"]
     let id: String
     let name: String
     let directory: URL
@@ -71,6 +71,7 @@ struct PluginManifestV2 {
             native = Native(command: command, run: run, background: spec["background"] as? Bool ?? false)
             if native?.background == true, !permissions.contains("background") { throw PluginEngineError("A background helper must declare background permission.") }
         } else { native = nil }
+        if (json["settings"] as? [[String: Any]] ?? []).contains(where: { $0["type"] as? String == "shortcut" }), !permissions.contains("hotkeys") { throw PluginEngineError("Shortcut settings require hotkeys permission.") }
         requested = permissions
         var contributions: [String: [[String: Any]]] = [:]
         if let value = json["contributes"] {
@@ -86,6 +87,7 @@ struct PluginManifestV2 {
                         guard let code = item["keyCode"] as? NSNumber, CFGetTypeID(code) != CFBooleanGetTypeID(), code.doubleValue == Double(code.intValue), (0...127).contains(code.intValue),
                               let flags = item["modifiers"] as? NSNumber, CFGetTypeID(flags) != CFBooleanGetTypeID(), flags.doubleValue == Double(flags.uint64Value), flags.uint64Value & 0x1C0000 != 0 else { throw PluginEngineError("Hotkeys need keyCode (0–127) and Command/Control/Option CGEventFlags modifiers.") }
                     case "launcherItems": guard nonempty("title") else { throw PluginEngineError("Launcher items need a title.") }
+                    case "searchProviders": guard nonempty("method"), nonempty("actionMethod"), json["native"] != nil else { throw PluginEngineError("Search providers need method, actionMethod and a native helper.") }
                     case "answerProviders": guard nonempty("prefix"), nonempty("method"), json["native"] != nil else { throw PluginEngineError("Answer providers need prefix, method and a native helper.") }
                     case "backgroundJobs":
                         guard let number = item["interval"] as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite, (1...86_400).contains(number.doubleValue) else { throw PluginEngineError("Background jobs need an interval from 1 to 86400 seconds.") }
@@ -94,7 +96,7 @@ struct PluginManifestV2 {
                 }
                 contributions[key] = items
             }
-            let requirements = ["hotkeys": "hotkeys", "launcherItems": "launcher", "answerProviders": "launcher", "backgroundJobs": "background"]
+            let requirements = ["hotkeys": "hotkeys", "launcherItems": "launcher", "answerProviders": "launcher", "searchProviders": "launcher", "backgroundJobs": "background"]
             for (section, permission) in requirements where !(contributions[section] ?? []).isEmpty && !permissions.contains(permission) { throw PluginEngineError("\(section) requires \(permission) permission.") }
         }
         contributes = contributions

@@ -14,17 +14,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Services.shared.start()
         rebuildNotches()
         Services.shared.hotkeys.onShortcut = { [weak self] key, mods in
-            if Features.shared.enabled("launcher"), LauncherShortcut.matches(key: key, modifiers: mods) {
-                DispatchQueue.main.async { if let controller = self?.notchUnderMouse() { LauncherFeature.toggle(controller) } }
-                return true
-            }
             if OpenNookShortcut.matches(key: key, modifiers: mods) {
                 DispatchQueue.main.async { self?.notchUnderMouse()?.openWithKeyboard() }
                 return true
             }
             if NSApp.keyWindow is NotchPanel { return false } // local notch shortcuts take precedence
             if Features.shared.enabled("commands"), Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
-            if Features.shared.enabled("windows"), WindowManager.shared.handleShortcut(key: key, modifiers: mods) { return true }
             if let group = NativeShortcutIntegration.group(key: key, modifiers: mods) {
                 DispatchQueue.main.async { self?.notchUnderMouse()?.toggleGroupWithKeyboard(group.id) }
                 return true

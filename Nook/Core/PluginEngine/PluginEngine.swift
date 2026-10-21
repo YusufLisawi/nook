@@ -134,7 +134,9 @@ final class PluginEngine {
             guard let manifest = manifests[id], PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id) else { return reply(nil, "Plugin access is not approved or the plugin is disabled.") }
             reconcile()
             guard let helper = helpers[id] else { return reply(nil, "Helper unavailable. Open this plugin’s tab or enable background mode.") }
-            helper.call(args.first as? String ?? "", params: args.dropFirst().first ?? [:]) { value, error in DispatchQueue.main.async { reply(value, error) } }
+            var parameters = args.dropFirst().first as? [String: Any] ?? [:]
+            if let vm { parameters["__context"] = String(describing: ObjectIdentifier(vm)) }
+            helper.call(args.first as? String ?? "", params: parameters) { value, error in DispatchQueue.main.async { reply(value, error) } }
         } else {
             hostCall(id: id, method: method, params: PluginHostAPI.parameters(method, args), vm: vm, reply: reply)
         }

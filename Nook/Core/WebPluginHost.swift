@@ -36,8 +36,7 @@ final class WebPluginHost: NSObject {
             guard let self else { return }
             for id in Array(self.views.keys) where !Features.shared.tabEnabled(id) { self.unload(id) }
             for view in self.views.values {
-                let context = Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: self.vm) : ""
-                view.evaluateJavaScript(BridgeRegistry.javascript + "\n" + context + "\n" + PluginEngine.javascript)
+                view.evaluateJavaScript(BridgeRegistry.javascript + "\n" + PluginEngine.javascript)
             }
         })
     }
@@ -112,7 +111,7 @@ final class WebPluginHost: NSObject {
         let pluginInfo: [String: Any] = ["id": tab.id, "name": tab.name, "apiVersion": (try? PluginManifestV2(directory: dir).apiVersion) ?? 1]
         let info = (try? JSONSerialization.data(withJSONObject: pluginInfo)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         content.removeAllUserScripts()
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + (Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: vm) : "") + "\n" + KeyboardWebSupport.script + "\n" + PluginEngine.javascript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + KeyboardWebSupport.script + "\n" + PluginEngine.javascript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
     }
 
     // MARK: Bridge

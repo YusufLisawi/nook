@@ -1,0 +1,184 @@
+{
+  "id": "windows",
+  "name": "Windows",
+  "symbol": "macwindow",
+  "entry": "index.html",
+  "order": 48,
+  "height": 260,
+  "settings": [
+    {
+      "key": "closeAfterAction",
+      "label": "Close after applying",
+      "type": "toggle",
+      "default": true,
+      "help": "Desktop moves always close the notch while moving the window."
+    },
+    {
+      "key": "windowManagementAlmostScale",
+      "label": "Almost maximize scale",
+      "type": "number",
+      "default": 0.9,
+      "min": 0.5,
+      "max": 1,
+      "step": 0.05
+    },
+    {
+      "key": "shortcut.previousDisplay",
+      "label": "Previous Display",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.nextDisplay",
+      "label": "Next Display",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.previousDesktop",
+      "label": "Previous Desktop",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.nextDesktop",
+      "label": "Next Desktop",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.leftHalf",
+      "label": "Left Half",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.rightHalf",
+      "label": "Right Half",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.topHalf",
+      "label": "Top Half",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.bottomHalf",
+      "label": "Bottom Half",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.topLeftQuarter",
+      "label": "Top Left Quarter",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.topRightQuarter",
+      "label": "Top Right Quarter",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.bottomLeftQuarter",
+      "label": "Bottom Left Quarter",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.bottomRightQuarter",
+      "label": "Bottom Right Quarter",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.firstThird",
+      "label": "First Third",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.centerThird",
+      "label": "Center Third",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.lastThird",
+      "label": "Last Third",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.firstTwoThirds",
+      "label": "First Two Thirds",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.lastTwoThirds",
+      "label": "Last Two Thirds",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.maximize",
+      "label": "Maximize",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.almostMaximize",
+      "label": "Almost Maximize",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.maximizeHeight",
+      "label": "Maximize Height",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.maximizeWidth",
+      "label": "Maximize Width",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.center",
+      "label": "Center",
+      "type": "shortcut",
+      "default": ""
+    },
+    {
+      "key": "shortcut.restore",
+      "label": "Restore",
+      "type": "shortcut",
+      "default": ""
+    }
+  ],
+  "apiVersion": 2,
+  "version": "2.0.0",
+  "native": {
+    "command": "bin/helper",
+    "background": true,
+    "permissions": [
+      "accessibility",
+      "windows",
+      "hotkeys",
+      "background"
+    ]
+  },
+  "contributes": {
+    "settings": [
+      {
+        "id": "preferences",
+        "title": "Windows"
+      }
+    ]
+  }
+}

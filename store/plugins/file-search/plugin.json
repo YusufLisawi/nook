@@ -1,0 +1,106 @@
+{
+  "id": "file-search",
+  "name": "File Search",
+  "symbol": "doc.text.magnifyingglass",
+  "entry": "index.html",
+  "order": 46,
+  "height": 380,
+  "settings": [
+    {
+      "key": "showPreview",
+      "label": "Show preview pane",
+      "type": "toggle",
+      "default": true
+    },
+    {
+      "key": "resultLimit",
+      "label": "Maximum results",
+      "type": "number",
+      "min": 10,
+      "max": 100,
+      "step": 10,
+      "default": 60
+    },
+    {
+      "key": "files.defaultScope",
+      "label": "Default scope",
+      "type": "select",
+      "default": "home",
+      "options": [
+        "home",
+        "Developer",
+        "Downloads",
+        "all"
+      ]
+    },
+    {
+      "key": "files.showHidden",
+      "label": "Show hidden files",
+      "type": "toggle",
+      "default": false
+    },
+    {
+      "key": "files.excludedFolders",
+      "label": "Excluded folders (one per line)",
+      "type": "textarea",
+      "default": ""
+    },
+    {
+      "key": "files.indexRoots",
+      "label": "Additional roots (one per line)",
+      "type": "textarea",
+      "default": ""
+    },
+    {
+      "key": "files.indexLibrary",
+      "label": "Include Library (Full Disk Access required)",
+      "type": "toggle",
+      "default": false
+    },
+    {
+      "key": "files.indexDependencies",
+      "label": "Include dependency folders",
+      "type": "toggle",
+      "default": false
+    },
+    {
+      "key": "files.indexPackages",
+      "label": "Index inside packages",
+      "type": "toggle",
+      "default": false
+    },
+    {
+      "key": "contributeSearch",
+      "label": "Include files in Launcher",
+      "type": "toggle",
+      "default": true
+    }
+  ],
+  "apiVersion": 2,
+  "version": "2.0.0",
+  "native": {
+    "command": "bin/helper",
+    "background": true,
+    "permissions": [
+      "files",
+      "clipboard",
+      "launcher",
+      "background"
+    ]
+  },
+  "contributes": {
+    "settings": [
+      {
+        "id": "preferences",
+        "title": "File Search"
+      }
+    ],
+    "searchProviders": [
+      {
+        "id": "search",
+        "method": "launcher.search",
+        "actionMethod": "launcher.activate"
+      }
+    ]
+  }
+}

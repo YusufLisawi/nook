@@ -1,88 +1,64 @@
-# File Search rebuild — agent/files2
+# File Search: permission-safe startup
 
-Replaced the default web File Search tab with native SwiftUI and a shared, persisted filename index. No Nook instance was launched, installed, or controlled. No user files were opened, copied, or trashed during testing. No writes were made to the user's Nook Application Support data, and no push/merge/publish/release operation ran.
+Follow-up on `agent/files2`, after fast-forwarding `main` to `10be1b5`.
 
-## Built
+## What changed
 
-- A packed C index with separate contiguous name/path storage, Unicode case/diacritic normalization, a character-presence mask, the oil-find NEON byte finder, a bounded top-results heap, and complete-candidate incremental narrowing. Searches inspect the full catalog; displayed rows are capped at 100. C compiles at `-O3` independently of the app's size optimization.
-- Background home traversal at launch. Defaults skip Library, hidden files, cache/dependency/build folders, common package/app internals and descendant symlink traversal. Native grouped Settings configures exclusions, additional roots and inclusion switches. Protected locations are skipped with a notice. Explicit root aliases use physical paths, including macOS `/tmp` → `/private/tmp` aliases.
-- A checksummed, versioned binary cache with private permissions under `~/Library/Caches/com.yusuf.nook/FileIndex`. Scope and filesystem-journal identity invalidate incompatible caches. FSEvents updates individual files/subtrees, replays from the saved watermark after restart, and rebuilds after lost history/root changes. Checkpoints run at most once per five seconds, outside the search lock; normal quit flushes. Deleted-entry compaction happens in the background.
-- Exact basename → prefix → word start (ASCII camel case included) → substring → subsequence ranking. Added-to-directory date falls back to filesystem creation. Added/modified recency and Nook-opened frecency sort within each name tier. Empty Recent shows newest added/modified files, including never-opened downloads; folders are available with the Folder filter.
-- AND words, OR `|`, `!` exclusions, quoted phrases, wildcards, absolute/tilde folder scopes, `ext:`, `kind:`, `file:`/`folder:`, binary-unit `size:`, `dm:` and `added:` date filters. Invalid syntax produces inline errors. See PLUGINS.md for exact semantics and bounds.
-- Native borderless search, soft row selection, matched-character highlights, hidden scrollbars, kind picker/Tab cycling, metadata/text/Quick Look thumbnail preview, file drag-out, local Actions ⌘K and the requested open/reveal/Quick Look/copy path/copy name/confirmed Trash shortcuts. Query replacement and preview replies cannot act on or overwrite newer results.
-- Launcher Files source using this same index, after other sources and before the final Ask AI row; `file:` and `f ` prefixes restrict it. Launcher Settings has a Files source switch. Existing saved source selections may require enabling this new source there.
-- Existing `nook.files.*` bridge preserved, now backed by the own index. Added `copyName`, confirmed `trash`, `status`, and `rebuild`; retained open-with and file-URL copy. The former Spotlight engine runs only as a bounded first-build/rebuild fallback and applies the same query filters. A user web `files` override still works.
+- Startup no longer probes Desktop, Documents, Downloads, Pictures, Movies, Music or Library/cloud folders without Full Disk Access or an explicitly requested, previously successful Desktop/Documents/Downloads grant. Removable/network mount points are excluded from the kernel mount table without opening them. Exclusions precede C `stat`/`getattrlist`/directory opens; the scanner also stops at device boundaries.
+- All configuration preparation, FDA detection, root validation, journal checks and scanning run on the background index queue. `start` only enqueues work. Queries and UI status remain available while that queue is blocked. Access policy is part of the catalog fingerprint, invalidating old ungated caches and rebuilding when the choice changes.
+- A single quiet, tinted Files row with an SF Symbol offers “Search Desktop, Documents and Downloads instantly — Allow access” (⇧⌘A). Native Settings → File Search has the same action, Full Disk Access settings and Forget Folder Access. Only the explicit native action opens those three directories to request access. Successful reads are remembered; denied/missing folders are not retried at startup. There is no permission-request bridge API that a plugin could invoke automatically.
+- Symbolic-home Spotlight metadata is merged into the same C ranking as indexed results in Files, the plugin bridge and launcher. Folder-scoped Spotlight queries are deliberately not used (see measured limitation below). Native results arrive independently of metadata gathering. Candidate predicates cover OR/subsequence/wildcard queries and are exercised against real NSMetadataQuery; unsupported TRUE/single-child compound predicates are avoided.
+- Automatic previews stop before any protected URL/existence/thumbnail read. Preview path validation runs off main and rejects symlink ancestors/final symlinks. Path/name copying is metadata-only. Explicit Open/Quick Look remain available user actions.
+- The Clips screenshot index was a second startup Desktop reader (`open(O_EVTONLY)` on main). It now shares the access gate before resolving paths, watching or scanning. Its cached-path filtering was kept lexical, preserving cached OCR/pins without touching protected files. Launcher sessions are cancelled when closed.
 
-Studied `/tmp/oil-find` at `e63c7150ccbd401a1375c08215d1386b56dd9471`: packed IndexStore/persistence/mutation, Searcher/SearchCache, Scanner/IndexConfig, FSWatcher and IndexUpdater. The C byte finder is adapted from that MIT code; its copyright is in the C header and the complete license is in THIRD_PARTY_NOTICES.md, also bundled as an app resource. No package manager or shipped third-party dependency was added.
+## Spotlight verification and limits
 
-## Measurements on this Mac
+Tested a tiny, separately ad-hoc-signed Foundation executable through launchd, **without a terminal's inherited Full Disk Access**. No Nook instance was launched.
 
-Apple M1 Max, 64 GiB RAM, arm64 optimized CLI harnesses. Home traversal was read-only; generated test fixtures and benchmark caches live under `/tmp`. Filesystem caches were warm. These are engine timings, not rendered-frame measurements.
+1. Explicit Desktop/Documents/Downloads/media/cloud search scopes, including **plain string scopes**, caused a real Desktop TCC request. Unified log evidence at 2026-10-21 17:32:25: `AUTHREQ_PROMPTING`, `kTCCServiceSystemPolicyDesktopFolder`, accessing identity `com.yusuf.nook.metadata-strings-probe`, message `392.3486`. That standalone job was terminated/removed; no GUI automation was used. This disproves the proposed folder-scope assumption on this Mac.
+2. `NSMetadataQueryUserHomeScope` completed without a folder prompt. The independent helper's FDA sentinel returned false. Reading metadata attributes and categories also completed without prompts. However, macOS withheld all Desktop/Documents/Downloads/cloud rows from that denied identity. We cannot safely manufacture that coverage: Recent includes whatever macOS exposes; otherwise the user must choose Allow access. This limitation is also documented in PLUGINS.md and docs/LIMITS.md.
+3. The committed reproducible harness, `bash tests/files/permission-probe.sh`, compiles a separate helper, runs it through a temporary launchd job with KeepAlive disabled, prints metadata/index/query timings, then removes the job. Its index/cache is under its own `/tmp` folder. It does not reset TCC or modify Nook preferences/data.
 
-| Metric | Before: Spotlight service | After: own index |
-|---|---:|---:|
-| Own catalog / traversal | Delegated to Spotlight; no own catalog | 236,777 names / 8.538 s |
-| Restart catalog load | New metadata queries | 0.125 s |
-| Checkpoint write / cache size | No own catalog | 0.099 s / 45,632,365 bytes |
-| Own index allocation after traversal | N/A | 60.0 MiB |
-| Standalone helper peak RSS | 35.0 MiB, excludes Spotlight daemon | 93.0 MiB after traversal |
-| First nonempty result, 12-query median | 19.5 ms (first four cold queries: 92.5 ms median) | Query medians below |
-| Completion or 4-second measurement cap, median | 1,295.5 ms; two readme gathers hit the cap | Full-catalog result calculation per query below |
+Final independent probe on this Mac (M1 Max, 64 GiB):
 
-Memory is an explicit tradeoff: the old helper delegates indexing/memory to Spotlight. Helper RSS numbers include different framework overhead and are not the complete app's memory usage.
+| Measurement | Result |
+|---|---:|
+| FDA sentinel readable | false |
+| Safe home metadata rows, modified in last week | 33,376 |
+| Protected metadata rows exposed | 0 |
+| `index.start` return time | 0.029 ms |
+| Accessible names indexed | 183,518 |
+| Background index build, warm filesystem | 2,363 ms |
+| Median query: Nook / readme / swift / report / Recent | 1.773 / 2.322 / 1.098 / 2.583 / 0.984 ms |
 
-| Query | Before first request, first rows | Home median / p95 (25 runs) | 1M names median / p95 (25 runs) |
-|---|---:|---:|---:|
-| Recent | — | 1.256 / 1.294 ms | 4.233 / 4.330 ms |
-| Nook | 99 ms | 2.019 / 2.044 ms | 2.851 / 2.942 ms |
-| readme | 86 ms | 2.656 / 2.728 ms | 3.700 / 3.803 ms |
-| package | 107 ms | 1.496 / 1.513 ms | 3.774 / 3.832 ms |
-| swift | 11 ms | 1.317 / 1.385 ms | 3.679 / 4.191 ms |
-| FileSearch | 19 ms | 1.307 / 1.350 ms | 3.921 / 3.941 ms |
-| PLUGINS | 20 ms | 1.540 / 1.574 ms | 3.774 / 3.862 ms |
-| report | 119 ms | 2.951 / 2.987 ms | 3.745 / 3.822 ms |
-| invoice | 154 ms | 1.901 / 1.943 ms | 3.762 / 3.782 ms |
-| rpt (subsequence) | — | 3.688 / 3.725 ms | 5.053 / 5.120 ms |
-| *.png | — | 2.245 / 2.278 ms | 5.351 / 5.569 ms |
-| ext:pdf;docx added:week | — | 1.715 / 1.732 ms | 5.758 / 5.867 ms |
+An earlier cold-filesystem pass indexed the same names in 5,633 ms; query medians were 0.99–2.61 ms. No `AUTHREQ_PROMPTING` entries were recorded during either gated probe. Evidence: `/tmp/nook-file-permission-probe.6j0TRn/stdout` and `/tmp/nook-files-access-probe-final.log`. Before this fix, the lead observed a Documents TCC prompt during startup, and the source unconditionally traversed protected folders. The original full-coverage/million-name benchmarks remain in `docs/reports/files2.md`; coverage differs, so these build times are not a like-for-like speed comparison.
 
-One million synthetic names with long directory paths: build 1.019 s, allocation 176.0 MiB. Name queries above deliberately have 125,000 matches each. An incremental `r → re → rea → read → readm → readme` pass, including Swift query setup/result extraction, measured 15.054 → 8.000 → 6.665 → 6.253 → 6.177 → 6.129 ms. Home incremental `readme` finished in 0.241 ms. Old repeated cached suggestions could return in 1–7 ms while their underlying Spotlight gathers continued; the new numbers measure full-catalog calculations rather than cached top rows.
+## Validation
 
-Logs: `/tmp/nook-files2-before-memory.log`, `/tmp/nook-files-before/benchmark.log`, `/tmp/nook-files2-benchmark-final.log`. To repeat: `bash tests/files/index.sh --benchmark`; for only the million-name pass, add `--synthetic`. The harness prints traversal time, allocation/RSS, cache save/load, per-query medians/p95s and incremental timings.
+Passed without launching Nook:
 
-## Verification
+- `bash tests/files/run.sh`: mocked web plugin; real query parsing/ranking; permission gates for home/media/cloud/mount/Data-volume aliases; symlink roots; pre-traversal exclusions; blocked configuration worker with responsive queries; safe previews; explicit-only successful grants, persisted choice and cache invalidation/revocation; real Spotlight predicate translation; FSEvents changes/restart catch-up; native tab/keyboard races.
+- `bash tests/launcher/run.sh`: ranking and 56 interaction/lifecycle checks, agent handoff and failure paths.
+- `bash scripts/test-clips.sh`: denied startup gate, screenshot scan/watch, OCR, pins/cache restore, deletion, folder switching/recovery and mocked plugin.
+- `bash tests/files/permission-probe.sh`: real home read-only scan and safe metadata under an independent, non-FDA identity.
+- Required `xcodegen generate && xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build build`: passes, zero compiler/linker warnings or errors. Xcode itself emits its existing `Using the first of multiple matching destinations` invocation warning.
+- Universal `xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build -destination 'generic/platform=macOS' build`: passes for arm64/x86_64, **zero warnings of any kind and zero errors**.
+- `git diff --check` passes.
 
-- Required exact `xcodegen generate && xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build build`: **BUILD SUCCEEDED**, zero compiler/linker errors or warnings. Xcode itself emits its existing `Using the first of multiple matching destinations` warning for native/Rosetta/generic Mac destinations. This is the sole warning from that exact invocation; it is not suppressed or hidden.
-- Same Release build with `-destination 'generic/platform=macOS'`: **BUILD SUCCEEDED, zero warnings of any kind and zero errors**, including arm64 and x86_64. Logs: `/tmp/nook-files2-build-final.log`, `/tmp/nook-files2-build-zero-warnings.log`. Universal architecture support is preserved.
-- `bash tests/files/run.sh`: old mocked `window.nook` plugin suite, real bounded text/thumbnail previews, real own-index bridge cancellation/promise-settlement checks, parser/ranking/recency/narrowing tests, cache watermark/checksum/corruption tests, scanner policy/symlink/package tests, real FSEvents creation/modify/subtree rename/delete/restart catch-up, and isolated native keyboard/action/stale-reply tests. Swift and C harnesses compile with warnings as errors. All pass without launching the app.
-- `bash tests/launcher/run.sh`: ranking benchmark, 48 native interaction checks (including file prefixes/source switch/stale file replies) and mocked agent handoff pass.
-- `bash tests/tabs/run.sh`: 50 model and 39 integration checks pass. `bash tests/keyboard/run.sh` and `bash Tests/focus/run.sh` pass.
-- `NOOK_RESOURCES="$PWD" nook validate "$PWD/Plugins/files"` and `git diff --check` pass. The bundled web plugin is unchanged and remains usable as an override/bridge reference.
+## Lead's live check
 
-## Lead's manual checks
+Use an isolated macOS account or an independently installed test identity with no existing FDA/folder grants; do not run two Nook instances. On first launch, open the notch immediately and switch to Files: no permission dialog should appear. Recent shows indexed accessible files and any metadata macOS allows; the one Allow access row is visible.
 
-Quit the currently running Nook before deliberately testing the reviewed build; run only one instance.
+Choose Allow access (or ⇧⌘A); only then should macOS request Desktop/Documents/Downloads. Deny one folder to check the calm, partial-access state; grant another and create a file there to check Recent/live indexing. Restart to check the remembered successful grants. Settings → File Search exposes the same controls and Full Disk Access link. A blocked row's automatic preview must not prompt; explicit Open/Quick Look can request access. Check Clips starts without requesting Desktop access, then indexes screenshots after access is allowed.
 
-1. Open Files and verify search focus, launcher-like spacing/highlights, empty Recent, error/loading states, rapidly typed queries, and previews at the notch's actual size. Try `rpt`, `report !draft`, `report | invoice`, `*.png`, `~/Desktop/ screenshot`, `ext:pdf;docx`, `kind:image|folder`, `folder:`, `size:>10mb`, `dm:today`, `added:week`.
-2. Verify arrows, Return, ⌘Return, Space/Esc Quick Look, Shift-Space typing, ⌘C, ⌥⌘C, Tab/Shift-Tab filters, and local ⌘K/arrow/Return/Escape actions. Confirm ⌘⌫ asks first; Escape/selection changes cancel it. Use only a disposable file to test confirmed Trash. Drag a disposable result into Finder/another app.
-3. Download/copy a file with an old modification date into Downloads; confirm its added date brings it into Recent. Modify/rename/delete disposable files while searching. Quit, create another disposable file, restart, and verify catch-up without a full scan. Open a file repeatedly through Nook and verify query-tier frecency.
-4. Change roots/exclusions/inclusion switches in Settings; verify rebuilding, status, hidden/package filtering and permission notices. Grant Files & Folders access and rebuild if required. Check cloud placeholders and large/binary/missing files.
-5. Enable Files in Launcher Settings if needed. Test plain queries and `file:` / `f ` prefixes, open/reveal and stale typing. Check multiple displays and tab close/reopen. For existing user `files` web overrides, temporarily disable the override to review the native tab, then verify its bridge still works.
+## Remaining limits
 
-## Files touched and merge notes
+There is no public silent per-folder TCC preflight. Remembered grants mean a prior explicit Allow action actually opened that directory successfully. If TCC is reset externally after that, forget Nook's remembered folder choice before restarting; a new read could otherwise request permission again. Denials are never saved as grants. Full Disk Access refreshes when Nook becomes active. Forget Folder Access changes Nook's indexing choice, not macOS's permission database.
 
-New production files: `Nook/Services/Files/{FileNameIndex.c,FileNameIndex.h,NookFiles-Bridging.h,FileIndexQuery.swift,FileNameIndex.swift,FileSearchTab.swift,FileSpotlightFallback.swift,FileSearchWebShortcuts.swift,LauncherFileSource.swift}`; THIRD_PARTY_NOTICES.md.
+Without FDA, Library (including cloud containers), media folders and removable/network roots remain conservatively excluded from direct reads. Folder-root symlinks are rejected; descendant symlinks remain searchable references. Spotlight coverage is bounded to 20,000 candidates and governed by macOS access/Spotlight Privacy. No third-party dependencies were added. No GUI automation, live Nook data writes, /Applications changes, pushes or releases were performed.
 
-Feature-specific replacements: FileSearchService.swift, FileSearchModels.swift, FileSearchSettingsPane.swift. Existing preview and Quick Look files and `Plugins/files/` are unchanged.
+## Files touched
 
-Small shared edits: PluginRegistry.swift (native Files and skip bundled web copy; user overrides retained), NotchRootView.swift (one case), NotchKeyboard.swift (local native key route), Services.swift (quit flush), LauncherRanking.swift (source/prefix), LauncherFeature.swift (async results and open/reveal). project.yml explicitly adds the optimized C source, bridging header and license resource; generated project.pbxproj reflects them. Regenerate the project after merging parallel branches.
+New: `FileSearchAccessPolicy.swift`, `FileSearchAccess.swift`, `tests/files/FileAccessTests.swift`, `PermissionProbe.swift`, `permission-probe.sh`, this report.
 
-Tests: new IndexTests/WatcherTests/TabStateTests/TabStateStubs plus index/watcher/tab scripts under `tests/files`; existing native file tests/run script adjusted. Launcher/tabs test stubs and launcher interaction coverage updated for the new integration. Documentation: PLUGINS.md, docs/LIMITS.md, this REPORT.md.
-
-## Risks and limits
-
-- Native presentation, Quick Look focus, real clipboard/Finder/open/Trash effects and drag destinations remain manual checks because app launch and GUI automation were prohibited. Engine/state tests do not establish end-to-end frame latency.
-- More roots, longer names, complex OR expressions, busy CPUs/disks or network volumes can exceed one frame. Initial scans and lost-history rebuilds take background time; large subtree merges share the search lock briefly. Quitting during an active scan may wait for that read-only scan before flushing.
-- Package/kind recognition is heuristic. Unknown package extensions can be excluded in Settings; `.ts` prefers source code. Descendant symlinks are never traversed; explicit root aliases resolve physically. Date Added availability varies by filesystem/provider, with creation fallback.
-- Spotlight fallback coverage is partial and bounded until the own catalog is ready; its candidates are filtered correctly, but some OR/subsequence matches wait for the catalog. Spotlight Privacy does not restrict the own filesystem index; use File Search exclusions.
-- Paths are limited to 4,095 bytes and 256 traversal levels; name/path tables each use 32-bit offsets. Catalogs approaching multi-gigabyte string tables are outside the tested range. No content indexing, pinyin/transliteration, regex or complete oil-find grammar is included.
+Updated: filename index C/Swift, query path normalization, metadata models/fallback, FileSearchService, native Files tab/Settings, launcher file source plus one close-cancellation line, Clips startup/index plus regression test, test scripts/stub, PLUGINS.md, docs/LIMITS.md and generated Xcode project entries. No shared registration switch was expanded.

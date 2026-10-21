@@ -55,6 +55,8 @@ struct PluginActivity: Equatable {
     var color: String
     var level: Float? = nil
     var startedAt: Date? = nil
+    /// Optional look on the closed notch: "recording" (red dot + timer), "progress" (spinner), "done", "failed".
+    var style: String? = nil
 }
 
 extension Notification.Name {

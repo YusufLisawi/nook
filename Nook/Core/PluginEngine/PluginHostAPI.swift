@@ -121,7 +121,7 @@ final class PluginHostAPI {
             guard let height = p["height"] as? Double, height.isFinite else { return reply(nil, "Expected a finite height.") }
             model(vm)?.heightOverrides[id] = CGFloat(min(400, max(80, height))); ok()
         case "notch.activity", "activity.set":
-            PluginActivities.set(PluginActivity(pluginID: id, text: String(str("text").prefix(24)), symbol: str("symbol").isEmpty ? "puzzlepiece.extension" : str("symbol"), color: str("color").isEmpty ? "#ff9f0a" : str("color"), startedAt:(p["startedAt"] as? Double).map { Date(timeIntervalSince1970:$0) }),priority:p["priority"] as? Int ?? 0); ok()
+            PluginActivities.set(PluginActivity(pluginID: id, text: String(str("text").prefix(24)), symbol: str("symbol").isEmpty ? "puzzlepiece.extension" : str("symbol"), color: str("color").isEmpty ? "#ff9f0a" : str("color"), startedAt:(p["startedAt"] as? Double).map { Date(timeIntervalSince1970:$0) }, style: p["style"] as? String),priority:p["priority"] as? Int ?? 0); ok()
         case "activity.clear": PluginActivities.remove(id); ok()
         case "clipboard.read": reply(NSPasteboard.general.string(forType: .string) ?? "", nil)
         case "clipboard.write": NSPasteboard.general.clearContents(); NSPasteboard.general.setString(str("text"), forType: .string); ok()

@@ -58,7 +58,7 @@
     "name": "Dictation",
     "description": "Hold or toggle voice capture with ChatGPT and Groq transcription.",
     "author": "YusufLisawi",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "symbol": "waveform",
     "tags": [
       "dictation",
@@ -66,10 +66,10 @@
     ],
     "screenshots": [],
     "path": "plugins/dictation",
-    "sha": "52f13f3de578c0ff483c0f6a20610d625089aeeb",
-    "sha256": "cd9f84f7e0f83fa50d1d47978f2c33ef20d093c403ae91ddd5b37eaf28fd7c35",
+    "sha": "29578ab517ceaead780a3b1754df785c113bf843",
+    "sha256": "63c2be0f99eb1e7f2d08dc05b06212db0235d4820d1d74dde38cf0c36b1db3f4",
     "default": true,
-    "updatedAt": "2026-10-21T22:26:29Z"
+    "updatedAt": "2026-10-21T22:28:27Z"
   },
   {
     "id": "file-search",

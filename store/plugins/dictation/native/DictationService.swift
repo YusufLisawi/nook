@@ -48,6 +48,7 @@ final class DictationService: ObservableObject {
         "activity.set",
         [
           "priority": 100, "text": text, "symbol": "waveform",
+          "style": phase == .recording ? "recording" : phase == .transcribing ? "progress" : phase == .done ? "done" : "failed",
           "color": phase == .failed ? "#ff453a" : "#ff9f0a",
           "startedAt": phase == .recording
             ? recordingStartedAt?.timeIntervalSince1970 as Any? ?? NSNull() : NSNull(),

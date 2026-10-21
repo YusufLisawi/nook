@@ -52,25 +52,20 @@ struct AICommandContext {
     }
 
     /// Return false rather than pasting into an unrelated application if the original app has gone away.
+    /// Best effort, like the original paste: bring the app back and refocus the field. Only refuse when the app is gone,
+    /// or when the text we were going to replace is readable and the user has changed it meanwhile. AX element
+    /// equality and "is frontmost yet" checks were too strict (Electron/Arc/BB fields never compared equal).
     func restoreTarget() -> Bool {
         guard let application, !application.isTerminated else { return false }
         application.activate()
-        guard NSWorkspace.shared.frontmostApplication?.processIdentifier == application.processIdentifier else { return false }
         if let element {
             AXUIElementSetMessagingTimeout(element, 0.2)
             _ = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-            let axApp = AXUIElementCreateApplication(application.processIdentifier)
-            AXUIElementSetMessagingTimeout(axApp, 0.2)
-            var focused: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(axApp, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
-                  let focused, CFEqual(focused, element) else { return false }
-            if let range, selection != nil,
-               AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, range) != .success { return false }
-            // Don't overwrite text the user changed while the model was working.
+            if let range, selection != nil { _ = AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, range) }
             if let selection {
                 var current: CFTypeRef?
-                guard AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &current) == .success,
-                      current as? String == selection else { return false }
+                if AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &current) == .success,
+                   let current = current as? String, !current.isEmpty, current != selection { return false }
             }
         }
         return true

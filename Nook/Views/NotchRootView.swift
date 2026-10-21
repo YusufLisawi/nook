@@ -67,15 +67,36 @@ struct CollapsedView: View {
         HStack {
             switch vm.activity {
             case let .plugin(activity):
-                Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color))
-                Spacer()
-                if let level = activity.level { LevelBars(level: level).frame(width: 22, height: height * 0.5) }
-                if let started = activity.startedAt {
-                    TimelineView(.periodic(from:.now,by:0.5)) { context in
-                        let seconds = max(0,Int(context.date.timeIntervalSince(started)))
-                        Text(String(format:"%d:%02d",seconds / 60, seconds % 60)).font(.system(size:12,weight:.semibold)).monospacedDigit().foregroundStyle(Color(css:activity.color))
+                switch activity.style {
+                case "recording": // dictation look: glowing red dot + elapsed time, no level meter
+                    Circle().fill(Color.red).frame(width: 8, height: 8).shadow(color: .red.opacity(0.8), radius: 4)
+                    Spacer()
+                    TimelineView(.periodic(from: .now, by: 0.5)) { context in
+                        let seconds = max(0, Int(context.date.timeIntervalSince(activity.startedAt ?? context.date)))
+                        Text(String(format: "%d:%02d", seconds / 60, seconds % 60)).font(.system(size: 12, weight: .semibold)).monospacedDigit().foregroundStyle(.red)
                     }
-                } else { Text(activity.text).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color)).lineLimit(1) }
+                case "progress":
+                    Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                    Spacer()
+                    ProgressView().controlSize(.mini).tint(.white)
+                case "done":
+                    Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                case "failed":
+                    Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
+                default:
+                    Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color))
+                    Spacer()
+                    if let started = activity.startedAt {
+                        TimelineView(.periodic(from:.now,by:0.5)) { context in
+                            let seconds = max(0,Int(context.date.timeIntervalSince(started)))
+                            Text(String(format:"%d:%02d",seconds / 60, seconds % 60)).font(.system(size:12,weight:.semibold)).monospacedDigit().foregroundStyle(Color(css:activity.color))
+                        }
+                    } else { Text(activity.text).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color)).lineLimit(1) }
+                }
             case .music:
                 Artwork(image: media.artwork, size: height - 10)
                 Spacer()

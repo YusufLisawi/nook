@@ -34,7 +34,11 @@ struct PluginRPCFramer {
         }
         if let method = object["method"] {
             guard let method = method as? String, !method.isEmpty, object["result"] == nil, object["error"] == nil else { throw PluginEngineError("Invalid RPC request.") }
-            if let params = object["params"], !(params is [String: Any]) && !(params is [Any]) { throw PluginEngineError("RPC params must be an object or array.") }
+            // Requests need structured params; notifications (events) may carry any JSON value, e.g. a string or null,
+            // which helper SDKs emit for simple events. Rejecting those killed every helper on its first event.
+            if object["id"] != nil, let params = object["params"], !(params is NSNull), !(params is [String: Any]) && !(params is [Any]) {
+                throw PluginEngineError("RPC request params must be an object or array.")
+            }
         } else {
             guard object["id"] != nil, (object["result"] != nil) != (object["error"] != nil) else { throw PluginEngineError("Invalid RPC response.") }
             if let error = object["error"] {

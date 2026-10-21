@@ -10,6 +10,10 @@ struct TabNavigationList: View {
     @State private var reloading = false
 
     private var items: [DockItem] { navigation.items(pluginIDs: plugins.orderedTabs.map(\.id), forSettings: true) }
+    /// Dock items (enabled, not hidden) past the limit — still usable, just not shown in the dock.
+    private var overflow: [String] {
+        Array(navigation.items(pluginIDs: plugins.orderedTabs.map(\.id), disabled: Prefs.disabledTabSet).dropFirst(DockLayout.limit).map(\.id))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +39,7 @@ struct TabNavigationList: View {
                                 Image(systemName: group.symbol).frame(width: 18).foregroundStyle(.secondary)
                                 Text(group.name).lineLimit(1)
                                 Spacer(minLength: 0)
+                                if overflow.contains(id) { notInDock }
                                 Text("\(group.members.count)").font(.caption).foregroundStyle(.tertiary)
                             }
                             .padding(.vertical, 5)
@@ -69,6 +74,10 @@ struct TabNavigationList: View {
                     Button("Reset Groups") { navigation.resetGroups() }
                 }
                 Button("New Group…", systemImage: "plus") { creating = true }.disabled(navigation.loadError != nil)
+                if !overflow.isEmpty {
+                    Label("The dock fits \(DockLayout.limit). \(overflow.count) more \(overflow.count == 1 ? "isn’t" : "aren’t") shown — put some in a group or hide them.", systemImage: "info.circle")
+                        .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                }
                 Text("Drag dock items or expand a group to arrange its deck. Hidden plugins stay enabled.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 HStack {
@@ -100,12 +109,20 @@ struct TabNavigationList: View {
             SettingsTabIcon(tab: tab, revision: plugins.revision)
             Text(tab.name).lineLimit(1).help(tab.name).foregroundStyle(enabled(tab.id).wrappedValue ? .primary : .secondary)
             Spacer(minLength: 2)
+            if overflow.contains(tab.id) { notInDock }
             if navigation.hidden.contains(tab.id) {
                 Image(systemName: "eye.slash").font(.caption).foregroundStyle(.tertiary).help("Hidden from dock")
             }
             Toggle("Enable \(tab.name)", isOn: enabled(tab.id)).labelsHidden().toggleStyle(.switch).controlSize(.mini)
         }
         .padding(.vertical, 5)
+    }
+
+    private var notInDock: some View {
+        Text("Not in dock").font(.caption2).foregroundStyle(.secondary)
+            .padding(.horizontal, 6).padding(.vertical, 1)
+            .background(Capsule().fill(.quaternary))
+            .help("The dock shows \(DockLayout.limit) items. Hotkeys, ⌘K and the launcher still open it.")
     }
 
     @ViewBuilder private func orderMenu(_ id: String) -> some View {

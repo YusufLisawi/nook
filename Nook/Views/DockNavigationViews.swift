@@ -45,45 +45,15 @@ struct TabDock: View {
     @ObservedObject private var navigation = TabNavigationStore.shared
     @State private var dragging: String?
 
-    /// The dock never grows past this; extra icons scroll sideways with no scroll bar.
-    static let maxWidth: CGFloat = 400
-    @State private var fadeLeading = false
-    @State private var fadeTrailing = false
-
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal) {
-                HStack(spacing: 4) {
-                    ForEach(vm.dockItems) { item in dockButton(item) }
-                }
-                .padding(.horizontal, 6).padding(.vertical, 2)
-                .onDrop(of: [.plainText], isTargeted: nil) { _ in dragging = nil; return true }
-            }
-            .scrollIndicators(.never) // .hidden still shows with "Always show scroll bars"
-            .modifier(DockEdgeTracker(leading: $fadeLeading, trailing: $fadeTrailing))
-            .mask(edgeFade)
-            .onChange(of: vm.currentDockID) { _, id in
-                withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .center) }
-            }
-            .onAppear { proxy.scrollTo(vm.currentDockID, anchor: .center) }
+        HStack(spacing: 4) {
+            ForEach(vm.dockItems) { item in dockButton(item) }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: Self.maxWidth)
+        .padding(.horizontal, 6).padding(.vertical, 2)
         .background(Capsule().fill(.white.opacity(0.05)))
-        .clipShape(Capsule())
+        .onDrop(of: [.plainText], isTargeted: nil) { _ in dragging = nil; return true }
         .frame(maxWidth: .infinity)
         .frame(height: NotchViewModel.dockHeight)
-    }
-
-    /// Soft shadows at the edges that still have icons beyond them.
-    private var edgeFade: some View {
-        HStack(spacing: 0) {
-            LinearGradient(colors: [.black.opacity(fadeLeading ? 0 : 1), .black], startPoint: .leading, endPoint: .trailing).frame(width: 28)
-            Color.black
-            LinearGradient(colors: [.black, .black.opacity(fadeTrailing ? 0 : 1)], startPoint: .leading, endPoint: .trailing).frame(width: 28)
-        }
-        .animation(.easeOut(duration: 0.15), value: fadeLeading)
-        .animation(.easeOut(duration: 0.15), value: fadeTrailing)
     }
 
     private func dockButton(_ item: DockItem) -> some View {
@@ -154,22 +124,3 @@ private struct NavigationDockDrop: DropDelegate {
     }
 }
 
-/// Which dock edges have more icons past them (macOS 15+ reads the live scroll position).
-private struct DockEdgeTracker: ViewModifier {
-    @Binding var leading: Bool
-    @Binding var trailing: Bool
-
-    func body(content: Content) -> some View {
-        if #available(macOS 15.0, *) {
-            content.onScrollGeometryChange(for: [Bool].self) { geo in
-                let x = geo.contentOffset.x + geo.contentInsets.leading
-                return [x > 1, x + geo.containerSize.width < geo.contentSize.width - 1]
-            } action: { _, edges in
-                leading = edges[0]
-                trailing = edges[1]
-            }
-        } else {
-            content.onAppear { trailing = true } // macOS 14: no scroll position, hint that more is to the right
-        }
-    }
-}

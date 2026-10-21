@@ -23,6 +23,9 @@ struct DockItem: Equatable, Identifiable {
 
 /// Pure navigation policy, independent of preferences, AppKit, and running plugins.
 enum DockLayout {
+    /// The dock shows at most this many items; make groups (or hide tabs) for more. The rest stay reachable by hotkey, ⌘K and the launcher.
+    static let limit = 12
+
     static func items(pluginIDs: [String], groups: [TabGroup], hidden: Set<String> = [],
                       disabled: Set<String> = [], order: [String] = []) -> [DockItem] {
         let available = Set(pluginIDs).subtracting(disabled).subtracting(hidden)

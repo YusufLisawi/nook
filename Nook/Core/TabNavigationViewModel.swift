@@ -3,7 +3,8 @@ import SwiftUI
 
 extension NotchViewModel {
     var dockItems: [DockItem] {
-        TabNavigationStore.shared.items(pluginIDs: services.plugins.orderedTabs.map(\.id), disabled: Prefs.disabledTabSet)
+        Array(TabNavigationStore.shared.items(pluginIDs: services.plugins.orderedTabs.map(\.id), disabled: Prefs.disabledTabSet)
+            .prefix(DockLayout.limit))
     }
 
     var currentGroup: TabGroup? { TabNavigationStore.shared.group(containing: tab) }

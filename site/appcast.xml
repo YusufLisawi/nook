@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.8.0</title>
+  <pubDate>Wed, 21 Oct 2026 18:13:07 GMT</pubDate>
+  <sparkle:version>23</sparkle:version>
+  <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>File Search rebuilt: its own index (2–3 ms per search), newest files first when empty, search tricks (*.png, kind:image, ext:pdf, added:today, size:&gt;10mb, !node_modules)</li><li>Files in the launcher: type &#x27;f &#x27; or &#x27;file:&#x27; then a name</li><li>No permission popups at launch — click &#x27;Allow access&#x27; in File Search to include Desktop, Documents and Downloads</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.8.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="IL1+j8lWLK342YH7014YObpr7y5ZHuDaEJya5YFT4IRIzsC9kUBJCigo52NFt0Wd7ib0MyOLABbCv2SY+e9FCA==" length="11079363"/>
+</item>
+<item>
   <title>Nook 1.7.0</title>
   <pubDate>Wed, 21 Oct 2026 17:09:14 GMT</pubDate>
   <sparkle:version>22</sparkle:version>

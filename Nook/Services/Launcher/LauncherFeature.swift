@@ -197,7 +197,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         var rows: [LauncherEntry] = []
         if sources.contains(.applications) {
             rows += index.applications.map { app in
-                LauncherEntry(id: app.id, title: app.name, subtitle: index.runningPaths.contains(app.path) ? "Running" : app.bundleID,
+                LauncherEntry(id: app.id, title: app.name, subtitle: "",
                               kind: "Application", symbol: "app", source: .applications, target: .application(app))
             }
         }
@@ -210,7 +210,9 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
             case .tab: source = .plugins; kind = "Plugin"
             }
             guard sources.contains(source) else { continue }
-            rows.append(LauncherEntry(id: entry.id, title: entry.title, subtitle: entry.subtitle, kind: kind,
+            // The kind is already on the right; drop subtitles that just repeat it ("Tab", "AI Command").
+            let subtitle = ["tab", "ai command", "group", "command"].contains(entry.subtitle.lowercased()) ? "" : entry.subtitle
+            rows.append(LauncherEntry(id: entry.id, title: entry.title, subtitle: subtitle, kind: kind,
                                       symbol: entry.symbol, source: source, target: .nook(entry)))
         }
         if sources.contains(.system) {
@@ -229,7 +231,17 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     private func refresh() {
         let parsed = LauncherQuery(query), now = Date().timeIntervalSince1970
         let ids = LauncherRanking.ranked(candidates.map(\.document), query: parsed, history: LauncherFeature.shared.history, now: now)
-        var rows = ids.prefix(60).compactMap { byID[$0] }
+        var rows: [LauncherEntry]
+        if parsed.characters.isEmpty && parsed.source == nil {
+            // Empty box: what you used recently, then your AI commands and plugins — never an alphabetical app dump.
+            let history = LauncherFeature.shared.history
+            let used = ids.filter { history[$0] != nil }
+            let usedSet = Set(used)
+            let suggested = candidates.filter { !usedSet.contains($0.id) && ($0.source == .aiCommands || $0.source == .plugins) }.map(\.id)
+            rows = (used + suggested).prefix(40).compactMap { byID[$0] }
+        } else {
+            rows = ids.prefix(60).compactMap { byID[$0] }
+        }
         if canAskAI {
             rows.append(LauncherEntry(id: "askAI", title: "Ask AI: " + parsed.text, subtitle: "Send to your first saved agent, or Quick AI chat",
                                       kind: "AI", symbol: "sparkles", source: .askAI, target: .askAI))

@@ -28,6 +28,13 @@ final class LauncherApplicationIndex: ObservableObject {
     private var iconWaiters: [String: [(NSImage?) -> Void]] = [:]
     private var generation = 0
     private let roots = ["/Applications", "/System/Applications", "/System/Applications/Utilities", NSHomeDirectory() + "/Applications"]
+    /// Apps people open, like Raycast lists: only the Applications folders (plus Finder) — never helpers, agents or
+    /// apps nested in system frameworks that Spotlight also reports.
+    static func isListed(_ path: String) -> Bool {
+        guard !path.dropLast(4).contains(".app/") else { return false } // helpers bundled inside another app
+        return path == "/System/Library/CoreServices/Finder.app"
+            || ["/Applications/", "/System/Applications/", NSHomeDirectory() + "/Applications/"].contains { path.hasPrefix($0) }
+    }
     private let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("com.yusuf.nook/Launcher", isDirectory: true)
 
@@ -47,7 +54,7 @@ final class LauncherApplicationIndex: ObservableObject {
                 guard let self else { return }
                 if !cached.isEmpty {
                     let cachedPaths = Set(cached.map(\.path))
-                    self.applications = cached.filter { $0.bundleID != Bundle.main.bundleIdentifier }
+                    self.applications = cached.filter { $0.bundleID != Bundle.main.bundleIdentifier && Self.isListed($0.path) }
                         + self.applications.filter { !cachedPaths.contains($0.path) }
                 }
                 self.refresh()
@@ -95,7 +102,8 @@ final class LauncherApplicationIndex: ObservableObject {
         let token = generation, roots = roots, extra = spotlightPaths + Array(runningPaths), file = cache.appendingPathComponent("applications.json")
         queue.async { [weak self] in
             let manager = FileManager.default
-            var paths = Set(extra.filter { $0.hasSuffix(".app") })
+            var paths = Set(extra.filter { $0.hasSuffix(".app") && Self.isListed($0) })
+            paths.insert("/System/Library/CoreServices/Finder.app")
             for root in roots {
                 guard let enumerator = manager.enumerator(at: URL(fileURLWithPath: root), includingPropertiesForKeys: [.isDirectoryKey],
                                                           options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { continue }
@@ -109,12 +117,16 @@ final class LauncherApplicationIndex: ObservableObject {
                     ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
                     ?? URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
                 return LauncherApplication(path: path, name: name, bundleID: bundle.bundleIdentifier ?? "")
-            }.sorted { ($0.name.localizedLowercase, $0.path) < ($1.name.localizedLowercase, $1.path) }
+            }
+            // One row per app: the same bundle installed twice (or a running copy) keeps the shortest path.
+            var seen = Set<String>()
+            let unique = apps.sorted { $0.path.count < $1.path.count }.filter { $0.bundleID.isEmpty || seen.insert($0.bundleID).inserted }
+            let sorted = unique.sorted { ($0.name.localizedLowercase, $0.path) < ($1.name.localizedLowercase, $1.path) }
             try? manager.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-            if let data = try? JSONEncoder().encode(apps) { try? data.write(to: file, options: .atomic) }
+            if let data = try? JSONEncoder().encode(sorted) { try? data.write(to: file, options: .atomic) }
             DispatchQueue.main.async {
                 guard let self, token == self.generation else { return }
-                self.applications = apps
+                self.applications = sorted
                 self.gathering = false
             }
         }

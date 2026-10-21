@@ -20,7 +20,7 @@ struct LauncherView: View {
             else {
                 search
                 HStack {
-                    Text(LauncherQuery(state.query).characters.isEmpty ? "Recent" : "Results")
+                    Text(LauncherQuery(state.query).characters.isEmpty ? "Suggestions" : "Results")
                         .font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
                     Spacer()
                     if index.gathering { ProgressView().controlSize(.mini).accessibilityLabel("Indexing applications") }
@@ -49,7 +49,7 @@ struct LauncherView: View {
             Image(systemName: "command").font(.system(size: 21, weight: .light)).foregroundStyle(.secondary)
                 .frame(width: 26)
             TextField("Search anything…", text: $state.query)
-                .textFieldStyle(.plain).font(.system(size: 22, weight: .medium)).focused($searching)
+                .textFieldStyle(.plain).font(.system(size: 22, weight: .medium)).tint(.white).focused($searching)
                 .accessibilityLabel("Search applications, AI commands, plugins and actions")
             if state.thinking { ProgressView().controlSize(.small) }
             else if state.canAskAI {
@@ -98,7 +98,7 @@ struct LauncherView: View {
                     }
                 }.padding(.horizontal, 8)
             }
-            .scrollIndicators(.hidden)
+            .scrollIndicators(.never)
             .frame(height: CGFloat(max(1, min(8, state.results.count))) * 44)
             .onChange(of: state.selected?.id) { _, id in if let id { proxy.scrollTo(id, anchor: .center) } }
         }
@@ -170,7 +170,7 @@ struct LauncherView: View {
                 Text(state.answer.isEmpty ? (state.thinking ? "Thinking…" : "No response yet.") : state.answer)
                     .font(.system(size: 13)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }.scrollIndicators(.hidden)
+            }.scrollIndicators(.never)
             if let error = state.error { Text(error).foregroundStyle(.orange).font(.system(size: 12)) }
             HStack {
                 Button("Back to Search  Esc") { state.escape() }.buttonStyle(.plain).foregroundStyle(.secondary)

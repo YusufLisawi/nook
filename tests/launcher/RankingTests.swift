@@ -11,7 +11,8 @@ struct RankingTests {
             LauncherSearchDocument(id: "subsequence", source: .applications, title: "Amazing Remote Client"),
             LauncherSearchDocument(id: "word", source: .applications, title: "Google Arc"),
             LauncherSearchDocument(id: "prefix", source: .applications, title: "Arc"),
-            LauncherSearchDocument(id: "detail", source: .applications, title: "Browser", detail: "arc"),
+            LauncherSearchDocument(id: "detail", source: .plugins, title: "Browser", detail: "arc"),
+            LauncherSearchDocument(id: "appDetail", source: .applications, title: "Helper", detail: "com.arc.helper"),
             LauncherSearchDocument(id: "command", source: .aiCommands, title: "Rewrite"),
         ]
         let frequent = LauncherUsage(count: 1_000_000, lastUsed: now)

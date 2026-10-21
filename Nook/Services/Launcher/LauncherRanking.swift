@@ -87,7 +87,7 @@ enum LauncherRanking {
                 (index == 0 || !title[index - 1].isLetter && !title[index - 1].isNumber) && title[index...].starts(with: q)
             }) { tier = 3 }
             else { tier = 2 }
-        } else if let match = KeyboardSearch.score(q, in: document.detail) { tier = 1; fuzzy = match }
+        } else if document.source != .applications, let match = KeyboardSearch.score(q, in: document.detail) { tier = 1; fuzzy = match }
         else { return nil }
         return tier * 1000 + Double(min(200, max(-200, fuzzy))) + recent
     }

@@ -28,6 +28,8 @@ final class Services: ObservableObject {
         AgentService.register()
         WindowManager.shared.start()
         ClipsFeature.start()
+    @MainActor func start() {
+        PluginStore.register()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

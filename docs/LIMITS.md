@@ -26,6 +26,7 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | Move and resize app windows | `nook.windows.state/apply` — layouts, relative display moves, adjacent desktop moves; per-action global shortcuts in Settings → Window Management |
 | Be driven from outside | `nook open|toggle <id>` / `nook://open/<id>` URLs (scripts, Raycast, Shortcuts) |
 | Override a built-in tab | ship a plugin with the same `id` (e.g. `home`) |
+| Browse/install community plugins | Native Settings → Plugin Store; `nook search`, `install`, `update`, `uninstall`; `nook://install/<id>` opens details |
 
 Because `nook.shell` exists, **most "native" ideas are still plugins**: control Spotify/Music via `osascript`, read
 `~/Library` data, call `gh`/`bb`/`vercel` CLIs, ping servers, run local LLMs, tail logs, etc.
@@ -107,3 +108,5 @@ need manual verification on a running app. `delete` moves associated files (incl
 Clear/retention only remove clipboard entries and Nook's image copies. Screenshot originals and referenced files stay
 in place during clear/retention. Clipboard text and OCR caches are stored locally with user-only file permissions;
 they are not encrypted separately from the user's account.
+
+- **Store:** the public GitHub catalog is cached for offline browsing; installing/updating requires GitHub and is subject to its public API rate limits. An unpublished repository is shown as an empty Store. Packages are pinned to Git tree hashes and limited to 200 regular non-executable files, 5 MB each, 20 MB total. Updates refuse local edits; replaced/uninstalled copies go to Trash while saved data remains. `nook publish <path>` previews a validated contribution and requires `--yes` before using authenticated `gh` to fork, branch, upload, and open a PR. Store validation is a packaging/UI check, not a security review.

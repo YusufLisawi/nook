@@ -1,0 +1,12 @@
+{
+  "id": "word-count",
+  "name": "Word Count",
+  "version": "1.0.0",
+  "symbol": "text.word.spacing",
+  "entry": "index.html",
+  "height": 210,
+  "order": 110,
+  "settings": [
+    { "key": "showCharacters", "label": "Show character count", "type": "toggle", "default": true }
+  ]
+}

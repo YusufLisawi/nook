@@ -1,0 +1,19 @@
+[
+  {
+    "id": "word-count",
+    "name": "Word Count",
+    "description": "Count words and characters in a small local scratchpad. Your draft stays on your Mac.",
+    "author": "YusufLisawi",
+    "version": "1.0.0",
+    "symbol": "text.word.spacing",
+    "tags": [
+      "writing",
+      "productivity",
+      "offline"
+    ],
+    "screenshots": [],
+    "path": "plugins/word-count",
+    "sha": "0aa7aff1bd43887f33adeed6c3134f93958f52fa",
+    "updatedAt": "2026-10-21T14:16:42Z"
+  }
+]

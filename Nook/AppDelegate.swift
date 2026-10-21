@@ -61,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case "close": controllers.forEach { $0.viewModel.close() }
             case "reload": Services.shared.plugins.reload(); Services.shared.plugins.touch()
             case "settings": showSettings(pane: tab)
+            case "install": PluginStore.shared.open(tab)
             case "check-updates": updater.checkForUpdates(nil)
             default: break
             }

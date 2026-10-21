@@ -33,6 +33,7 @@ final class Services: ObservableObject {
         FileSearchService.shared.register()
         KeyboardActions.shared.start()
         NativeShortcutIntegration.register()
+        LauncherFeature.start()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

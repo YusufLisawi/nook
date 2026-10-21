@@ -280,6 +280,15 @@
     buttons[(index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
   });
 
+  // The native launcher waits for this handler on cold loads; no query is persisted in launcher history.
+  window.nookLauncherAsk = async (agentId, text) => {
+    await client.load();
+    await choose(agentId);
+    client.visible = true;
+    if (!await client.send(text)) throw new Error(client.error || 'Could not start the agent chat.');
+    return true;
+  };
+
   nook.on('agentSession', event => client.apply(event.session, event.item));
   nook.on('agentStorageError', error => client.fail(error));
   nook.on('agents', agents => {

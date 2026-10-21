@@ -423,3 +423,29 @@ recorder. `ShortcutRegistry.register` also accepts optional `defaultShortcut: Ta
 (default true); fixed navigation entries are read-only and participate in conflict checks. Known macOS symbolic
 shortcuts are checked; other apps' private shortcuts remain undiscoverable. Window shortcuts invoked inside the
 notch use that display's captured external window.
+
+## Native Launcher
+
+**⌥Space** toggles a native borderless launcher inside the notch when available; an occupied default falls back to **⌃⌥Space**.
+Dictation already owns ⌥Space by default, so ⌃⌥Space is the usual initial assignment. If both are occupied, record an available shortcut in Settings.
+Change or disable it in Settings → Keyboard Shortcuts → Toggle Launcher, or Settings → Launcher. The latter also
+controls sources and clears local launch history. The launcher has no dock item and adds no JavaScript bridge API.
+It reuses `nook.actions.register`, the ⌘K fuzzy matcher, AI Commands, and enabled tab/group identities.
+
+Search applications, AI Commands, plugins (including hidden dock items), tab groups, loaded plugin actions, and
+Lock Screen / Sleep / Empty Trash / Toggle Dark Mode / Quit Nook. Rows show the app icon, title, subtitle, and kind;
+running apps show **Running**. Empty queries show recent items ranked by local launch count and last-used time.
+Optional prefixes narrow search: `app:`, `ai:`, `plugin:`, `action:`, `command:`. Prefix matches outrank word starts,
+then subsequences, then subtitle-only matches; history breaks ties within each match class.
+
+↑↓ / ⌃N / ⌃P select; Return runs; ⌘Return reveals an app in Finder or opens the target tab without running;
+⌘1–9 picks results; ⌘K opens the selected row's actions. Tab or the final **Ask AI** row sends the query to the first
+saved agent in Agents. With no available agent/Agents tab, a native Quick AI chat uses the existing Codex login.
+The bundled Agents plugin provides a native handoff handler that waits for loading and opens a new chat; no plugin
+API was added. Escape dismisses actions/confirmation, backs out of Quick AI, clears search text, then closes.
+Clicking outside or toggling again closes; keyboard use holds the notch open without pinning it.
+
+AI Command entry snapshots the external app, clipboard and accessible selection **before** the panel takes focus.
+Commands use the normal AI Command execution/output pipeline with that context. Text providers without AX selection
+support use the existing selection fallback after the captured external app is restored. Clipboard/query text from
+the launcher is never used as the selection. See docs/LIMITS.md for focus and indexing limitations.

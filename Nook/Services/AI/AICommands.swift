@@ -77,7 +77,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
 
     // MARK: Running
 
-    func run(_ id: String, fromNotch: Bool) {
+    func run(_ id: String, fromNotch: Bool, context: AICommandContext? = nil) {
         guard let command = commands.first(where: { $0.id == id }) else { return }
         running?.cancel()
         let runID = "\(Int(Date().timeIntervalSince1970 * 1000))"
@@ -85,12 +85,20 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
             if fromNotch {
                 // The notch had keyboard focus; give it back to the app the user was in before grabbing the selection.
                 closeNotches()
+                context?.application?.activate()
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
-            let app = NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
-            let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
+            if let context, !context.restoreTarget() {
+                finish(runID, command, status: "error", text: "", error: "The original app is unavailable. Focus it and try again.", selection: "")
+                return
+            }
+            let app = context?.application?.localizedName ?? NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
+            let clipboard = context?.clipboard ?? NSPasteboard.general.string(forType: .string) ?? ""
             let needsSelection = command.prompt.contains("{selection}") || command.output == "replace" || command.output == "paste"
-            let selection = needsSelection ? await SelectionGrabber.selectedText() : ""
+            let selection: String
+            if !needsSelection { selection = "" }
+            else if let captured = context?.selection { selection = captured }
+            else { selection = await SelectionGrabber.selectedText() }
             if command.prompt.contains("{selection}"), selection.isEmpty {
                 finish(runID, command, status: "error", text: "", error: "No text to work with — select some, or put your cursor in a text box with text.", selection: "")
                 return
@@ -108,6 +116,11 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
                     DispatchQueue.main.async { self.publish(runID, command, status: "running", text: partial, error: nil, selection: selection) }
                 }
                 guard !Task.isCancelled else { return }
+                if let context, command.output == "replace" || command.output == "paste" {
+                    context.application?.activate()
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    guard context.restoreTarget() else { throw AIBrain.Failure(message: "The original app is unavailable; the answer wasn't pasted.") }
+                }
                 switch command.output {
                 case "replace": SelectionGrabber.paste(text, keepOnClipboard: command.copyToo)
                 case "paste": SelectionGrabber.paste(text, after: true, keepOnClipboard: command.copyToo)

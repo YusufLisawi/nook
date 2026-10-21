@@ -40,8 +40,10 @@
 		452BF7EAA27D896D001EF851 /* OpenAITranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */; };
 		479A9B6EDFC12070BD09201E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BC2C6184ED772D9A964531 /* Extensions.swift */; };
 		4E46AC3713B9EFC6B1422C33 /* SettingsPluginActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97C6F0D10803FC8843C67AF /* SettingsPluginActions.swift */; };
+		4E4773C121A70DA087BADAE8 /* LauncherFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2EF972A000A9BE3A81ABB3 /* LauncherFeature.swift */; };
 		5211D767553F2B876DF5720B /* template in Resources */ = {isa = PBXBuildFile; fileRef = FE8D215B0A74BB45D9B25666 /* template */; };
 		56553422850AF1DA0CAEC4B9 /* NativeShortcutIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E373750DDA3CD9E54A3004 /* NativeShortcutIntegration.swift */; };
+		5977678B183413F5CF3DAEEC /* LauncherPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFAA8BB9337E19FD9CDD1F1D /* LauncherPreferences.swift */; };
 		5BF1B0308EDE757A6876B93A /* ClipboardHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BCD964DE4A53759BEC282B /* ClipboardHistory.swift */; };
 		5C53FC59EA30258D2BEF2D74 /* FileSearchQuickLook.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85DECE852A8C5BFFC2D83E9 /* FileSearchQuickLook.swift */; };
 		5D645B276EF44EE0629234FE /* WindowSpaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FACCB4E83B54C27887FBD8A /* WindowSpaces.swift */; };
@@ -55,6 +57,7 @@
 		66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */; };
 		69AFC256632ADEFB36D389D3 /* WindowShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA5FC6BF6F9D0C0C5B31B25 /* WindowShortcuts.swift */; };
 		69CC67F387657DCC411EE215 /* ClipboardSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D82FC8145198B18F32BFB92 /* ClipboardSettingsPane.swift */; };
+		6A37FDD5E6D4C14FF488710B /* LauncherSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F260E3445E398BA51F6FDF2 /* LauncherSelection.swift */; };
 		70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */; };
 		720AD453A868FD6D58DA6661 /* WindowActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD2E65BB9CFBDA04C318E4F /* WindowActions.swift */; };
 		7716178DEA1C7B1CA939F55E /* NookUI in Resources */ = {isa = PBXBuildFile; fileRef = 14A07A8C4411618C0764B100 /* NookUI */; };
@@ -76,9 +79,11 @@
 		94F3AB565013F9C630FF4AD3 /* ToolsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9ABB861189553A55FD6ECF /* ToolsPane.swift */; };
 		9693847AED3AC165044B60F9 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D42A5D5FCF4370A368C56D5 /* Components.swift */; };
 		98ED8A0243E07AE500750DD5 /* TabNavigationList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647B97DAA5D6EC324A635784 /* TabNavigationList.swift */; };
+		9B91C27C0D03C12AAAFAD434 /* LauncherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 500E0E8C08DF947061E6119D /* LauncherView.swift */; };
 		A51A9A2CA87A73B6A33DBA09 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6433A88DA315C13F36036589 /* main.swift */; };
 		A9529D4BD2578A4547009C93 /* PluginSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7571D9D06CBA91960D5C4995 /* PluginSettings.swift */; };
 		A9F777D8C1F8630F576BBD7E /* KeyboardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1185AA4D34284A7B61324663 /* KeyboardPalette.swift */; };
+		AD30F42A7B549E832083923C /* LauncherApplicationIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAAF81FFF4CFEA98F5622C6E /* LauncherApplicationIndex.swift */; };
 		AE319F520FCBFC69B788A48D /* GeneralPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55460A9CB93F76A350307F0E /* GeneralPane.swift */; };
 		B3C548F6F6325E01BD9FD292 /* PLUGINS.md in Resources */ = {isa = PBXBuildFile; fileRef = C1A1BD9CB7BF5C32DC1280CA /* PLUGINS.md */; };
 		B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */; };
@@ -109,6 +114,7 @@
 		E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B9712B528BBE65144FFBCE /* DictationService.swift */; };
 		E854BBC40E501AD2FCB15F32 /* AgentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2953F5A5CEFF5667CC67E2 /* AgentModels.swift */; };
 		EAFB737A2E3E06934A234999 /* PluginStorePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93135239226DC986B1C2CBF5 /* PluginStorePublisher.swift */; };
+		F21D1ED5724DB8429F93274D /* LauncherRanking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD9D46B401B7C7B080245E7 /* LauncherRanking.swift */; };
 		F379C46688C1D44E36A429CE /* SystemStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23055D40A8B72A840805201E /* SystemStats.swift */; };
 		FA09B67D88C18710F1E272DC /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 321028EC0FB1A80BF6BD907A /* Sparkle */; };
 		FD969684F1D778DBBD8E9814 /* SettingsSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B32777D0D0180B0E7100BD1B /* SettingsSnapshot.swift */; };
@@ -183,6 +189,7 @@
 		49066C920CB9F7805A9F9470 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = SOURCE_ROOT; };
 		49D6833C313C09C6E32A7424 /* TabsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabsPane.swift; sourceTree = "<group>"; };
 		4A3AA8A0E74C693235971034 /* ShortcutsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsPane.swift; sourceTree = "<group>"; };
+		500E0E8C08DF947061E6119D /* LauncherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherView.swift; sourceTree = "<group>"; };
 		511F04655A88E65837A89A02 /* Plugins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Plugins; sourceTree = SOURCE_ROOT; };
 		51BC2C6184ED772D9A964531 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		51E373750DDA3CD9E54A3004 /* NativeShortcutIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeShortcutIntegration.swift; sourceTree = "<group>"; };
@@ -198,9 +205,11 @@
 		66A8305528A9B604368F8C25 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
 		6AF31C476DBDFF1170647A72 /* Nook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
+		6BD9D46B401B7C7B080245E7 /* LauncherRanking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherRanking.swift; sourceTree = "<group>"; };
 		6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginRegistry.swift; sourceTree = "<group>"; };
 		6D2953F5A5CEFF5667CC67E2 /* AgentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentModels.swift; sourceTree = "<group>"; };
 		6D82FC8145198B18F32BFB92 /* ClipboardSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardSettingsPane.swift; sourceTree = "<group>"; };
+		6F260E3445E398BA51F6FDF2 /* LauncherSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherSelection.swift; sourceTree = "<group>"; };
 		6F84A0264F36E7238DF7609B /* FileSearchSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchSettingsPane.swift; sourceTree = "<group>"; };
 		6F852F8AAAF23FBC93E0E9D5 /* PluginStorePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStorePane.swift; sourceTree = "<group>"; };
 		72C6D772BA3F22AADBB13AE2 /* SettingsNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigation.swift; sourceTree = "<group>"; };
@@ -228,6 +237,7 @@
 		B1FC39E1162DACE98C629A66 /* AIPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPane.swift; sourceTree = "<group>"; };
 		B32777D0D0180B0E7100BD1B /* SettingsSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSnapshot.swift; sourceTree = "<group>"; };
 		BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITranscriber.swift; sourceTree = "<group>"; };
+		BAAF81FFF4CFEA98F5622C6E /* LauncherApplicationIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherApplicationIndex.swift; sourceTree = "<group>"; };
 		BF358538A3CF77BEE37796A9 /* SettingsPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPersistence.swift; sourceTree = "<group>"; };
 		C141074731F0E83AB891F9C5 /* CleanerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanerEngine.swift; sourceTree = "<group>"; };
 		C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPluginHost.swift; sourceTree = "<group>"; };
@@ -243,6 +253,7 @@
 		D1B9712B528BBE65144FFBCE /* DictationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationService.swift; sourceTree = "<group>"; };
 		D338EE324000C1050594537E /* WindowDesktopPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDesktopPlan.swift; sourceTree = "<group>"; };
 		DA1B5102CED61010014BD53B /* NotchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchViewModel.swift; sourceTree = "<group>"; };
+		DF2EF972A000A9BE3A81ABB3 /* LauncherFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherFeature.swift; sourceTree = "<group>"; };
 		E24A1E3AF6C9284DE85E0A58 /* AICommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICommands.swift; sourceTree = "<group>"; };
 		F524EF4CA8F1F533CB661C07 /* DockNavigationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockNavigationViews.swift; sourceTree = "<group>"; };
 		F8A708EC61760010B0EA91A3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -250,6 +261,7 @@
 		FD70FF370E94556B10546FF6 /* ProxyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyService.swift; sourceTree = "<group>"; };
 		FDC0E53E6A2DD3C935AF2D49 /* AboutPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutPane.swift; sourceTree = "<group>"; };
 		FE8D215B0A74BB45D9B25666 /* template */ = {isa = PBXFileReference; lastKnownFileType = folder; name = template; path = cli/template; sourceTree = SOURCE_ROOT; };
+		FFAA8BB9337E19FD9CDD1F1D /* LauncherPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherPreferences.swift; sourceTree = "<group>"; };
 		FFD88336361791E70385D715 /* Groq.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Groq.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -287,6 +299,7 @@
 				ADEBAF360477CFDAEFBFC2F1 /* AI */,
 				3F6BAD0F397C300478F0056F /* Clips */,
 				162E61C661C6D942724925B4 /* Dictation */,
+				9297B8BA12BA60CACF42CC67 /* Launcher */,
 				75113F64C6C11A30FA42A3C8 /* Windows */,
 			);
 			path = Services;
@@ -425,6 +438,19 @@
 				7D8AF0C0507505D2DEDCDB4B /* AgentsPane.swift */,
 			);
 			path = Agents;
+			sourceTree = "<group>";
+		};
+		9297B8BA12BA60CACF42CC67 /* Launcher */ = {
+			isa = PBXGroup;
+			children = (
+				BAAF81FFF4CFEA98F5622C6E /* LauncherApplicationIndex.swift */,
+				DF2EF972A000A9BE3A81ABB3 /* LauncherFeature.swift */,
+				FFAA8BB9337E19FD9CDD1F1D /* LauncherPreferences.swift */,
+				6BD9D46B401B7C7B080245E7 /* LauncherRanking.swift */,
+				6F260E3445E398BA51F6FDF2 /* LauncherSelection.swift */,
+				500E0E8C08DF947061E6119D /* LauncherView.swift */,
+			);
+			path = Launcher;
 			sourceTree = "<group>";
 		};
 		A49468BF2D5D7D2754929EBC /* Settings */ = {
@@ -631,6 +657,12 @@
 				621B2D2CAC8668ECB1273D8C /* KeyboardFocus.swift in Sources */,
 				A9F777D8C1F8630F576BBD7E /* KeyboardPalette.swift in Sources */,
 				E360FE3AFBDE38534BCBD7A7 /* KeyboardWebSupport.swift in Sources */,
+				AD30F42A7B549E832083923C /* LauncherApplicationIndex.swift in Sources */,
+				4E4773C121A70DA087BADAE8 /* LauncherFeature.swift in Sources */,
+				5977678B183413F5CF3DAEEC /* LauncherPreferences.swift in Sources */,
+				F21D1ED5724DB8429F93274D /* LauncherRanking.swift in Sources */,
+				6A37FDD5E6D4C14FF488710B /* LauncherSelection.swift in Sources */,
+				9B91C27C0D03C12AAAFAD434 /* LauncherView.swift in Sources */,
 				5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */,
 				889613576CA3F120014ECCA6 /* MediaController.swift in Sources */,
 				2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */,

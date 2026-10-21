@@ -186,3 +186,35 @@ estimate covers the standard `~/Library/Caches/Homebrew` root, not a custom `HOM
   keyboard-accessible row menus. Corrupt saved group JSON is left intact and reported until explicitly reset.
 - All native shortcut assignments share conflict detection, including Open Nook, Window Management, groups, and
   read-only navigation reservations. This does not enumerate private shortcuts in other applications.
+
+## Native Launcher
+
+- The launcher is a SwiftUI mode of the existing notch panel (720 pt content width; up to eight visible rows).
+  It shares the notch shape/spring, CaptureShield, keyboard key-panel behavior and held hit rectangle. It does not
+  add a dock tab or a separate launcher window. Selection is a soft rounded white tint; search has no border or ring.
+- Apps are discovered on a utility queue from `/Applications`, `/System/Applications`,
+  `/System/Applications/Utilities`, `~/Applications`, running apps and Spotlight's application-bundle index.
+  FSEvents and live Spotlight updates refresh discovery. Spotlight Privacy, unmounted volumes and unreadable folders
+  can limit discovery; standard folders still work without Spotlight. Application metadata and 64 px PNG icons are
+  cached in `~/Library/Caches/com.yusuf.nook/Launcher`; icons are loaded lazily off the UI thread.
+- Launch counts/last-used dates are bounded to 500 entries and saved in Nook preferences. Queries, selected text,
+  and Quick AI answers are not included in recents. Clearing recents removes this history. Cold indexing and AX
+  responsiveness depend on macOS/other applications; the <50 ms first-frame target still requires an interactive
+  measurement on the lead's running build. Prepared filtering of 500 apps is covered by a <5 ms performance test.
+- The global shortcut needs the existing Accessibility permission. Defaults check enabled macOS shortcuts and
+  Nook's registered/tab/group/AI/dictation assignments before trying ⌥Space then ⌃⌥Space. If both
+  are occupied it starts unassigned; record an available shortcut in Settings. Private shortcuts belonging to
+  Raycast or other apps cannot be enumerated. Settings can change or disable the assignment.
+- AI Commands snapshot accessible selected text before focus changes; unselected native text inputs snapshot their
+  contents and restore their selection when executed. Providers that do not expose AX selection use the existing
+  clipboard fallback after restoring the captured app. An app that has quit cannot receive output. Remote AX
+  providers may time out; nonstandard editors may need an explicit selection. Clipboard fallback and replacement
+  still require Accessibility and a usable original input. Existing command output modes/providers remain intact.
+- Plugin actions appear after their plugin has loaded on that display; disabled tabs' actions are excluded.
+  ⌘Return opens the action's plugin without emitting an action. The first saved agent is the Quick AI default;
+  the bundled Agents tab must be enabled and finish loading. Agent failures remain inline. Native Quick AI fallback
+  requires the existing ChatGPT/Codex login and model access, and is an ephemeral chat rather than saved agent history.
+- Empty Trash (Finder), Sleep and Quit require a second explicit activation; Escape cancels. Finder emptying applies
+  to all mounted volumes and may need Automation permission. Dark Mode uses System Events and may also need
+  Automation permission. Lock Screen sends macOS's ⌃⌘Q shortcut through the existing Accessibility capability.
+  These system operations are never part of indexing or automated tests. Quit follows Nook's normal shutdown path.

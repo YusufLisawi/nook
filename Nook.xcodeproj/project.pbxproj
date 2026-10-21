@@ -32,6 +32,7 @@
 		5D645B276EF44EE0629234FE /* WindowSpaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FACCB4E83B54C27887FBD8A /* WindowSpaces.swift */; };
 		5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305C12534BB0A21814E084F9 /* LinkCatcher.swift */; };
 		60F532960BD30243B4031025 /* AgentProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CD7B656088A250C15F7E0EB /* AgentProcess.swift */; };
+		62885461EC33520A43D69C24 /* PluginStoreClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02CB27AE100899E458C57A38 /* PluginStoreClient.swift */; };
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
 		66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */; };
 		69AFC256632ADEFB36D389D3 /* WindowShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA5FC6BF6F9D0C0C5B31B25 /* WindowShortcuts.swift */; };
@@ -520,6 +521,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				62885461EC33520A43D69C24 /* PluginStoreClient.swift in Sources */,
 				0DD34E0849B813D48E4D472A /* PluginStoreCommands.swift in Sources */,
 				EAFB737A2E3E06934A234999 /* PluginStorePublisher.swift in Sources */,
 				A51A9A2CA87A73B6A33DBA09 /* main.swift in Sources */,

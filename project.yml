@@ -75,7 +75,9 @@ targets:
   nook-cli:
     type: tool
     platform: macOS
-    sources: [cli/swift]
+    sources:
+      - path: cli/swift
+      - path: Nook/Core/PluginStoreClient.swift
     settings:
       base:
         PRODUCT_NAME: nook-cli

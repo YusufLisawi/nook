@@ -10,12 +10,16 @@ final class MicRecorder: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate 
 
     static let target = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16_000, channels: 1, interleaved: true)!
 
-    private let session = AVCaptureSession()
+    /// A fresh session per recording: one kept across sleep/wake or device changes can keep "running" while delivering
+    /// only silence (all-zero buffers), which came back as empty transcriptions.
+    private var session = AVCaptureSession()
     private let queue = DispatchQueue(label: "nook.mic")
     private var file: AVAudioFile?
     private var converter: AVAudioConverter?
     private(set) var level: Float = 0
     private(set) var framesWritten: AVAudioFramePosition = 0
+    /// Loudest sample of the current/last recording (0 = the mic delivered pure silence).
+    private(set) var peak: Int16 = 0
 
     static func microphones() -> [Mic] {
         AVCaptureDevice.DiscoverySession(deviceTypes: [.microphone, .external], mediaType: .audio, position: .unspecified)
@@ -39,9 +43,9 @@ final class MicRecorder: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate 
         ]
         output.setSampleBufferDelegate(self, queue: queue)
 
+        if session.isRunning { session.stopRunning() }
+        session = AVCaptureSession()
         session.beginConfiguration()
-        session.inputs.forEach(session.removeInput)
-        session.outputs.forEach(session.removeOutput)
         guard session.canAddInput(input), session.canAddOutput(output) else {
             session.commitConfiguration()
             throw NSError(domain: "Nook", code: 2, userInfo: [NSLocalizedDescriptionKey: "Couldn't use \(device.localizedName)"])
@@ -54,6 +58,7 @@ final class MicRecorder: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate 
             file = try AVAudioFile(forWriting: url, settings: Self.target.settings, commonFormat: .pcmFormatInt16, interleaved: true)
             converter = nil
             framesWritten = 0
+            peak = 0
             level = 0
         }
         session.startRunning()
@@ -98,7 +103,10 @@ final class MicRecorder: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate 
         if let samples = out.int16ChannelData?[0] {
             var sum: Float = 0
             let n = Int(out.frameLength)
-            for i in 0..<n { let v = Float(samples[i]) / 32768; sum += v * v }
+            for i in 0..<n {
+                let v = Float(samples[i]) / 32768; sum += v * v
+                peak = max(peak, samples[i] == .min ? .max : abs(samples[i]))
+            }
             let rms = n > 0 ? sqrt(sum / Float(n)) : 0
             level = min(1, rms * 6) // speech sits low; scale up for the meter
         }

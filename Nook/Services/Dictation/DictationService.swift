@@ -162,10 +162,16 @@ final class DictationService: ObservableObject {
             phase = .idle
             return
         }
-        sound("Pop")
+        let silent = mic.peak == 0
+        if !silent { sound("Pop") }
         history.insert(Entry(id: current.id, date: current.started, audio: current.url.lastPathComponent, status: "transcribing", duration: duration), at: 0)
         if history.count > 200 { history.removeLast(history.count - 200) }
         saveHistory()
+        // Pure digital silence means the mic never delivered audio (not a quiet room) — say so instead of pasting nothing.
+        if silent {
+            fail(current.id, "The microphone sent no sound. Try again — if it keeps happening, pick the mic again in Settings → Dictation.")
+            return
+        }
         phase = .transcribing
         process(current.id, paste: true)
     }

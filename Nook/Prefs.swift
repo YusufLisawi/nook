@@ -9,6 +9,9 @@ enum Prefs {
     static let shelfAutoOpen = "shelfAutoOpenOnDrag"
     static let preferredScreen = "preferredScreenName"
     static let disabledTabs = "disabledTabs"
+    static let hiddenTabs = "hiddenTabs" // [plugin ID]; presentation only, never disables a plugin
+    static let tabGroups = "tabGroups" // JSON-encoded [TabGroup]
+    static let dockOrder = "dockItemOrder" // plugin IDs and group:<UUID> IDs
     static let scratch = "scratch"
     static let swipes = "trackpadSwipes"
     static let openNookShortcut = "openNookShortcut" // TabHotkey JSON data; empty data = disabled

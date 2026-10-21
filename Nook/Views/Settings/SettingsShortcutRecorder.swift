@@ -7,6 +7,7 @@ struct SettingsShortcutItem: Identifiable {
     let group: String
     var allowsModifierOnly = false
     var defaultShortcut: DictationShortcut? = nil
+    var editable = true
     let get: () -> DictationShortcut?
     let set: (DictationShortcut?) -> Void
 
@@ -31,20 +32,41 @@ struct SettingsShortcutItem: Identifiable {
                     set: { DictationShortcut.save(key, $0); Services.shared.dictation.reloadShortcuts() })
     }
 
+    static func group(_ group: TabGroup) -> Self {
+        Self(id: "group:\(group.id)", title: group.name, group: "Tab Groups",
+             get: { TabNavigationStore.shared.group(group.id)?.hotkey.map(convert) },
+             set: { TabNavigationStore.shared.setHotkey(group.id, $0.flatMap(convert)) })
+    }
+
+    static func registration(_ registration: ShortcutRegistration) -> Self {
+        Self(id: "extension:\(registration.id)", title: registration.title, group: registration.group,
+             defaultShortcut: registration.defaultShortcut.map(convert),
+             editable: registration.editable,
+             get: { registration.get().map(convert) }, set: { registration.set($0.flatMap(convert)) })
+    }
+
     static var all: [Self] {
         Services.shared.plugins.orderedTabs.map(Self.tab)
         + Services.shared.commands.commands.map(Self.command)
         + [Self.dictation(hold: true), Self.dictation(hold: false)]
-        + ShortcutRegistry.shortcuts.map { registration in
-            Self(id: "extension:\(registration.id)", title: registration.title, group: registration.group,
-                 get: { registration.get().map(convert) }, set: { registration.set($0.flatMap(convert)) })
+        + TabNavigationStore.shared.groups.map(Self.group)
+        + ShortcutRegistry.shortcuts.map(Self.registration)
+    }
+
+    func conflicts(with shortcut: DictationShortcut, excluding ids: Set<String> = []) -> [Self] {
+        Self.all.filter { other in
+            other.id != id && !ids.contains(other.id) && other.get().map { ShortcutIdentity($0) == ShortcutIdentity(shortcut) } == true
         }
     }
 
-    func conflicts(with shortcut: DictationShortcut) -> [Self] {
-        Self.all.filter { other in
-            other.id != id && other.get().map { ShortcutIdentity($0) == ShortcutIdentity(shortcut) } == true
+    func rejection(for shortcut: DictationShortcut, excluding ids: Set<String> = []) -> String? {
+        if let conflict = conflicts(with: shortcut, excluding: ids).first {
+            return "Already used by \(conflict.title) (\(conflict.group)). Choose another shortcut."
         }
+        if let key = Self.convert(shortcut), let conflict = ShortcutRegistry.externalConflicts(key).first {
+            return "Already used by \(conflict). Choose another shortcut."
+        }
+        return nil
     }
 
     private static func convert(_ key: TabHotkey) -> DictationShortcut {
@@ -101,8 +123,8 @@ private final class SettingsShortcutSession: ObservableObject {
     }
 
     private func save(_ shortcut: DictationShortcut?, for item: SettingsShortcutItem, report: (String?) -> Void) {
-        if let shortcut, let conflict = item.conflicts(with: shortcut).first {
-            report("Already used by \(conflict.title) (\(conflict.group)). Choose another shortcut.")
+        if let shortcut, let rejection = item.rejection(for: shortcut) {
+            report(rejection)
             stop()
             return
         }
@@ -134,24 +156,30 @@ struct SettingsShortcutRecorder: View {
         let current = item.get()
         VStack(alignment: .trailing, spacing: 6) {
             HStack(spacing: 8) {
-                Button(recording ? (session.peak.isEmpty ? "Press keys…" : Modifiers.symbols(session.peak) + "…") : (current?.display ?? "Record Shortcut")) {
-                    if recording { session.stop() } else { session.start(item) { message = $0 } }
-                }
-                .font(.system(.body, design: .rounded))
-                .accessibilityLabel("\(item.title) shortcut")
-                .accessibilityValue(recording ? "Recording" : (current?.display ?? "Not set"))
-                if current != nil, !recording {
-                    Button {
-                        item.set(nil)
-                        message = nil
-                        NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
-                    } label: { Image(systemName: "xmark.circle.fill") }
-                    .buttonStyle(.borderless).foregroundStyle(.secondary)
-                    .accessibilityLabel("Clear \(item.title) shortcut")
+                if !item.editable {
+                    Text(current?.display ?? "—").foregroundStyle(.secondary)
+                        .font(.system(.body, design: .rounded))
+                } else {
+                    Button(recording ? (session.peak.isEmpty ? "Press keys…" : Modifiers.symbols(session.peak) + "…") : (current?.display ?? "Record Shortcut")) {
+                        if recording { session.stop() } else { session.start(item) { message = $0 } }
+                    }
+                    .font(.system(.body, design: .rounded))
+                    .accessibilityLabel("\(item.title) shortcut")
+                    .accessibilityValue(recording ? "Recording" : (current?.display ?? "Not set"))
+                    if current != nil, !recording {
+                        Button {
+                            item.set(nil)
+                            message = nil
+                            NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
+                        } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.borderless).foregroundStyle(.secondary)
+                        .accessibilityLabel("Clear \(item.title) shortcut")
+                    }
                 }
             }
             if let fallback = item.defaultShortcut, current != fallback, !recording {
                 Button("Restore Default") {
+                    if let rejection = item.rejection(for: fallback) { message = rejection; return }
                     item.set(fallback)
                     message = nil
                     NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
@@ -165,8 +193,8 @@ struct SettingsShortcutRecorder: View {
             if let message {
                 Text(message).font(.caption).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
-            } else if let current, let other = item.conflicts(with: current).first {
-                Label("Also assigned to \(other.title) (\(other.group))", systemImage: "exclamationmark.triangle")
+            } else if item.editable, let current, let rejection = item.rejection(for: current) {
+                Label(rejection, systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }

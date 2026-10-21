@@ -112,7 +112,7 @@ Wrap **every** `nook.*` call in try/catch; a failed call is a state, not a crash
   `nook.keyboard.focus()` requests it explicitly. Keep editors' caret and selection intact on regular updates.
 - Register named actions with `nook.actions.register([...])` for the ⌘K palette; handle `nook.on('action', id)`
   and optionally `actionAlternate`. Shortcuts are local to the selected tab, never system-wide.
-- Nook owns ⌘K, ⌘1…9, ⌃Tab/⌃⇧Tab, ⌘[/⌘] and Esc. Don't override them. Use a quiet `.nk-shortcuts` footer
+- Nook owns ⌘K, ⌘1…9, ⌃Tab/⌃⇧Tab, ⌘[/⌘], ⌥⌘←/⌥⌘→ (deck members) and Esc. Don't override them. Use a quiet `.nk-shortcuts` footer
   for the relevant hints, such as `←→ Choose  ↩ Run  ⌘↩ Edit  ⌘K Actions`. Include only actions that exist.
 
 ## 9. Customisation

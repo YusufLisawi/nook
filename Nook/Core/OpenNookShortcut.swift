@@ -36,51 +36,14 @@ enum OpenNookShortcut {
     }
 }
 
-/// Reuses Nook's shortcut encoding; separate from the Settings agent's shortcuts pane.
+/// General and Keyboard Shortcuts share the same recorder and conflict catalog.
 struct OpenNookShortcutRow: View {
-    @State private var shortcut = OpenNookShortcut.current
-    @State private var recording = false
-    @State private var monitor: Any?
-
     var body: some View {
-        LabeledContent("Open Nook") {
-            HStack {
-                Button(recording ? "Press shortcut…" : shortcut?.display ?? "Off") { recording ? stop() : start() }
-                    .font(.system(size: 12, design: .rounded))
-                if shortcut != OpenNookShortcut.defaultShortcut {
-                    Button("Reset") { save(OpenNookShortcut.defaultShortcut) }.buttonStyle(.link)
-                }
+        if let registration = ShortcutRegistry.shortcuts.first(where: { $0.id == "keyboard.openNook" }) {
+            LabeledContent("Open Nook") {
+                SettingsShortcutRecorder(item: .registration(registration))
             }
+            .help("Open Nook from any app. Escape cancels; Delete turns it off.")
         }
-        .help("Press a shortcut with Command, Option or Control. Delete turns it off; Escape cancels.")
-        .onDisappear(perform: stop)
-    }
-
-    private func start() {
-        recording = true
-        Services.shared.dictation.hotkeys.paused = true
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            switch event.keyCode {
-            case 53: stop()
-            case 51, 117: save(nil)
-            default:
-                guard let next = TabHotkeys.make(from: event) else { return nil }
-                save(next)
-            }
-            return nil
-        }
-    }
-
-    private func save(_ value: TabHotkey?) {
-        shortcut = value
-        OpenNookShortcut.save(value)
-        stop()
-    }
-
-    private func stop() {
-        if let monitor { NSEvent.removeMonitor(monitor) }
-        monitor = nil
-        recording = false
-        Services.shared.dictation.hotkeys.paused = false
     }
 }

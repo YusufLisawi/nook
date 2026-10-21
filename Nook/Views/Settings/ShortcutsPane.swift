@@ -3,8 +3,10 @@ import SwiftUI
 struct ShortcutsPane: View {
     @ObservedObject private var plugins = Services.shared.plugins
     @ObservedObject private var commands = Services.shared.commands
+    @ObservedObject private var navigation = TabNavigationStore.shared
     @State private var revision = 0
     @State private var trusted = AXIsProcessTrusted()
+    @State private var restoreError: String?
 
     var body: some View {
         let _ = revision
@@ -24,17 +26,28 @@ struct ShortcutsPane: View {
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             shortcutSection("Tabs & Plugins", items: plugins.orderedTabs.map(SettingsShortcutItem.tab))
+            if !navigation.groups.isEmpty {
+                shortcutSection("Tab Groups", items: navigation.groups.map(SettingsShortcutItem.group))
+            }
             shortcutSection("AI Commands", items: commands.commands.map(SettingsShortcutItem.command))
             Section {
                 ForEach([SettingsShortcutItem.dictation(hold: true), .dictation(hold: false)]) { item in
                     LabeledContent(item.title) { SettingsShortcutRecorder(item: item) }
                 }
                 Button("Restore Dictation Defaults") {
+                    let keys: Set<String> = ["dictation:hold", "dictation:toggle"]
+                    if let error = SettingsShortcutItem.dictation(hold: true).rejection(for: .defaultHold, excluding: keys)
+                        ?? SettingsShortcutItem.dictation(hold: false).rejection(for: .defaultToggle, excluding: keys) {
+                        restoreError = error
+                        return
+                    }
+                    restoreError = nil
                     DictationShortcut.save(DictationService.Keys.holdShortcut, .defaultHold)
                     DictationShortcut.save(DictationService.Keys.toggleShortcut, .defaultToggle)
                     Services.shared.dictation.reloadShortcuts()
                     NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
                 }
+                if let restoreError { Text(restoreError).font(.caption).foregroundStyle(.orange) }
             } header: {
                 Text("Dictation")
             } footer: {

@@ -4,59 +4,16 @@ struct TabsPane: View {
     @ObservedObject private var plugins = Services.shared.plugins
     @AppStorage(Prefs.disabledTabs) private var disabledTabs = ""
     @State private var selection: String?
-    @State private var reloading = false
+    @ObservedObject private var navigation = TabNavigationStore.shared
 
     var body: some View {
         HSplitView {
-            VStack(spacing: 0) {
-                List(selection: $selection) {
-                    ForEach(plugins.orderedTabs) { tab in
-                        HStack(spacing: 9) {
-                            SettingsTabIcon(tab: tab, revision: plugins.revision)
-                            Text(tab.name).lineLimit(1).help(tab.name)
-                                .foregroundStyle(enabled(tab.id).wrappedValue ? .primary : .secondary)
-                            Spacer(minLength: 2)
-                            Toggle("Enable \(tab.name)", isOn: enabled(tab.id))
-                                .labelsHidden().toggleStyle(.switch).controlSize(.mini)
-                        }
-                        .padding(.vertical, 5)
-                        .tag(tab.id)
-                        .contextMenu {
-                            Button("Move Up") { move(tab.id, by: -1) }
-                                .disabled(plugins.orderedTabs.first?.id == tab.id)
-                            Button("Move Down") { move(tab.id, by: 1) }
-                                .disabled(plugins.orderedTabs.last?.id == tab.id)
-                        }
-                    }
-                    .onMove { plugins.move(from: $0, to: $1) }
-                }
-                .listStyle(.inset)
-                Divider()
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Drag to reorder the notch dock. Use the row menu to move a tab with the keyboard.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    HStack {
-                        Button("Plugins Folder", systemImage: "folder") { NSWorkspace.shared.open(PluginRegistry.userDir) }
-                            .help("Open Plugins Folder")
-                        if reloading { ProgressView().controlSize(.small).accessibilityLabel("Reloading plugins") }
-                        Spacer(minLength: 4)
-                        Menu {
-                            Button("Reload Plugins") {
-                                reloading = true
-                                Task { await plugins.reloadForSettings(); reloading = false }
-                            }
-                            .disabled(reloading)
-                            Button("Reset Tab Order") { plugins.resetOrder() }.disabled(plugins.customOrder.isEmpty)
-                        } label: { Image(systemName: "ellipsis.circle") }
-                        .menuStyle(.borderlessButton).fixedSize()
-                        .accessibilityLabel("Plugin actions")
-                    }
-                    .controlSize(.small)
-                }
-                .padding(12)
-            }
-            .frame(minWidth: 210, idealWidth: 230, maxWidth: 300)
-            if let tab = plugins.tabs.first(where: { $0.id == selection }) {
+            TabNavigationList(selection: $selection)
+                .frame(minWidth: 230, idealWidth: 260, maxWidth: 330)
+            if let selection, navigation.group(selection) != nil {
+                TabGroupDetail(groupID: selection)
+                    .frame(minWidth: 430, maxWidth: .infinity, maxHeight: .infinity)
+            } else if let tab = plugins.tabs.first(where: { $0.id == selection }) {
                 Form {
                     Section {
                         HStack(spacing: 12) {
@@ -69,10 +26,12 @@ struct TabsPane: View {
                             Spacer(minLength: 0)
                         }
                         .padding(.vertical, 4)
-                        Toggle("Show in the notch dock", isOn: enabled(tab.id))
+                        Toggle("Enable plugin", isOn: enabled(tab.id))
+                        Toggle("Hide from dock", isOn: Binding(get: { navigation.hidden.contains(tab.id) },
+                                                              set: { navigation.setHidden(tab.id, $0) }))
                         LabeledContent("Keyboard shortcut") { SettingsShortcutRecorder(item: .tab(tab)) }
                     } footer: {
-                        Text("A shortcut opens this tab from any app. Press it again to close the notch.")
+                        Text("A shortcut opens this tab from any app, even when hidden. Hiding removes it from dock navigation; disabling makes it unavailable.")
                     }
                     PluginSettingsForm(tab: tab, grouped: true)
                         .id("\(tab.id):\(tab.dir?.path ?? "native"):\(plugins.revision)")
@@ -87,16 +46,14 @@ struct TabsPane: View {
         }
         .onAppear(perform: reconcileSelection)
         .onChange(of: plugins.tabs) { _, _ in reconcileSelection() }
+        .onChange(of: navigation.groups) { _, _ in reconcileSelection() }
+        .onReceive(navigation.$settingsSelection) { id in
+            if let id { selection = id }
+        }
     }
 
     private func reconcileSelection() {
-        if !plugins.tabs.contains(where: { $0.id == selection }) { selection = plugins.orderedTabs.first?.id }
-    }
-
-    private func move(_ id: String, by offset: Int) {
-        let tabs = plugins.orderedTabs
-        guard let index = tabs.firstIndex(where: { $0.id == id }), tabs.indices.contains(index + offset) else { return }
-        plugins.move(id, to: tabs[index + offset].id)
+        if !plugins.tabs.contains(where: { $0.id == selection }) && !navigation.groups.contains(where: { $0.id == selection }) { selection = plugins.orderedTabs.first?.id }
     }
 
     private func enabled(_ id: String) -> Binding<Bool> {
@@ -111,7 +68,7 @@ struct TabsPane: View {
     }
 }
 
-private struct SettingsTabIcon: View {
+struct SettingsTabIcon: View {
     let tab: TabItem
     var size: CGFloat = 18
     var revision = 0

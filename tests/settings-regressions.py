@@ -10,6 +10,8 @@ sources = [
     "Nook/Core/PluginRegistry.swift",
     "Nook/Core/TabHotkeys.swift",
     "Nook/Core/ShortcutRegistry.swift",
+    "Nook/Core/TabNavigation.swift",
+    "Nook/Core/TabNavigationStore.swift",
     "Nook/Services/Dictation/DictationShortcut.swift",
     "Nook/Views/Settings/SettingsNavigation.swift",
     "Nook/Views/Settings/SettingsShortcutRecorder.swift",
@@ -28,6 +30,12 @@ final class UserDefaults {
     func stringArray(forKey key: String) -> [String]? { values[key] as? [String] }
     func dictionary(forKey key: String) -> [String: Any]? { values[key] as? [String: Any] }
     func set(_ value: Any?, forKey key: String) { values[key] = value }
+    func removeObject(forKey key: String) { values.removeValue(forKey: key) }
+}
+enum Prefs {
+    static let hiddenTabs = "hiddenTabs"
+    static let tabGroups = "tabGroups"
+    static let dockOrder = "dockItemOrder"
 }
 struct PluginSetting: Decodable, Equatable { let key: String }
 final class MockHotkeys { var paused = false }

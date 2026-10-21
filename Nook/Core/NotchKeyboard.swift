@@ -5,6 +5,7 @@ import SwiftUI
 final class NotchKeyboardState: ObservableObject {
     enum Target {
         case tab(String)
+        case group(String)
         case command(String)
         case action(KeyboardActions.Action)
     }
@@ -28,9 +29,19 @@ final class NotchKeyboardState: ObservableObject {
 
     var results: [Entry] {
         guard let vm else { return [] }
-        var entries = vm.enabledTabs.enumerated().map { index, tab in
-            Entry(id: "tab:\(tab.id)", title: tab.name, subtitle: "Tab", symbol: tab.symbol,
-                  shortcut: index < 9 ? "⌘\(index + 1)" : "", target: .tab(tab.id))
+        let dock = vm.dockItems
+        var entries = vm.enabledTabs.map { tab in
+            let index = dock.firstIndex { $0.id == tab.id }
+            let group = TabNavigationStore.shared.group(containing: tab.id)
+            return Entry(id: "tab:\(tab.id)", title: tab.name, subtitle: group.map { "Tab · \($0.name)" } ?? "Tab",
+                         symbol: tab.symbol,
+                         shortcut: index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil } ?? TabHotkeys.get(tab.id)?.display ?? "",
+                         target: .tab(tab.id))
+        }
+        entries += TabNavigationStore.shared.groups.filter { group in group.members.contains(where: vm.isEnabled) }.map { group in
+            let index = dock.firstIndex { $0.id == group.id }
+            return Entry(id: group.id, title: group.name, subtitle: "Tab Group", symbol: group.symbol,
+                         shortcut: index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil } ?? group.hotkey?.display ?? "", target: .group(group.id))
         }
         entries += vm.services.commands.commands.filter(\.enabled).map {
             Entry(id: "command:\($0.id)", title: $0.name, subtitle: "AI Command", symbol: "wand.and.stars",
@@ -157,6 +168,15 @@ final class NotchKeyboardController {
             vm.select(id)
             vm.showingSettings = alternate
             focusContent()
+        case let .group(id):
+            if alternate {
+                TabNavigationStore.shared.settingsSelection = id
+                (NSApp.delegate as? AppDelegate)?.showSettings(pane: "tabs")
+            } else if let group = TabNavigationStore.shared.group(id) {
+                let members = group.members.filter(vm.isEnabled)
+                if let member = members.contains(group.lastMember ?? "") ? group.lastMember : members.first { vm.select(member) }
+                focusContent()
+            }
         case let .command(id):
             if alternate {
                 vm.close()
@@ -200,11 +220,17 @@ final class NotchKeyboardController {
             }
         }
         if flags == .command, let number = Int(key), (1...9).contains(number) {
-            if vm.enabledTabs.indices.contains(number - 1) {
+            if let item = DockLayout.numbered(number, in: vm.dockItems) {
                 vm.keyboard.isPresented = false
-                vm.select(vm.enabledTabs[number - 1].id)
+                vm.selectDockItem(item)
                 focusContent()
             }
+            return true
+        }
+        if flags == [.command, .option], event.keyCode == 123 || event.keyCode == 124 {
+            vm.keyboard.isPresented = false
+            vm.stepDeck(event.keyCode == 123 ? -1 : 1)
+            focusContent()
             return true
         }
         if (event.keyCode == 48 && (flags == .control || flags == [.control, .shift])) ||
@@ -226,6 +252,14 @@ final class NotchKeyboardController {
                 $0.enabled && $0.hotkey?.keyCode == Int(event.keyCode) && $0.hotkey?.modifiers == modifiers.rawValue
             }) {
                 if !event.isARepeat { vm.services.commands.run(command.id, fromNotch: true) }
+                return true
+            }
+            if WindowShortcuts.shared.action(key: Int64(event.keyCode), modifiers: modifiers) != nil {
+                if !event.isARepeat { _ = WindowManager.shared.handleShortcut(key: Int64(event.keyCode), modifiers: modifiers, from: vm) }
+                return true
+            }
+            if let group = NativeShortcutIntegration.group(key: Int64(event.keyCode), modifiers: modifiers) {
+                if !event.isARepeat { vm.toggleGroup(group.id); if vm.isOpen { focusContent() } }
                 return true
             }
             if let tab = TabHotkeys.tab(forKey: Int64(event.keyCode), modifiers: modifiers) {

@@ -48,7 +48,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var keywords: [String] {
         switch self {
         case .general: ["notch", "hover", "click", "screen", "display", "fullscreen", "haptic", "swipe", "shelf", "drag", "music", "timer", "login", "startup"]
-        case .tabs: ["plugin", "enable", "disable", "order", "dock", "height", "shortcut", "hotkey", "customize", "code", "revert", "reload"]
+        case .tabs: ["plugin", "enable", "disable", "hide", "hidden", "group", "deck", "order", "dock", "height", "shortcut", "hotkey", "customize", "code", "revert", "reload"]
         case .commands: ["prompt", "selection", "clipboard", "output", "provider", "model", "reasoning", "hotkey", "shortcut", "translate"]
         case .ai: ["account", "login", "subscription", "connection", "Groq", "OpenAI", "API key", "provider"]
         case .dictation: ["voice", "microphone", "record", "transcription", "Whisper", "sound", "vocabulary", "cleanup", "audio", "hold to talk", "shortcut", "retention"]

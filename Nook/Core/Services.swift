@@ -31,6 +31,7 @@ final class Services: ObservableObject {
         PluginStore.register()
         FileSearchService.shared.register()
         KeyboardActions.shared.start()
+        NativeShortcutIntegration.register()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

@@ -17,6 +17,7 @@
 		0DD34E0849B813D48E4D472A /* PluginStoreCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C28711F85CADC23250C7502C /* PluginStoreCommands.swift */; };
 		0F0BC6ED04F09F06423E84C0 /* DockNavigationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F524EF4CA8F1F533CB661C07 /* DockNavigationViews.swift */; };
 		11D7D94E9C132A57F0996E52 /* DictationPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF31FC9222BDD326A794D90 /* DictationPane.swift */; };
+		148E7D021711EB5157D442A1 /* MouseActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11DD9928E4EDD080BB0492C5 /* MouseActions.swift */; };
 		1830C87670856F04FDE26E8B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A708EC61760010B0EA91A3 /* main.swift */; };
 		19EE9D5D6ADEEA16DCE3C1B1 /* AgentDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CDA4F32C95DE8B60030AA0 /* AgentDiff.swift */; };
 		1B0911599C65AA5CFF549AC3 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7643CBF0A8E97CA82870A6D3 /* AppIntents.framework */; };
@@ -63,6 +64,7 @@
 		7716178DEA1C7B1CA939F55E /* NookUI in Resources */ = {isa = PBXBuildFile; fileRef = 14A07A8C4411618C0764B100 /* NookUI */; };
 		78948816316DF3E65E939FBE /* FileSearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4012A6A6C8E8E5B1AA510D59 /* FileSearchModels.swift */; };
 		799A4A3D71F1ECF5BBA417A0 /* Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88DB59F92E353F6D2904A53A /* Tabs.swift */; };
+		7E1F239FB48BAE0C8CCB3362 /* MouseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81AED7CB4CB02EC732338BF /* MouseConfig.swift */; };
 		80D0104BA350F7AA54B17373 /* WindowAccessibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00896E24C4E430F1C8F88C91 /* WindowAccessibility.swift */; };
 		818E0AA52033914C11B7FE1F /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = AF4BC706384F08798C56F055 /* AppIcon.icns */; };
 		82A19445DE077798C64BBA2E /* SettingsPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF358538A3CF77BEE37796A9 /* SettingsPersistence.swift */; };
@@ -74,6 +76,7 @@
 		88D701905CD925F217C98F67 /* OpenNookShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD227168F6E1B0E7C8957110 /* OpenNookShortcut.swift */; };
 		892D565EC38B7BA5F0AE48EA /* ClipsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89203DE659F34852BE937CB1 /* ClipsBridge.swift */; };
 		8D50EC46DE9365145310F01E /* PluginSettingsForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264155FA846A218EFDEBD1E9 /* PluginSettingsForm.swift */; };
+		8F09B63AE8E1A14C5498B844 /* MouseScroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9D54D21124869AE1189552 /* MouseScroller.swift */; };
 		9007398995E444128D4D967D /* ClipModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA192BBE99384D44D3D4B930 /* ClipModels.swift */; };
 		92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DADCCDD358E9EA34C28C74 /* Prefs.swift */; };
 		94F3AB565013F9C630FF4AD3 /* ToolsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9ABB861189553A55FD6ECF /* ToolsPane.swift */; };
@@ -114,6 +117,7 @@
 		E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B9712B528BBE65144FFBCE /* DictationService.swift */; };
 		E854BBC40E501AD2FCB15F32 /* AgentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2953F5A5CEFF5667CC67E2 /* AgentModels.swift */; };
 		EAFB737A2E3E06934A234999 /* PluginStorePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93135239226DC986B1C2CBF5 /* PluginStorePublisher.swift */; };
+		F0DB93FFD14AD23F5B1FE14C /* MouseFixService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49191F3D14AD9ECE7CA3B1A /* MouseFixService.swift */; };
 		F21D1ED5724DB8429F93274D /* LauncherRanking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BD9D46B401B7C7B080245E7 /* LauncherRanking.swift */; };
 		F379C46688C1D44E36A429CE /* SystemStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23055D40A8B72A840805201E /* SystemStats.swift */; };
 		FA09B67D88C18710F1E272DC /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 321028EC0FB1A80BF6BD907A /* Sparkle */; };
@@ -160,6 +164,7 @@
 		0ED7F0CE539625E9216FFC57 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		0F8092E1D468BB6C791C61CE /* UpdatesPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesPane.swift; sourceTree = "<group>"; };
 		1185AA4D34284A7B61324663 /* KeyboardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPalette.swift; sourceTree = "<group>"; };
+		11DD9928E4EDD080BB0492C5 /* MouseActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseActions.swift; sourceTree = "<group>"; };
 		134231D8AC8BB99035F80039 /* AIBrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIBrain.swift; sourceTree = "<group>"; };
 		14A07A8C4411618C0764B100 /* NookUI */ = {isa = PBXFileReference; lastKnownFileType = folder; path = NookUI; sourceTree = SOURCE_ROOT; };
 		181E760461FC26E5D809407A /* ShortcutRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRegistry.swift; sourceTree = "<group>"; };
@@ -198,6 +203,7 @@
 		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		56729F3514AAE0833BA5B921 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		5C7A346371B85AEE3A606DDF /* AudioMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMixer.swift; sourceTree = "<group>"; };
+		5F9D54D21124869AE1189552 /* MouseScroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseScroller.swift; sourceTree = "<group>"; };
 		5FACCB4E83B54C27887FBD8A /* WindowSpaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSpaces.swift; sourceTree = "<group>"; };
 		61E3E5BC6DED5145D907EB91 /* AgentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentService.swift; sourceTree = "<group>"; };
 		6433A88DA315C13F36036589 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -246,6 +252,7 @@
 		C31AA95267FAFBFBDB850E8C /* TimerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerService.swift; sourceTree = "<group>"; };
 		C50B5F2C98350BBDDE39EFC6 /* TabNavigationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabNavigationViewModel.swift; sourceTree = "<group>"; };
 		C56F150318FB5BF1029A8DF1 /* FileShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelf.swift; sourceTree = "<group>"; };
+		C81AED7CB4CB02EC732338BF /* MouseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseConfig.swift; sourceTree = "<group>"; };
 		C97C6F0D10803FC8843C67AF /* SettingsPluginActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPluginActions.swift; sourceTree = "<group>"; };
 		CA192BBE99384D44D3D4B930 /* ClipModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipModels.swift; sourceTree = "<group>"; };
 		CAA5FC6BF6F9D0C0C5B31B25 /* WindowShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowShortcuts.swift; sourceTree = "<group>"; };
@@ -255,6 +262,7 @@
 		DA1B5102CED61010014BD53B /* NotchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchViewModel.swift; sourceTree = "<group>"; };
 		DF2EF972A000A9BE3A81ABB3 /* LauncherFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherFeature.swift; sourceTree = "<group>"; };
 		E24A1E3AF6C9284DE85E0A58 /* AICommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICommands.swift; sourceTree = "<group>"; };
+		F49191F3D14AD9ECE7CA3B1A /* MouseFixService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseFixService.swift; sourceTree = "<group>"; };
 		F524EF4CA8F1F533CB661C07 /* DockNavigationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockNavigationViews.swift; sourceTree = "<group>"; };
 		F8A708EC61760010B0EA91A3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FB0D3096715CC7687F6FA829 /* KeyboardActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardActions.swift; sourceTree = "<group>"; };
@@ -300,6 +308,7 @@
 				3F6BAD0F397C300478F0056F /* Clips */,
 				162E61C661C6D942724925B4 /* Dictation */,
 				9297B8BA12BA60CACF42CC67 /* Launcher */,
+				A36925054E77E9FB707D8FD7 /* MouseFix */,
 				75113F64C6C11A30FA42A3C8 /* Windows */,
 			);
 			path = Services;
@@ -451,6 +460,17 @@
 				500E0E8C08DF947061E6119D /* LauncherView.swift */,
 			);
 			path = Launcher;
+			sourceTree = "<group>";
+		};
+		A36925054E77E9FB707D8FD7 /* MouseFix */ = {
+			isa = PBXGroup;
+			children = (
+				11DD9928E4EDD080BB0492C5 /* MouseActions.swift */,
+				C81AED7CB4CB02EC732338BF /* MouseConfig.swift */,
+				F49191F3D14AD9ECE7CA3B1A /* MouseFixService.swift */,
+				5F9D54D21124869AE1189552 /* MouseScroller.swift */,
+			);
+			path = MouseFix;
 			sourceTree = "<group>";
 		};
 		A49468BF2D5D7D2754929EBC /* Settings */ = {
@@ -666,6 +686,10 @@
 				5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */,
 				889613576CA3F120014ECCA6 /* MediaController.swift in Sources */,
 				2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */,
+				148E7D021711EB5157D442A1 /* MouseActions.swift in Sources */,
+				7E1F239FB48BAE0C8CCB3362 /* MouseConfig.swift in Sources */,
+				F0DB93FFD14AD23F5B1FE14C /* MouseFixService.swift in Sources */,
+				8F09B63AE8E1A14C5498B844 /* MouseScroller.swift in Sources */,
 				56553422850AF1DA0CAEC4B9 /* NativeShortcutIntegration.swift in Sources */,
 				C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */,
 				B615E72E9CCD80243D21C1B1 /* NotchGeometry.swift in Sources */,

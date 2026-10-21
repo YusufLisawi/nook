@@ -1,0 +1,20 @@
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; align-content: start; }
+.field { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.field > .name { flex: none; width: 112px; font-size: 12px; }
+.field .nk-fill { min-width: 0; }
+.field input[type=range] { accent-color: var(--accent); }
+.field .value { flex: none; width: 34px; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.field.wide { grid-column: 1 / -1; }
+.sub { grid-column: 1 / -1; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.pick { width: auto; padding: 4px 22px 4px 8px; -webkit-appearance: none; appearance: none; cursor: default;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 11px) 52%, calc(100% - 7px) 52%; background-size: 4px 4px; background-repeat: no-repeat; }
+.pick option { background: #1c1c1e; }
+.rule { display: flex; align-items: center; gap: 8px; padding: 7px 9px; }
+.rule .which { flex: none; width: 84px; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; }
+.rule .which svg { width: 14px; height: 14px; color: var(--muted); }
+.rule .opt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rule .opt span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.rule .opt select { width: 100%; }
+.nk-icon-btn svg { width: 15px; height: 15px; }
+.learning { color: var(--accent); }

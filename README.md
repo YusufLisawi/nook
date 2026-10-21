@@ -28,6 +28,7 @@ Hover the notch and it opens. Two-finger swipe between tabs. Drag tabs to reorde
 | **Home** | To-dos, CPU / memory / disk at a glance, a one-tap focus timer |
 | **Dictation** | Hold ⌃⌥ (or your shortcut) and talk — Groq Whisper + an AI cleanup pass, pasted where you type. History, retry, copy |
 | **Mixer** | Per-app volume up to 200%, pick and pin your default mic and speakers |
+| **Mouse** | Smooth wheel scrolling, reverse direction, scroll modifiers, and remap your mouse's extra buttons (click, hold, drag) to Mission Control, Spaces, media keys and more. Off until you turn it on |
 | **Proxy** | Paste proxies, tap one, and the whole Mac goes through it (logins handled for you). Live IP check |
 | **Monitor** | CPU, memory, disk, battery, network, top processes |
 | **Notes** | Quick notes, pinned notes, search |
@@ -45,7 +46,7 @@ curl -fsSL https://nook.motkan.com/install.sh | bash
 ```
 
 Or [download Nook.dmg](https://github.com/YusufLisawi/nook/releases/latest/download/Nook.dmg) and drag **Nook** to Applications. Signed with Developer ID and notarized by Apple.
-3. Grant what you use: **Accessibility** (shortcuts, paste), **Microphone** (dictation), **System Audio Recording** (per-app volume).
+3. Grant what you use: **Accessibility** (shortcuts, paste, the Mouse tab), **Microphone** (dictation), **System Audio Recording** (per-app volume).
 
 Requires macOS 14.2 or later. Apple silicon and Intel.
 
@@ -87,6 +88,7 @@ The project is generated from `project.yml`. Official builds are signed with Mot
 ## Credits
 
 - Dictation follows the pipeline of [FreeFlow](https://github.com/zachlatta/freeflow) (MIT) — Groq Whisper + LLM cleanup — and can import your FreeFlow key, prompt and vocabulary.
+- The Mouse tab is a from-scratch Swift implementation inspired by what [Mac Mouse Fix](https://github.com/noah-nuebling/mac-mouse-fix) does for scroll wheels and extra buttons. No MMF code is used (it's under its own [MMF License](https://github.com/noah-nuebling/mac-mouse-fix/blob/master/License)); if you want the full-featured app, go and support it.
 - Built with SwiftUI, AppKit, WebKit and Core Audio process taps.
 
 ## License

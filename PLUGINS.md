@@ -90,7 +90,7 @@ nook.activity.clear()
 nook.notch.close()
 nook.notch.pin(true|false)                    // keep the notch open when the mouse leaves
 nook.notch.setHeight(px)                      // resize this tab's content area live
-nook.on(event, cb)                            // 'open' | 'close' | 'show' (tab shown) | 'settings' | 'proxy' | 'dictation'
+nook.on(event, cb)                            // 'open' | 'close' | 'show' (tab shown) | 'settings' | 'proxy' | 'dictation' | 'mouse'
                                               // 'dragenter' | 'dragleave' | 'drop' (paths: real file/folder paths dropped on this tab)
 
 nook.proxy.list()        // → { proxies: [{ id, name, scheme, host, port, hasAuth }], activeId|null }
@@ -106,9 +106,18 @@ nook.dictation.history() // → [{ id, date (ISO), status: 'done'|'failed'|'tran
 nook.dictation.retry(id) / remove(id) / copy(id) / paste(id) / clear()
 nook.dictation.state()   // → { recording, transcribing, holdShortcut: "⌃⌥", toggleShortcut: "⌥Space", hasKey }
 nook.dictation.toggle()  // start/stop recording
+
+nook.mouse.state()       // → { config, trusted, running, learning, actions: [{ id, label }] }
+                         //   config: { enabled, smoothness: off|low|regular|high, speed 0.3–3, acceleration 0–1, reverse,
+                         //             horizontalModifier|preciseModifier|quickModifier: none|shift|option|control|command,
+                         //             buttons: { "<button number>": { click, hold, drag } } }   (2 = middle, 3 = back, 4 = forward…)
+nook.mouse.set({ smoothness: "high" })       // merge top-level settings (not `buttons`: use setButton); each call returns the new state
+nook.mouse.setButton("3", { click: "back" })   // click/hold = an action id, drag = "none" | "spaces"
+nook.mouse.removeButton("3") / learn(true|false) / openPrivacy()   // learn: the next button pressed arrives as nook.on('mouse', { button })
+                         // nook.on('mouse') also fires with { running: true } once the engine is up, and { learning: false } when learning ends
 ```
 
-Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`.
+Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`; `'mouse'` gets a small notice (see above), so call `nook.mouse.state()` to read the new state.
 
 ## Agents (Codex sessions)
 

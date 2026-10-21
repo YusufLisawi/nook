@@ -39,8 +39,8 @@ nook validate <id>       # must pass before you say "done"
 `nook.settings.get/set/open` + `nook.on('settings')` · `nook.storage.get/set/all` · `nook.shell(cmd,{timeout})` ·
 `nook.fetch(url,{method,headers,body})` · `nook.system()` · `nook.ai.chat(messages,{json})` (LLM via the user's Groq key) · `nook.clipboard.read/write` · `nook.open(url|path)` · `nook.notify(title, body)` ·
 `nook.activity.set({text,symbol,color}) / clear()` (closed-notch status) · `nook.notch.close/pin(bool)/setHeight(px)` ·
-`nook.on('open'|'close'|'show'|'drop'|'dragenter'|'dragleave'|'audio'|'proxy'|'dictation', cb)` ·
-`nook.audio.*` (devices, per-app volume) · `nook.commands.*` (AI Commands) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})
+`nook.on('open'|'close'|'show'|'drop'|'dragenter'|'dragleave'|'audio'|'proxy'|'dictation'|'mouse', cb)` ·
+`nook.audio.*` (devices, per-app volume) · `nook.commands.*` (AI Commands) · `nook.mouse.*` (wheel smoothing, button remaps) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})
 
 ## Starter layout (uses the kit)
 
@@ -59,5 +59,5 @@ nook validate <id>       # must pass before you say "done"
 Clone https://github.com/YusufLisawi/nook (the user may already have it, e.g. `~/Developer/nook`). Map:
 `Nook/NotchController.swift` (panel, hover, swipes) · `Nook/NotchViewModel.swift` (state, sizes, activities) ·
 `Nook/Core/WebPluginHost.swift` (bridge — add `nook.*` calls in `handle` and `bridgeJS`) · `Nook/Core/PluginRegistry.swift` ·
-`Nook/Services/*` (media, timers, shelf, stats, proxy, mixer, dictation) · `Nook/Views/*` · `NookUI/nook-ui.css` · `cli/swift` (this CLI).
+`Nook/Services/*` (media, timers, shelf, stats, proxy, mixer, dictation, mouse) · `Nook/Views/*` · `NookUI/nook-ui.css` · `cli/swift` (this CLI).
 Build: `xcodegen generate && xcodebuild -scheme Nook -configuration Release -derivedDataPath build build`. Document new bridge calls in `PLUGINS.md`.

@@ -119,6 +119,7 @@ final class WebPluginHost: NSObject {
             AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], reply: reply)
         case let f where f.hasPrefix("commands."): s.commands.handle(String(f.dropFirst(9)), args: args, reply: reply)
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
+        case let f where f.hasPrefix("mouse."): s.mouse.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default:
             let scopedArgs: [Any] = fn == "actions.register" ? Array(args.prefix(1)) + [keyboardID] : args
@@ -167,6 +168,7 @@ final class WebPluginHost: NSObject {
             ai: { chat: (messages, o) => call('ai.chat', messages, o || {}) },
             commands: Object.fromEntries(['list','save','remove','run','recordHotkey','clearHotkey','models','lastRun'].map(n => [n, (...a) => call('commands.' + n, ...a)])),
             audio: Object.fromEntries(['state','setDefault','setDeviceVolume','setDeviceMute','setPreferred','setAppVolume','setAppMute','resetApp','openPrivacy'].map(n => [n, (...a) => call('audio.' + n, ...a)])),
+            mouse: Object.fromEntries(['state','set','setButton','removeButton','learn','openPrivacy'].map(n => [n, (...a) => call('mouse.' + n, ...a)])),
             dictation: Object.fromEntries(['history','retry','remove','copy','paste','clear','state','toggle'].map(n => [n, (...a) => call('dictation.' + n, ...a)])),
             on: (e, cb) => { (listeners[e] = listeners[e] || []).push(cb); },
             _emit: (e, d) => (listeners[e] || []).forEach(cb => { try { cb(d); } catch (err) { console.error(err); } }),

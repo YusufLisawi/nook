@@ -272,6 +272,13 @@ nook.on('mouse', (d) => {
 nook.on('show', refresh);
 nook.on('open', refresh);
 nook.on('close', () => { if (state?.learning) call('learn', false); });
+document.addEventListener('keydown', (event) => {
+  // Native buttons support Enter/Space; also provide the requested Command-Enter path outside roving groups.
+  const button = event.target.closest('button');
+  if (event.key === 'Enter' && event.metaKey && button && !event.defaultPrevented && !button.closest('.nk-roving')) {
+    event.preventDefault(); button.click();
+  }
+});
 document.addEventListener('nk:alt', (event) => {
   const button = event.target.closest('button');
   if (button) { event.preventDefault(); button.click(); }

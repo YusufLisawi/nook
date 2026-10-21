@@ -111,6 +111,7 @@
 		D4C14466D35CDA6B7ACF3D6C /* CommandsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A920856AE01B2E6E6F0862A /* CommandsPane.swift */; };
 		D7EF7CE343C3C42867D1A29E /* ShortcutsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A3AA8A0E74C693235971034 /* ShortcutsPane.swift */; };
 		DA2F673812937E372CED38D9 /* FileSearchSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F84A0264F36E7238DF7609B /* FileSearchSettingsPane.swift */; };
+		DB02C55D89FCEC481FE688BA /* SyntheticInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFF56963B1C4CE2B195F42A8 /* SyntheticInput.swift */; };
 		DB91F7D4B0938592DB240D09 /* WindowDesktopPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = D338EE324000C1050594537E /* WindowDesktopPlan.swift */; };
 		DE1CFDB1B42FA30F8E424C94 /* SettingsShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A9CB58AD389EFE253297561 /* SettingsShortcutRecorder.swift */; };
 		DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD70FF370E94556B10546FF6 /* ProxyService.swift */; };
@@ -266,6 +267,7 @@
 		DA1B5102CED61010014BD53B /* NotchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchViewModel.swift; sourceTree = "<group>"; };
 		DF2EF972A000A9BE3A81ABB3 /* LauncherFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LauncherFeature.swift; sourceTree = "<group>"; };
 		E24A1E3AF6C9284DE85E0A58 /* AICommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICommands.swift; sourceTree = "<group>"; };
+		EFF56963B1C4CE2B195F42A8 /* SyntheticInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntheticInput.swift; sourceTree = "<group>"; };
 		F49191F3D14AD9ECE7CA3B1A /* MouseFixService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseFixService.swift; sourceTree = "<group>"; };
 		F524EF4CA8F1F533CB661C07 /* DockNavigationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockNavigationViews.swift; sourceTree = "<group>"; };
 		F8A708EC61760010B0EA91A3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -347,6 +349,7 @@
 				0ED7F0CE539625E9216FFC57 /* Services.swift */,
 				BF358538A3CF77BEE37796A9 /* SettingsPersistence.swift */,
 				181E760461FC26E5D809407A /* ShortcutRegistry.swift */,
+				EFF56963B1C4CE2B195F42A8 /* SyntheticInput.swift */,
 				3DB8B9DC39F1086191974395 /* TabHotkeys.swift */,
 				3B6ED8591A2319B1E57DCC35 /* TabNavigation.swift */,
 				AF2B540E5E356FAF33CDDF88 /* TabNavigationStore.swift */,
@@ -727,6 +730,7 @@
 				86ED3A4CBD1BF745F6EE35A4 /* SettingsWindowController.swift in Sources */,
 				42BE022F2D83D5EB37B2F3EA /* ShortcutRegistry.swift in Sources */,
 				D7EF7CE343C3C42867D1A29E /* ShortcutsPane.swift in Sources */,
+				DB02C55D89FCEC481FE688BA /* SyntheticInput.swift in Sources */,
 				F379C46688C1D44E36A429CE /* SystemStats.swift in Sources */,
 				1BC0A1EB55524337956FD1AD /* TabGroupEditor.swift in Sources */,
 				658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */,

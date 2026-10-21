@@ -236,7 +236,7 @@ input delivery; macOS/device behavior still needs hands-on verification. Mission
 follow macOS shortcuts and target-app support. No per-device detection, custom key recorder or per-app rules are added.
 Mouse is a regular plugin and uses the existing 12-item dock cap and customization rules.
 
-Notch content attaches immediately for keyboard entry independently of the delayed hover fade. Native initial focus
+Notch content attaches immediately for keyboard entry; hover keeps the delayed attachment/fade to avoid native ghosts. Native initial focus
 waits for attachment and early typing is replayed after focus is ready; closing cancels pending focus/reveal work.
 The launcher's header crossfade/spring and instant resizing while typing are retained. Visual ghosting, actual first-key
 focus, and permission toggles require a manual check in a single running Nook instance; automated tests never launch it.

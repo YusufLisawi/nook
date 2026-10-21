@@ -26,7 +26,6 @@ struct NotchRootView: View {
                                     .onAppear { vm.contentDidAttach?() }
                             }
                         }
-                        .opacity(vm.contentRevealed ? 1 : 0)
                         .transition(.opacity)
                     } else if !vm.isOpen {
                         CollapsedView(vm: vm).transition(.opacity)

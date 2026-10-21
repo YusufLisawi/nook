@@ -104,7 +104,7 @@ final class NotchKeyboardController {
         }
         vm.contentDidAttach = { [weak self, weak vm] in
             guard let self, vm?.keyboard.engaged == true else { return }
-            if vm?.launcherPresented == true { self.finishFocus() }
+            if vm?.launcherPresented == true || vm?.keyboard.isPresented == true { self.finishFocus() }
             else { self.focusContent() }
         }
         tabSubscription = vm.$tab.dropFirst().sink { [weak self] _ in
@@ -163,7 +163,8 @@ final class NotchKeyboardController {
                 if view.window === panel {
                     panel.makeFirstResponder(view)
                     view.evaluateJavaScript("window.nook?.keyboard?.focus()") { [weak self] _, _ in
-                        self?.finishFocus()
+                        guard let self, self.focusRequest == request else { return }
+                        self.finishFocus()
                         completion?()
                     }
                 } else if attempt < 5 {
@@ -244,6 +245,8 @@ final class NotchKeyboardController {
             else {
                 vm.showingSettings = false
                 vm.keyboard.query = ""
+                focusRequest += 1
+                focusPending = true
                 vm.keyboard.isPresented = true
             }
             return true

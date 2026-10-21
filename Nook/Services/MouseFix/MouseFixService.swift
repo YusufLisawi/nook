@@ -142,9 +142,16 @@ final class MouseFixService {
 
     /// Tap thread → main: a button was pressed while learning.
     fileprivate func learned(button: Int64) {
+        // Claim the single learning result on the tap thread; a second overlapping press must
+        // not become another learned button while the main queue is handling the first one.
+        let accepted = lock.withLock {
+            let wasLearning = _learning
+            _learning = false
+            return wasLearning
+        }
+        guard accepted else { return }
         DispatchQueue.main.async { [self] in
             learnTimeout?.cancel()
-            lock.withLock { _learning = false }
             reconfigure(prompt: false)
             PluginEvents.emit("mouse", ["learning": false, "button": button], to: "mouse")
         }
@@ -197,7 +204,7 @@ private final class TapThread: Thread {
                 CGEvent.tapEnable(tap: tap, enable: true)
                 if wasDraining { service.report(running: true) }
             }
-            if !wanted {
+            if !wanted || !service.config.enabled {
                 endGesture()
                 scroller.cancelScroll()
             }

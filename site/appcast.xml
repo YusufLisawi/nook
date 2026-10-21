@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.12.0</title>
+  <pubDate>Wed, 21 Oct 2026 21:39:51 GMT</pubDate>
+  <sparkle:version>30</sparkle:version>
+  <sparkle:shortVersionString>1.12.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>File Search, Clipboard/Screenshots history, Window Management and the Launcher (with smart answers) moved out of the app into Store plugins — install them from Settings → Plugin Store when you want them</li><li>The app is ~25% smaller</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.12.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="vdaTDsu7N2YKAS8T5X+OFcWR7fqfLvUBYPWJ1lv4Ub5rGkQ+Y9VYAeEbO5CWgjGgeefV7E4VHOHqernfQPZyCA==" length="10510783"/>
+</item>
+<item>
   <title>Nook 1.11.0</title>
   <pubDate>Wed, 21 Oct 2026 20:46:28 GMT</pubDate>
   <sparkle:version>29</sparkle:version>

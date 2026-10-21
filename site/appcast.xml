@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.4.0</title>
+  <pubDate>Wed, 21 Oct 2026 13:01:09 GMT</pubDate>
+  <sparkle:version>10</sparkle:version>
+  <sparkle:shortVersionString>1.4.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<p>Nook 1.4</p><li>AI Commands in the notch are now simple pills — click to run on your selection</li><li>Create and edit commands in Settings → AI Commands, with a proper prompt editor and placeholder chips</li><li>New Settings with a native sidebar — opens instantly</li><li>ChatGPT &amp; Codex: see if Codex is installed and signed in, install / sign in / test in one click</li><li>Commands default to GPT-6 Luna with no reasoning — fastest</li><li>Translations can also copy the result to your clipboard automatically</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.4.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="HLOOcVbnDnXRcDLnR6sA4PyTRPMyVw1tawTGb81yo6S+XCW4x4QYbnjPjpNEWrr8uCQ6IEswMP+JwcTH4i1SBA==" length="6508227"/>
+</item>
+<item>
   <title>Nook 1.3.0</title>
   <pubDate>Wed, 21 Oct 2026 12:35:10 GMT</pubDate>
   <sparkle:version>9</sparkle:version>

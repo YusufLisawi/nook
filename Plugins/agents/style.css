@@ -1,0 +1,60 @@
+html, body { height: 100%; background: transparent; overflow: hidden; }
+button, textarea, input { font: inherit; }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.workspace { position: relative; flex-direction: row; gap: 12px; }
+.rail { width: 158px; flex: none; gap: 6px; padding-right: 8px; border-right: 1px solid var(--border); }
+.rail-actions { gap: 0; }
+kbd { color: var(--muted); font: inherit; font-size: 10px; margin-left: auto; }
+.rail .nk-item { width: 100%; border: 0; background: transparent; color: var(--muted); text-align: left; font: inherit; gap: 6px; }
+.rail .nk-item:hover { background: var(--card-hover); }
+.rail .agent-row { color: var(--fg); font-weight: 600; margin-top: 4px; }
+.rail .session-row { padding: 5px 8px 5px 20px; font-size: 11px; }
+.rail .nk-selected { background: var(--card-hover); color: var(--fg); }
+.rail .running-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex: none; }
+.chat { gap: 8px; overflow: hidden; }
+.chat-header { min-height: 33px; }
+.chat-header .nk-icon-btn { flex: none; font-size: 20px; color: var(--muted); }
+.transcript { display: flex; flex-direction: column; gap: 10px; padding: 4px 3px 6px 0; -webkit-user-select: text; user-select: text; }
+.transcript .nk-empty { min-height: 110px; }
+.bubble { max-width: 100%; padding: 9px 11px; border-radius: 12px; line-height: 1.5; overflow-wrap: anywhere; flex: none; }
+.bubble.user { align-self: flex-end; max-width: 90%; background: var(--card-hover); white-space: pre-wrap; }
+.bubble.agent { align-self: stretch; background: var(--card); }
+.bubble p { margin: 0 0 7px; }
+.bubble p:last-child { margin-bottom: 0; }
+.bubble h3 { margin: 8px 0 5px; font-size: 13px; }
+.bubble ul, .bubble ol { margin: 5px 0; padding-left: 20px; }
+.bubble li { margin: 3px 0; }
+.bubble a { color: var(--accent); }
+.bubble code { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card-hover); border-radius: 4px; padding: 1px 4px; }
+.code-block { position: relative; margin: 7px 0; }
+.code-block .nk-btn { font-size: 10px; padding: 3px 7px; position: absolute; top: 5px; right: 5px; }
+.code-block pre { padding-top: 27px; }
+pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); border-radius: 8px; padding: 8px; -webkit-user-select: text; user-select: text; }
+pre code { padding: 0 !important; background: transparent !important; }
+.reasoning { color: var(--muted); font-style: italic; line-height: 1.5; font-size: 11px; white-space: pre-wrap; padding: 0 5px; flex: none; }
+.tool { padding: 0; border: 1px solid var(--border); border-radius: 10px; flex: none; overflow: hidden; }
+.tool summary { cursor: default; display: flex; align-items: center; gap: 7px; padding: 8px 9px; list-style: none; }
+.tool summary::-webkit-details-marker { display: none; }
+.tool summary::before { content: '›'; font-size: 16px; color: var(--muted); }
+.tool[open] summary::before { transform: rotate(90deg); }
+.tool-title { font-size: 11px; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-icon { color: var(--muted); font-size: 12px; }
+.tool .nk-pill { padding: 2px 6px; font-size: 10px; }
+.tool-body { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 8px; }
+.tool-body pre { max-height: 170px; overflow: auto; }
+.diff-add { color: var(--good); }
+.diff-delete { color: var(--bad); }
+.composer { gap: 4px; flex: none; }
+.composer textarea { background: transparent; border: 0; padding: 2px 0; max-height: 84px; min-height: 34px; }
+.composer .nk-btn { padding: 5px 10px; }
+#error { flex: none; max-height: 62px; overflow: auto; }
+.overlay { position: absolute; inset: 8px; z-index: 5; background: #171717; border: 1px solid var(--border); padding: 14px; }
+#create { inset: 0 0 0 165px; overflow: auto; }
+#create-form { gap: 8px; }
+#create-form label { gap: 3px; }
+#create-form footer { margin-top: auto; }
+#choices .nk-item { border: 0; color: var(--fg); background: transparent; text-align: left; font: inherit; width: 100%; }
+#choices .nk-selected { background: var(--card-hover); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 540px) { .rail { width: 125px; } #create { left: 0; } .composer-hint { display: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

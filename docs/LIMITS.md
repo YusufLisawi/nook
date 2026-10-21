@@ -17,6 +17,7 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | Control the notch | `nook.notch.close/pin/setHeight` |
 | Take dropped files/folders | `nook.on('drop', …)` gives real paths |
 | Ask an LLM | `nook.ai.chat` — uses the user's Groq key (no key → a clear error) |
+| Chat with tool-using agents | `nook.agents.*` — saved agents, persistent Codex CLI sessions, streamed tool cards, cancellation; Settings → Agents |
 | Use built-in engines | `nook.proxy.*` (whole-machine proxy), `nook.dictation.*` (Groq dictation) |
 | Keep running in the background | the web view stays alive while Nook runs (timers, polling, sockets keep going) |
 | React to Nook | `nook.on('open'|'close'|'show'|'proxy'|'dictation'|…)` |
@@ -49,3 +50,10 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
 - **One plugin, every screen:** with "All screens" on, each notch has its own web view of your plugin (state is shared only via `nook.storage`).
 - **Debugging:** `nook logs <id> -f` (console + uncaught errors), or Safari → Develop → [your Mac] → Nook to inspect a plugin's DOM.
 - **Size:** the content area is the hard constraint. Design for 650 × 210 first.
+- **Agents:** requires an installed, signed-in Codex CLI (verified with 0.163). Full access defaults to on and bypasses
+  approvals/sandboxing; disable it per agent for workspace-write, with approval requests failing non-interactively.
+  Commands and MCP tools come from the user's Codex configuration. Model/effort support depends on the account/model.
+  Codex streams item snapshots; text/output granularity depends on the CLI. File previews are bounded working-tree
+  diffs and may include earlier edits. Histories are local, unencrypted JSON with private file permissions; there is no
+  automatic retention limit. Nook cancels local process groups/descendants; remote tools or already-detached daemons
+  may continue work. Quitting interrupts active chats; saved Codex sessions can be resumed after reopening.

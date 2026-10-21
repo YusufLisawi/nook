@@ -11,6 +11,7 @@
 		069A1C7A36B1F5ADBDB89BE9 /* AIBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134231D8AC8BB99035F80039 /* AIBrain.swift */; };
 		090E3A91C0607295B1B6509A /* skill in Resources */ = {isa = PBXBuildFile; fileRef = 251F2F98844B8FDBF322E6BB /* skill */; };
 		1830C87670856F04FDE26E8B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A708EC61760010B0EA91A3 /* main.swift */; };
+		19EE9D5D6ADEEA16DCE3C1B1 /* AgentDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CDA4F32C95DE8B60030AA0 /* AgentDiff.swift */; };
 		2C07176FCE68482897504420 /* CodexLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C0E1700B97B0BE8C00E4E /* CodexLink.swift */; };
 		2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44481D567E5664A614F2BDF9 /* MicRecorder.swift */; };
 		318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E3F23227270422F28E8EA8 /* SettingsView.swift */; };
@@ -24,6 +25,7 @@
 		479A9B6EDFC12070BD09201E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BC2C6184ED772D9A964531 /* Extensions.swift */; };
 		5211D767553F2B876DF5720B /* template in Resources */ = {isa = PBXBuildFile; fileRef = FE8D215B0A74BB45D9B25666 /* template */; };
 		5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305C12534BB0A21814E084F9 /* LinkCatcher.swift */; };
+		60F532960BD30243B4031025 /* AgentProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CD7B656088A250C15F7E0EB /* AgentProcess.swift */; };
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
 		66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */; };
 		70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */; };
@@ -46,12 +48,15 @@
 		C3328EACD94AB4C16FF52AFA /* nook-cli in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = A765987708E7C7A6BDC686EE /* nook-cli */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */; };
 		C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867998E9B233A6020709500D /* NotchController.swift */; };
+		CA78B061E8B1DCEE10EBA1C0 /* AgentsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D8AF0C0507505D2DEDCDB4B /* AgentsPane.swift */; };
 		D3E46316EDC9B513E855F37E /* TimerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31AA95267FAFBFBDB850E8C /* TimerService.swift */; };
 		DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD70FF370E94556B10546FF6 /* ProxyService.swift */; };
 		E2EC064058B1C574F29BEE02 /* docs in Resources */ = {isa = PBXBuildFile; fileRef = 49066C920CB9F7805A9F9470 /* docs */; };
 		E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B9712B528BBE65144FFBCE /* DictationService.swift */; };
+		E854BBC40E501AD2FCB15F32 /* AgentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2953F5A5CEFF5667CC67E2 /* AgentModels.swift */; };
 		F379C46688C1D44E36A429CE /* SystemStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23055D40A8B72A840805201E /* SystemStats.swift */; };
 		FA09B67D88C18710F1E272DC /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 321028EC0FB1A80BF6BD907A /* Sparkle */; };
+		FF39737BF66442B98E43470A /* AgentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61E3E5BC6DED5145D907EB91 /* AgentService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +96,7 @@
 		23055D40A8B72A840805201E /* SystemStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemStats.swift; sourceTree = "<group>"; };
 		251F2F98844B8FDBF322E6BB /* skill */ = {isa = PBXFileReference; lastKnownFileType = folder; path = skill; sourceTree = SOURCE_ROOT; };
 		305C12534BB0A21814E084F9 /* LinkCatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCatcher.swift; sourceTree = "<group>"; };
+		32CDA4F32C95DE8B60030AA0 /* AgentDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDiff.swift; sourceTree = "<group>"; };
 		3DB8B9DC39F1086191974395 /* TabHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabHotkeys.swift; sourceTree = "<group>"; };
 		3FC775FBE2FA5D57184584DC /* Nook.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Nook.entitlements; sourceTree = "<group>"; };
 		44481D567E5664A614F2BDF9 /* MicRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicRecorder.swift; sourceTree = "<group>"; };
@@ -101,14 +107,18 @@
 		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
 		56729F3514AAE0833BA5B921 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		5C7A346371B85AEE3A606DDF /* AudioMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMixer.swift; sourceTree = "<group>"; };
+		61E3E5BC6DED5145D907EB91 /* AgentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentService.swift; sourceTree = "<group>"; };
 		6433A88DA315C13F36036589 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		66A8305528A9B604368F8C25 /* MediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaController.swift; sourceTree = "<group>"; };
 		6AF31C476DBDFF1170647A72 /* Nook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
 		6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginRegistry.swift; sourceTree = "<group>"; };
+		6D2953F5A5CEFF5667CC67E2 /* AgentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentModels.swift; sourceTree = "<group>"; };
 		7571D9D06CBA91960D5C4995 /* PluginSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettings.swift; sourceTree = "<group>"; };
+		7D8AF0C0507505D2DEDCDB4B /* AgentsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsPane.swift; sourceTree = "<group>"; };
 		867998E9B233A6020709500D /* NotchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchController.swift; sourceTree = "<group>"; };
 		88DB59F92E353F6D2904A53A /* Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tabs.swift; sourceTree = "<group>"; };
+		9CD7B656088A250C15F7E0EB /* AgentProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProcess.swift; sourceTree = "<group>"; };
 		9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		A5F69FD803186572DBBE5C69 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
 		A765987708E7C7A6BDC686EE /* nook-cli */ = {isa = PBXFileReference; includeInIndex = 0; path = "nook-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -150,6 +160,7 @@
 				FD70FF370E94556B10546FF6 /* ProxyService.swift */,
 				23055D40A8B72A840805201E /* SystemStats.swift */,
 				C31AA95267FAFBFBDB850E8C /* TimerService.swift */,
+				903FED7264842F89BCEAF7E4 /* Agents */,
 				ADEBAF360477CFDAEFBFC2F1 /* AI */,
 				162E61C661C6D942724925B4 /* Dictation */,
 			);
@@ -222,6 +233,18 @@
 				2EB4817CF8337A5C7465A44A /* Views */,
 			);
 			path = Nook;
+			sourceTree = "<group>";
+		};
+		903FED7264842F89BCEAF7E4 /* Agents */ = {
+			isa = PBXGroup;
+			children = (
+				32CDA4F32C95DE8B60030AA0 /* AgentDiff.swift */,
+				6D2953F5A5CEFF5667CC67E2 /* AgentModels.swift */,
+				9CD7B656088A250C15F7E0EB /* AgentProcess.swift */,
+				61E3E5BC6DED5145D907EB91 /* AgentService.swift */,
+				7D8AF0C0507505D2DEDCDB4B /* AgentsPane.swift */,
+			);
+			path = Agents;
 			sourceTree = "<group>";
 		};
 		ADEBAF360477CFDAEFBFC2F1 /* AI */ = {
@@ -366,6 +389,11 @@
 			files = (
 				069A1C7A36B1F5ADBDB89BE9 /* AIBrain.swift in Sources */,
 				BDAFB897FCB7818B5EF0830C /* AICommands.swift in Sources */,
+				19EE9D5D6ADEEA16DCE3C1B1 /* AgentDiff.swift in Sources */,
+				E854BBC40E501AD2FCB15F32 /* AgentModels.swift in Sources */,
+				60F532960BD30243B4031025 /* AgentProcess.swift in Sources */,
+				FF39737BF66442B98E43470A /* AgentService.swift in Sources */,
+				CA78B061E8B1DCEE10EBA1C0 /* AgentsPane.swift in Sources */,
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
 				369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */,
 				2C07176FCE68482897504420 /* CodexLink.swift in Sources */,
@@ -560,6 +588,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp=none";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook;
 				SDKROOT = macosx;
@@ -620,6 +649,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp=none";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook;
 				SDKROOT = macosx;

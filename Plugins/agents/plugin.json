@@ -1,0 +1,12 @@
+{
+  "id": "agents",
+  "name": "Agents",
+  "symbol": "person.2.wave.2.fill",
+  "entry": "index.html",
+  "order": 17,
+  "height": 400,
+  "settings": [
+    { "key": "recentChats", "label": "Recent chats per agent", "type": "number", "default": 5, "min": 1, "max": 20, "step": 1 },
+    { "key": "expandTools", "label": "Expand tool calls by default", "type": "toggle", "default": false }
+  ]
+}

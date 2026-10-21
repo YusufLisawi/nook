@@ -73,6 +73,19 @@ final class PluginRegistry: ObservableObject {
     }
 
     func reload() {
+        tabs = Self.discoverTabs()
+    }
+
+    /// Settings can refresh a large plugin directory without blocking window interaction.
+    @MainActor func reloadForSettings() async {
+        let version = revision
+        let discovered = await Task.detached(priority: .utility) { Self.discoverTabs() }.value
+        guard version == revision else { return } // a newer filesystem event already refreshed the registry
+        tabs = discovered
+        touch()
+    }
+
+    private static func discoverTabs() -> [TabItem] {
         var byID: [String: TabItem] = [:]
         for root in [Self.bundledDir, Self.userDir].compactMap({ $0 }) { // user folder wins
             let dirs = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
@@ -89,7 +102,7 @@ final class PluginRegistry: ObservableObject {
             }
         }
         let native = Self.nativeTabs.filter { byID[$0.id] == nil }
-        tabs = (native + byID.values).sorted { ($0.order, $0.id) < ($1.order, $1.id) }
+        return (native + byID.values).sorted { ($0.order, $0.id) < ($1.order, $1.id) }
     }
 
     /// Tabs in dock order: the user's order first, then any new plugins by manifest order.
@@ -103,6 +116,13 @@ final class PluginRegistry: ObservableObject {
         var ids = orderedTabs.map(\.id)
         guard id != target, let from = ids.firstIndex(of: id), let to = ids.firstIndex(of: target) else { return }
         ids.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        setOrder(ids)
+    }
+
+    /// Settings list uses the same persisted order as dragging icons in the notch dock.
+    func move(from source: IndexSet, to destination: Int) {
+        var ids = orderedTabs.map(\.id)
+        ids.move(fromOffsets: source, toOffset: destination)
         setOrder(ids)
     }
 

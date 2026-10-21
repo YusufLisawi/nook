@@ -345,3 +345,36 @@ The public repository's complete initial contents live in this source tree's `st
 
 The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow only regular non-executable files (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
 
+
+## Native Settings and shortcuts
+
+Settings → **Tabs & Plugins** shows each tab’s height, shortcut, manifest options, and Edit Code / Revert controls inline.
+Drag rows to reorder the notch dock; the row menu also offers Move Up / Move Down. **Keyboard Shortcuts** collects
+tab, AI command, dictation, and native extension assignments and identifies duplicate key combinations.
+
+Native features can add searchable panes and expose existing shortcut storage without editing Settings switches:
+
+```swift
+SettingsRegistry.register(id: "windows", title: "Window Management", symbol: "macwindow",
+                          tint: .teal, order: 35, keywords: ["move", "resize", "snap"]) {
+    WindowsPane() // a native grouped Form
+}
+ShortcutRegistry.register(id: "windows.center", title: "Center Window", group: "Window Management",
+                          get: { WindowShortcuts.center },
+                          set: { WindowShortcuts.center = $0 })
+```
+
+Register on the main thread during service startup. Pane and shortcut ids must be stable and unique; registering the
+same id replaces it. `keywords` and shortcut `group` are optional. Shortcut accessors use `TabHotkey?`; `nil` clears
+an assignment. The feature still owns persistence and execution. Registration adds native Settings controls;
+it does not grant web plugins new key-tap access or add a JavaScript bridge API.
+
+The sidebar searches pane titles and setting keywords. Settings remembers the selected pane and window frame,
+and `nook://settings/shortcuts` / `nook://settings/about` open the new built-in panes.
+
+Settings pre-warms its window and caches background discovery for Codex, command-line tools, login items, and
+microphones. Status refreshes when returning to Nook; ChatGPT & Codex and Command Line also have **Refresh Status**.
+Plugin reloads, editable-copy creation, and reverting to the Trash run in the background with inline progress/errors.
+Plugin options apply immediately to the running plugin. Settings and command JSON writes coalesce for up to 150 ms
+on a utility queue and flush when Nook quits normally. Use the Settings UI or bridge to edit options; direct edits
+to cached settings/secret files are read on the next app launch.

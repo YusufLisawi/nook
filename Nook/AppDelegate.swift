@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Sparkle: checks nook.motkan.com/appcast.xml daily; updates are EdDSA-signed + notarized.
     let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     private var statusItem: NSStatusItem!
-    private var settingsWindow: NSWindow?
+    private lazy var settingsController = SettingsWindowController { [weak self] in self?.rebuildNotches() }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Prefs.registerDefaults()
@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupEditMenu()
         handleTerminationSignals()
         ToolsInstaller.installIfNeeded()
+        settingsController.prewarm()
     }
 
     /// Hidden main menu so ⌘A/⌘C/⌘V/⌘Z work in the Settings window (Nook has no visible menu bar).
@@ -149,21 +150,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Opens (or brings back) the Settings window, optionally on a pane ("commands", "ai", …).
     func showSettings(pane: String?) {
-        if let pane, SettingsPane(rawValue: pane) != nil || SettingsRegistry.panes.contains(where: { $0.id == pane }) {
-            SettingsRouter.shared.pane = pane
-        }
-        if settingsWindow == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(onScreensChanged: { [weak self] in self?.rebuildNotches() })))
-            window.title = "Nook Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
-            window.toolbarStyle = .unified
-            window.titlebarSeparatorStyle = .automatic
-            window.setContentSize(NSSize(width: 820, height: 600))
-            window.isReleasedWhenClosed = false
-            window.center()
-            settingsWindow = window
-        }
-        NSApp.activate(ignoringOtherApps: true)
-        settingsWindow?.makeKeyAndOrderFront(nil)
+        settingsController.show(pane: pane)
     }
 }

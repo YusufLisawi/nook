@@ -257,7 +257,11 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
     }
 
     private func save() {
-        if let data = try? JSONEncoder().encode(commands) { try? data.write(to: fileURL, options: .atomic) }
+        let snapshot = commands
+        let target = fileURL
+        SettingsPersistence.shared.submit(id: target.path) {
+            if let data = try? JSONEncoder().encode(snapshot) { try? data.write(to: target, options: .atomic) }
+        }
         PluginEvents.emit("commands", payload(), to: Self.pluginID)
     }
 

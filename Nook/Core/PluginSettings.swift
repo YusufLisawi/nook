@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// A JSON scalar (manifest defaults + saved values).
-enum JSONValue: Codable, Equatable {
+enum JSONValue: Codable, Equatable, Sendable {
     case bool(Bool), number(Double), string(String), null
 
     init(from decoder: Decoder) throws {
@@ -82,13 +82,14 @@ struct PluginSetting: Decodable, Identifiable, Equatable {
 
 /// Saved setting values per plugin: Data/<id>.settings.json. Changes are pushed to the plugin as `nook.on('settings')`.
 enum PluginSettingsStore {
+    private static let lock = NSLock()
+    private static var stores: [String: SettingsJSONFile<[String: JSONValue]>] = [:]
     private static func url(_ id: String) -> URL {
         Services.supportDir.appendingPathComponent("Data/\(id).settings.json")
     }
 
     static func saved(_ id: String) -> [String: JSONValue] {
-        guard let data = try? Data(contentsOf: url(id)) else { return [:] }
-        return (try? JSONDecoder().decode([String: JSONValue].self, from: data)) ?? [:]
+        store(id).read()
     }
 
     /// Defaults from the manifest, overridden by saved values.
@@ -99,136 +100,26 @@ enum PluginSettingsStore {
     }
 
     static func set(_ tab: TabItem, _ key: String, _ value: JSONValue) {
-        var dict = saved(tab.id)
-        dict[key] = value
-        write(tab, dict)
+        let dict = store(tab.id).update { $0[key] = value }
+        emit(tab, dict)
     }
 
-    static func reset(_ tab: TabItem) { write(tab, [:]) }
-
-    private static func write(_ tab: TabItem, _ dict: [String: JSONValue]) {
-        try? FileManager.default.createDirectory(at: url(tab.id).deletingLastPathComponent(), withIntermediateDirectories: true)
-        if let data = try? JSONEncoder().encode(dict) { try? data.write(to: url(tab.id), options: .atomic) }
-        PluginEvents.emit("settings", values(for: tab).mapValues(\.any), to: tab.id)
-    }
-}
-
-/// Auto-generated settings form for a plugin, plus code-level customisation (Edit code / Revert).
-struct PluginSettingsForm: View {
-    let tab: TabItem
-    var compact = false
-    var onDone: (() -> Void)?
-    @State private var values: [String: JSONValue]
-    @ObservedObject private var plugins = Services.shared.plugins
-
-    init(tab: TabItem, compact: Bool = false, onDone: (() -> Void)? = nil) {
-        self.tab = tab
-        self.compact = compact
-        self.onDone = onDone
-        _values = State(initialValue: PluginSettingsStore.values(for: tab))
+    static func reset(_ tab: TabItem) {
+        store(tab.id).update { $0 = [:] }
+        emit(tab, [:])
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
-            heightControl
-            if tab.settings.isEmpty, tab.isWeb {
-                Text("No other options yet. Edit its code to change anything else.")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-            }
-            ForEach(tab.settings) { setting in
-                VStack(alignment: .leading, spacing: 3) {
-                    if [.text, .secret, .textarea, .number].contains(setting.type), !(setting.type == .number && setting.min != nil && setting.max != nil) {
-                        Text(setting.label).font(.system(size: compact ? 11 : 12, weight: .medium)).foregroundStyle(.secondary)
-                    }
-                    control(for: setting)
-                    if let help = setting.help {
-                        Text(help).font(.system(size: 10)).foregroundStyle(.secondary)
-                    }
-                }
-            }
-            HStack(spacing: 8) {
-                if tab.isWeb {
-                    Button(plugins.isBundled(tab) ? "Edit code…" : "Show code") { plugins.customize(tab) }
-                        .help(plugins.isBundled(tab) ? "Copy this plugin to your Plugins folder and open it — your copy replaces the built-in one" : "Open the plugin folder")
-                    if plugins.overridesBundled(tab) {
-                        Button("Revert to built-in") { plugins.revert(tab) }
-                    }
-                }
-                Spacer()
-                if !tab.settings.isEmpty {
-                    Button("Reset") {
-                        PluginSettingsStore.reset(tab)
-                        values = PluginSettingsStore.values(for: tab)
-                    }
-                }
-                if let onDone { Button("Done", action: onDone).keyboardShortcut(.defaultAction) }
-            }
-            .controlSize(compact ? .small : .regular)
-        }
-        .font(.system(size: compact ? 12 : 13))
-        .tint(.orange) // Nook accent, not the system colour
+    private static func store(_ id: String) -> SettingsJSONFile<[String: JSONValue]> {
+        lock.lock()
+        defer { lock.unlock() }
+        if let store = stores[id] { return store }
+        let store = SettingsJSONFile<[String: JSONValue]>(url: { url(id) }, fallback: [:])
+        stores[id] = store
+        return store
     }
 
-    /// Every tab: how tall the notch opens for it. Live while dragging.
-    private var heightControl: some View {
-        let height = Binding<Double>(
-            get: { Double(plugins.height(for: tab)) },
-            set: { plugins.setHeight(tab.id, CGFloat($0)) }
-        )
-        return LabeledContent("Height") {
-            HStack(spacing: 8) {
-                Slider(value: height, in: Double(PluginRegistry.minHeight)...Double(PluginRegistry.maxHeight), step: 10)
-                Text("\(Int(height.wrappedValue))").monospacedDigit().frame(width: 30, alignment: .trailing)
-                if plugins.userHeights[tab.id] != nil {
-                    Button("Default") { plugins.setHeight(tab.id, nil) }.buttonStyle(.link).font(.caption)
-                }
-            }
-        }
-    }
-
-    private func binding(_ setting: PluginSetting) -> Binding<JSONValue> {
-        Binding(
-            get: { values[setting.key] ?? setting.fallback },
-            set: { value in
-                values[setting.key] = value
-                PluginSettingsStore.set(tab, setting.key, value)
-            }
-        )
-    }
-
-    @ViewBuilder
-    private func control(for s: PluginSetting) -> some View {
-        let value = binding(s)
-        switch s.type {
-        case .toggle:
-            Toggle(s.label, isOn: Binding(get: { value.wrappedValue.bool }, set: { value.wrappedValue = .bool($0) }))
-        case .select:
-            Picker(s.label, selection: Binding(get: { value.wrappedValue.string }, set: { value.wrappedValue = .string($0) })) {
-                ForEach(s.options ?? [], id: \.self) { Text($0).tag($0) }
-            }
-        case .number where s.min != nil && s.max != nil:
-            LabeledContent(s.label) {
-                HStack {
-                    Slider(value: Binding(get: { value.wrappedValue.number }, set: { value.wrappedValue = .number($0) }),
-                           in: s.min!...s.max!, step: s.step ?? 1)
-                    Text(value.wrappedValue.string).monospacedDigit().frame(width: 38, alignment: .trailing)
-                }
-            }
-        case .number:
-            TextField("", value: Binding(get: { value.wrappedValue.number }, set: { value.wrappedValue = .number($0) }), format: .number)
-                .labelsHidden()
-        case .color:
-            ColorPicker(s.label, selection: Binding(
-                get: { Color(css: value.wrappedValue.string) },
-                set: { value.wrappedValue = .string(NSColor($0).usingColorSpace(.sRGB).map { String(format: "#%02x%02x%02x", Int($0.redComponent * 255), Int($0.greenComponent * 255), Int($0.blueComponent * 255)) } ?? "#ffffff") }
-            ), supportsOpacity: false)
-        case .secret:
-            SecureField("", text: Binding(get: { value.wrappedValue.string }, set: { value.wrappedValue = .string($0) }))
-        case .textarea:
-            TextField("", text: Binding(get: { value.wrappedValue.string }, set: { value.wrappedValue = .string($0) }), axis: .vertical)
-                .lineLimit(2...5)
-        case .text:
-            TextField("", text: Binding(get: { value.wrappedValue.string }, set: { value.wrappedValue = .string($0) }))
-        }
+    private static func emit(_ tab: TabItem, _ saved: [String: JSONValue]) {
+        let values = Dictionary(uniqueKeysWithValues: tab.settings.map { ($0.key, $0.fallback) }).merging(saved) { _, new in new }
+        PluginEvents.emit("settings", values.mapValues(\.any), to: tab.id)
     }
 }

@@ -131,3 +131,21 @@ See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract an
   shortcuts only work inside their selected tab. macOS symbolic shortcuts are checked for the default;
   private shortcuts in other apps cannot be discovered. Actions appear once a plugin has loaded on that
   display; disabled tabs are excluded. ⌘Enter sends the optional `actionAlternate` event.
+
+
+## Native Settings
+
+- Settings has searchable native panes, including panes registered through `SettingsRegistry` with optional keywords.
+- Tabs & Plugins uses a master–detail editor for height, hotkey, manifest options, and code customization. Reordering
+  writes `PluginRegistry.customOrder`, the same order used by the notch dock. Reverting a plugin uses the Trash.
+- Keyboard Shortcuts lists tab shortcuts, AI command hotkeys, dictation gestures, and shortcuts exposed by native
+  features through `ShortcutRegistry`. Recorders detect duplicate Nook assignments, including existing conflicts.
+  macOS and other apps’ shortcut assignments are not inspectable here; Accessibility is still required globally.
+- About shows the app version/build, project links, MIT license, and the shared Sparkle update action.
+- The last pane and window frame persist in preferences. The Settings hosting controller pre-warms in a hidden window
+  shortly after launch, without activating the app or opening a second instance.
+- Codex/PATH discovery, microphone enumeration, login-item queries, custom icons, plugin options, and explicit plugin
+  reload/copy/revert work run outside the UI thread. Status snapshots are reused across pane switches and refreshed
+  on activation or request; Settings has no recurring polling timers. File edits take effect in memory immediately,
+  with coalesced background JSON writes (up to 150 ms) and a normal-quit flush. Direct changes to cached JSON files
+  require restarting Nook; force-quitting can lose the most recent unflushed edit.

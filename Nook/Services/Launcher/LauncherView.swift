@@ -37,6 +37,12 @@ struct LauncherView: View {
                 footer
             }
         }
+        .fixedSize(horizontal: false, vertical: state.chatQuery == nil)
+        // The shape follows what is actually on screen (answer card, rows, errors) instead of a formula that can go stale
+        // when an answer or file results arrive asynchronously.
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            if state.chatQuery == nil { state.fit(contentHeight: height - vm.geometry.notch.height) }
+        }
         .foregroundStyle(.white)
         .focusEffectDisabled()
         .onAppear {

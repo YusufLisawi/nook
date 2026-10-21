@@ -109,7 +109,9 @@ final class UnitsAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
         guard source.dimension != "temperature" || base >= -1e-10 else { return nil }
         let result = (base - target.offset) / target.scale
         guard result.isFinite, context.hasTime else { return nil }
-        let number = AnswerText.format(result, locale: context.locale)
+        // Readable precision like Raycast: 4 decimals for small values, 2 for large ones (copy keeps full precision).
+        let places = abs(result) >= 100 ? 100.0 : 10_000.0
+        let number = AnswerText.format((result * places).rounded() / places, locale: context.locale)
         return LauncherAnswer(expression: query, leftBadge: source.name, result: number + " " + target.symbol,
                               rightBadge: target.name, copyValue: AnswerText.copyNumber(result),
                               copyWithUnits: number + " " + target.symbol)

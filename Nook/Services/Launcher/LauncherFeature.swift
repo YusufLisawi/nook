@@ -320,12 +320,25 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
 
     /// Coalesced and applied on the next run-loop turn: setting the height re-enters `resize()` through SwiftUI updates,
     /// and a nested animated change inside the first one left the black shape stuck at the old (taller) size.
+    /// Snap the notch to the launcher's measured content height (no animation while typing).
+    func fit(contentHeight: CGFloat) {
+        guard let vm, vm.launcherPresented, contentHeight > 40, abs(vm.launcherHeight - contentHeight) > 0.5 else { return }
+        DispatchQueue.main.async { [weak vm] in
+            guard let vm, vm.launcherPresented, abs(vm.launcherHeight - contentHeight) > 0.5 else { return }
+            vm.holdRect = vm.liveRect.union(vm.holdRect ?? .null)
+            var instant = Transaction()
+            instant.disablesAnimations = true
+            withTransaction(instant) { vm.launcherHeight = contentHeight }
+        }
+    }
+
     private var targetHeight: CGFloat {
         chatQuery == nil ? 62 + (smartAnswer == nil ? 0 : 156) + 24 + CGFloat(visibleResultCount) * 44 + 42 + (error == nil ? 0 : 26) : 470
     }
 
     func resize() {
-        guard vm != nil else { return }
+        // Search mode is sized from the measured content (fit(contentHeight:)); only Quick AI chat uses a fixed height.
+        guard vm != nil, chatQuery != nil else { return }
         let height = targetHeight
         let scheduled = pendingHeight != nil
         pendingHeight = height

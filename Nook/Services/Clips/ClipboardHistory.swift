@@ -3,7 +3,12 @@ import ImageIO
 
 /// Main-thread state; all disk writes and image conversion run on a serial utility queue.
 final class ClipboardHistory: ObservableObject {
-    static let shared = ClipboardHistory()
+    private static var instance: ClipboardHistory?
+    static var shared: ClipboardHistory {
+        if let instance { return instance }
+        let value = ClipboardHistory(); instance = value; return value
+    }
+    static func disable() { instance?.stop(); instance = nil }
     @Published private(set) var entries: [ClipEntry] = []
     @Published var error: String?
     private(set) var isReady = false
@@ -51,8 +56,16 @@ final class ClipboardHistory: ObservableObject {
         }
     }
 
+    func stop() {
+        generation += 1
+        timer?.invalidate(); timer = nil
+        if let settingsObserver { NotificationCenter.default.removeObserver(settingsObserver) }; settingsObserver = nil
+        entries = []; directory = nil; isReady = false; error = nil
+    }
+
     private func beginCapture() {
-        let timer = Timer(timeInterval: 0.75, repeats: true) { [weak self] _ in self?.check() }
+        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.check() }
+        timer.tolerance = 0.5
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
         settingsSignature = signature
@@ -109,7 +122,7 @@ final class ClipboardHistory: ObservableObject {
                 let captured = entry
                 DispatchQueue.main.async {
                     guard self.generation == version else {
-                        self.trashOwnedImages([captured], keeping: self.entries)
+                        self.trash(captured.urls.filter { $0.deletingLastPathComponent().standardizedFileURL == images.standardizedFileURL }) { _ in }
                         return
                     }
                     self.entries = ClipEntry.inserting(captured, into: self.entries)
@@ -199,6 +212,7 @@ final class ClipboardHistory: ObservableObject {
     }
 
     private func fail(_ message: String) {
+        guard directory != nil else { return }
         error = message
         PluginEvents.emit("clips", [:], to: "clips")
     }

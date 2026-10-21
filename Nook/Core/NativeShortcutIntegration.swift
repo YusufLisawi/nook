@@ -6,10 +6,17 @@ enum NativeShortcutIntegration {
         ShortcutRegistry.register(id: "keyboard.openNook", title: "Open Nook", group: "Nook",
                                   defaultShortcut: OpenNookShortcut.defaultShortcut,
                                   get: { OpenNookShortcut.current }, set: { OpenNookShortcut.save($0) })
+        registerNavigation()
+    }
+
+    static func registerWindows() {
         for action in WindowAction.allCases {
             ShortcutRegistry.register(id: "windows.\(action.rawValue)", title: action.title, group: "Window Management",
                                       get: { WindowShortcuts.shared.get(action) }, set: { WindowShortcuts.shared.set(action, $0) })
         }
+    }
+
+    private static func registerNavigation() {
         let command = CGEventFlags.maskCommand
         let control = CGEventFlags.maskControl
         var fixed: [(String, String, Int, CGEventFlags, String)] = [
@@ -36,7 +43,7 @@ enum NativeShortcutIntegration {
     static func group(key: Int64, modifiers: CGEventFlags) -> TabGroup? {
         TabNavigationStore.shared.groups.first { group in
             group.hotkey?.keyCode == Int(key) && group.hotkey?.modifiers == modifiers.rawValue &&
-            group.members.contains { id in !Prefs.disabledTabSet.contains(id) && Services.shared.plugins.tabs.contains { $0.id == id } }
+            group.members.contains { id in Features.shared.tabEnabled(id) && Services.shared.plugins.tabs.contains { $0.id == id } }
         }
     }
 }

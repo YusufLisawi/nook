@@ -257,11 +257,18 @@ document.querySelectorAll('#view button').forEach((b) => {
 
 let visible = true;
 const refresh = () => visible && !dragging && call('state');
-nook.on('show', (tab) => { visible = tab === nook.plugin.id; refresh(); });
-nook.on('open', (tab) => { visible = tab === nook.plugin.id; refresh(); });
-nook.on('close', () => { visible = false; });
 nook.on('audio', (next) => { if (!dragging) { state = next; render(); showPermission(); } });
 nook.on('settings', (s) => { settings = { ...settings, ...s }; render(); });
 nook.settings.get().then((s) => { settings = { ...settings, ...s }; }).catch(() => {});
-setInterval(refresh, 1500);
+let pollTimer = null;
+function setPolling(on) {
+  clearInterval(pollTimer); pollTimer = null;
+  visible = on;
+  if (on) { void refresh(); pollTimer = setInterval(refresh, 1500); }
+}
+nook.on('open', tab => setPolling(tab === nook.plugin.id));
+nook.on('show', tab => setPolling(tab === nook.plugin.id));
+nook.on('close', () => setPolling(false));
+nook.on('visibility', setPolling);
+setPolling(true);
 refresh();

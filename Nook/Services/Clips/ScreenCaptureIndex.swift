@@ -6,7 +6,12 @@ import Vision
 
 /// Indexes originals in place. No capture API, upload, or copy of a user's screenshots is involved.
 final class ScreenCaptureIndex {
-    static let shared = ScreenCaptureIndex()
+    private static var instance: ScreenCaptureIndex?
+    static var shared: ScreenCaptureIndex {
+        if let instance { return instance }
+        let value = ScreenCaptureIndex(); instance = value; return value
+    }
+    static func disable() { instance?.stop(); instance = nil }
     private(set) var entries: [ClipEntry] = []
     private(set) var error: String?
     private(set) var scanning = false
@@ -40,14 +45,29 @@ final class ScreenCaptureIndex {
         return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true).standardizedFileURL
     }
 
+    private var active = false
+    private var ocrRequest: VNRecognizeTextRequest?
+    func stop() {
+        active = false; revision += 1
+        pendingScan?.cancel(); pendingScan = nil
+        source?.cancel(); source = nil
+        refreshTimer?.invalidate(); refreshTimer = nil
+        if let observer { NotificationCenter.default.removeObserver(observer) }; observer = nil
+        ocrRequest?.cancel(); ocrRequest = nil
+        entries = []; directory = nil; scanning = false; scanAgain = false; isReady = false; error = nil
+        accessAllowed = { _ in false }
+    }
+
     func start(directory: URL, accessAllowed: @escaping (URL) -> Bool = { _ in false }) {
         guard self.directory == nil else { return }
+        active = true
         self.directory = directory
         self.accessAllowed = accessAllowed
-        let url = cacheURL
+        let url = cacheURL, token = revision
         io.async {
             let loaded = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode([ClipEntry].self, from: $0) } ?? []
             DispatchQueue.main.async {
+                guard self.active, token == self.revision else { return }
                 let configured = self.folderProvider().standardizedFileURL
                 self.entries = self.accessAllowed(configured) ? loaded.filter { entry in
                     guard let path = entry.paths.first else { return false }
@@ -58,14 +78,13 @@ final class ScreenCaptureIndex {
                 self.observer = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
                     self?.refresh()
                 }
-                let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in self?.refresh() }
-                RunLoop.main.add(timer, forMode: .common)
-                self.refreshTimer = timer
+
             }
         }
     }
 
     func refresh() {
+        guard active else { return }
         let desired = folderProvider().standardizedFileURL
         guard accessAllowed(desired) else {
             pendingScan?.cancel(); source?.cancel(); source = nil
@@ -170,6 +189,7 @@ final class ScreenCaptureIndex {
     }
 
     private func finishedScan() {
+        guard active else { return }
         scanning = false
         isReady = true
         emit()
@@ -178,12 +198,13 @@ final class ScreenCaptureIndex {
     }
 
     private func recognizeNext() {
-        guard !ocrRunning, ocrEnabled(),
+        guard active, !ocrRunning, ocrEnabled(),
               let entry = entries.first(where: { $0.kind == .screenshot && $0.ocrText == nil }), let url = entry.urls.first else { return }
         ocrRunning = true
         let version = revision
+        let request = VNRecognizeTextRequest()
+        ocrRequest = request
         ocrQueue.async {
-            let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = true
             request.automaticallyDetectsLanguage = true
@@ -224,6 +245,7 @@ final class ScreenCaptureIndex {
     }
 
     private func save() {
+        guard active, directory != nil else { return }
         let entries = self.entries, url = cacheURL
         io.async {
             do {
@@ -246,18 +268,32 @@ final class ClipsThumbnails {
 
     private init() { cache.totalCostLimit = 16 * 1024 * 1024 }
 
+    private var generation = 0
+    private var requests: [UUID: QLThumbnailGenerator.Request] = [:]
+    func clear() {
+        generation += 1
+        requests.values.forEach { QLThumbnailGenerator.shared.cancel($0) }; requests = [:]
+        cache.removeAllObjects()
+    }
+
     func get(_ entry: ClipEntry, completion: @escaping (String?, String?) -> Void) {
         guard let url = entry.urls.first else { return completion(nil, nil) }
         let key = "\(url.path)|\(entry.modifiedAt?.timeIntervalSince1970 ?? 0)" as NSString
         if let data = cache.object(forKey: key) { return completion("data:image/jpeg;base64," + (data as Data).base64EncodedString(), nil) }
         let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 240, height: 140), scale: 2, representationTypes: .thumbnail)
+        let token = generation, id = UUID()
+        requests[id] = request
         QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { representation, error in
             guard let representation,
                   let data = NSBitmapImageRep(cgImage: representation.cgImage).representation(using: .jpeg, properties: [.compressionFactor: 0.75]) else {
-                return DispatchQueue.main.async { completion(nil, error?.localizedDescription) }
+                return DispatchQueue.main.async { self.requests.removeValue(forKey: id); completion(nil, error?.localizedDescription) }
             }
-            self.cache.setObject(data as NSData, forKey: key, cost: data.count)
-            DispatchQueue.main.async { completion("data:image/jpeg;base64," + data.base64EncodedString(), nil) }
+            DispatchQueue.main.async {
+                self.requests.removeValue(forKey: id)
+                guard token == self.generation else { completion(nil, "Feature turned off."); return }
+                self.cache.setObject(data as NSData, forKey: key, cost: data.count)
+                completion("data:image/jpeg;base64," + data.base64EncodedString(), nil)
+            }
         }
     }
 }

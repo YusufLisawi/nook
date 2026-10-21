@@ -10,11 +10,18 @@ final class FileNameIndex {
         weak var index: FileNameIndex?
         init(_ index: FileNameIndex) { self.index = index }
     }
-    static let shared = FileNameIndex()
+    private static var instance: FileNameIndex?
+    static var shared: FileNameIndex {
+        if let instance { return instance }
+        let value = FileNameIndex(); instance = value; return value
+    }
+    static func disable() { instance?.stop(); instance = nil }
     static let changed = Notification.Name("nookFileIndexChanged")
     private let lock = NSLock()
     private let updates = DispatchQueue(label: "com.yusuf.nook.files.index", qos: .utility)
     private let queries = DispatchQueue(label: "com.yusuf.nook.files.search", qos: .userInitiated)
+    private var stopping = false
+    private var scanningStore: OpaquePointer?
     private var store: OpaquePointer?
     private var cursors: [String: OpaquePointer] = [:] // query queue only
     private var stream: FSEventStreamRef?
@@ -115,7 +122,7 @@ final class FileNameIndex {
     var configuration: Configuration? { lock.lock(); defer { lock.unlock() }; return _configuration }
 
     func start(defaults: UserDefaults = .standard, force: Bool = false) {
-        lock.lock(); rebuildVersion += 1; let revision = rebuildVersion; forcePending = forcePending || force; lock.unlock()
+        lock.lock(); stopping = false; rebuildVersion += 1; let revision = rebuildVersion; forcePending = forcePending || force; lock.unlock()
         updates.async { [weak self] in
             guard let self else { return }
             self.lock.lock()
@@ -144,9 +151,10 @@ final class FileNameIndex {
         if loaded != nil && saved > baseline { nf_destroy(loaded); loaded = nil }
         let index = loaded ?? nf_create()!
         if loaded == nil {
-            for root in config.roots { config.scan(index, root: root) }
+            for root in config.roots { scan(index, root: root, config: config) }
         }
         lock.lock()
+        if stopping { lock.unlock(); nf_destroy(index); return }
         let old = store; store = index; _ready = true; _count = Int(nf_count(index))
         _restored = loaded != nil
         let skipped = nf_skipped(index)
@@ -228,11 +236,20 @@ final class FileNameIndex {
         if !paths.isEmpty || events.contains(where: { $0.1 & UInt32(kFSEventStreamEventFlagHistoryDone) != 0 }) { persistSoon() }
     }
 
+    private func scan(_ index: OpaquePointer, root: String, config: Configuration) {
+        lock.lock()
+        if stopping { lock.unlock(); return }
+        scanningStore = index
+        lock.unlock()
+        config.scan(index, root: root)
+        lock.lock(); scanningStore = nil; lock.unlock()
+    }
+
     private func reconcile(_ path: String, recursive: Bool, config: Configuration) {
         let fresh = nf_create()!
         // Non-recursive updates use a single lstat/resource lookup; avoid recrawling a
         // large parent each time a child's modification updates that parent's timestamp.
-        if recursive { config.scan(fresh, root: path) }
+        if recursive { scan(fresh, root: path, config: config) }
         else if let record = Self.readRecord(path, config: config) { Self.put(record, into: fresh) }
         #if FILE_INDEX_DIAGNOSTICS
         fputs("RECONCILE \(path) recursive=\(recursive) fresh=\(nf_count(fresh))\n", stderr)
@@ -326,6 +343,19 @@ final class FileNameIndex {
             }
         }
     }
+    /// Drain owned queues before destroying C storage. No scan/query can publish into freed memory.
+    func stop() {
+        lock.lock(); stopping = true; rebuildVersion += 1; nf_cancel(scanningStore); lock.unlock()
+        updates.sync {
+            stopWatching(); saveWork?.cancel(); saveWork = nil
+            lock.lock()
+            nf_destroy(store); store = nil; _ready = false; _count = 0; _restored = false
+            config = nil; _configuration = nil; started = false; forcePending = false
+            lock.unlock()
+        }
+        queries.sync { cursors.values.forEach(nf_cursor_destroy); cursors.removeAll() }
+    }
+
     private func setDiagnostic(_ message: String) { lock.lock(); _diagnostic = message; lock.unlock(); publish() }
     private func publish() { DispatchQueue.main.async { NotificationCenter.default.post(name: Self.changed, object: self) } }
 

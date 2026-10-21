@@ -68,9 +68,10 @@ final class AICommands: ObservableObject {
         if let index = commands.firstIndex(where: { $0.id == id }) { commands[index].hotkey = hotkey }
     }
 }
-struct PluginActivity: Equatable { var text: String }
+struct PluginActivity: Equatable { var pluginID = "test"; var text: String }
 final class Services: ObservableObject {
     static let shared = Services()
+    let hotkeys = StubHotkeys()
     let plugins = PluginRegistry()
     let dictation = DictationService()
     let commands = AICommands()
@@ -82,6 +83,7 @@ final class WebPluginHost {
     let keyboardID = "display-a"
     var events: [(String, Any)] = []
     init(vm: NotchViewModel) {}
+    func visibilityChanged() {}
     func view(for tab: TabItem) -> WKWebView? { nil }
     func emit(_ event: String, _ payload: Any, to pluginID: String? = nil) { events.append((event, payload)) }
 }
@@ -98,3 +100,10 @@ extension Notification.Name { static let nookKeyboardFocus = Notification.Name("
 
 // Native Files owns its local shortcuts only while its view is present.
 enum FileSearchTabState { static func handle(_ event: NSEvent, owner: String) -> Bool { false } }
+
+final class Features: ObservableObject {
+    static let shared = Features()
+    func enabled(_ id: String) -> Bool { true }
+    func tabEnabled(_ id: String) -> Bool { !Prefs.disabledTabSet.contains(id) }
+}
+extension Notification.Name { static let nookFeaturesChanged = Notification.Name("nookFeaturesChanged") }

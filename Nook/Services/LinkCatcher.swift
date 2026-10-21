@@ -14,10 +14,15 @@ final class LinkCatcher {
     private let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
     func start() {
-        let timer = Timer(timeInterval: 0.75, repeats: true) { [weak self] _ in self?.check() }
+        guard timer == nil else { return }
+        changeCount = NSPasteboard.general.changeCount
+        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.check() }
+        timer.tolerance = 0.5
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }
+
+    func stop() { timer?.invalidate(); timer = nil }
 
     private func check() {
         let board = NSPasteboard.general

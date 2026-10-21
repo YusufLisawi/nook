@@ -107,7 +107,7 @@ final class TimerService: ObservableObject {
             startDate = now
         }
         isRunning = true
-        let t = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in self?.tick() }
+        let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(t, forMode: .common)
         ticker = t
     }

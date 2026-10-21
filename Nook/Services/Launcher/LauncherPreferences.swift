@@ -25,7 +25,7 @@ enum LauncherShortcut {
             func same(_ value: TabHotkey?) -> Bool { value?.keyCode == key.keyCode && value?.modifiers == key.modifiers }
             let used = ShortcutRegistry.shortcuts.contains { $0.id != "launcher.toggle" && same($0.get()) }
                 || TabHotkeys.all().values.contains(where: { same($0) })
-                || Services.shared.commands.commands.contains { same($0.hotkey) }
+                || (Features.shared.enabled("commands") && Services.shared.commands.commands.contains { same($0.hotkey) })
                 || TabNavigationStore.shared.groups.contains { same($0.hotkey) }
                 || [DictationShortcut.load(DictationService.Keys.holdShortcut, fallback: .defaultHold),
                     DictationShortcut.load(DictationService.Keys.toggleShortcut, fallback: .defaultToggle)].compactMap { $0 }.contains {

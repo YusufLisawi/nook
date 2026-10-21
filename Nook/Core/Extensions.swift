@@ -16,6 +16,8 @@ enum BridgeRegistry {
         namespaces[namespace] = (functions, handler)
     }
 
+    static func unregister(_ namespace: String) { namespaces.removeValue(forKey: namespace) }
+
     /// `ns.fn` → true if a registered namespace handled it.
     static func handle(_ full: String, args: [Any], pluginID: String, reply: @escaping (Any?, String?) -> Void) -> Bool {
         guard let dot = full.firstIndex(of: "."), let entry = namespaces[String(full[..<dot])] else { return false }
@@ -48,6 +50,11 @@ struct SettingsExtension: Identifiable {
 
 enum SettingsRegistry {
     private(set) static var panes: [SettingsExtension] = []
+
+    static func unregister(_ id: String) {
+        panes.removeAll { $0.id == id }
+        NotificationCenter.default.post(name: .nookSettingsRegistryChanged, object: nil)
+    }
 
     static func register<V: View>(id: String, title: String, symbol: String, tint: Color, order: Int, keywords: [String] = [], @ViewBuilder view: @escaping () -> V) {
         panes.removeAll { $0.id == id }

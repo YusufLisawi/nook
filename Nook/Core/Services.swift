@@ -10,49 +10,50 @@ final class Services: ObservableObject {
         return dir
     }()
 
-    let media = MediaController()
-    let timers = TimerService()
-    let shelf = FileShelf()
-    let system = SystemStats()
-    let proxy = ProxyService()
-    let dictation = DictationService()
-    let audio = AudioMixer()
-    let mouse = MouseFixService()
-    let links = LinkCatcher()
-    let commands = AICommands()
+    private var instances: [String: AnyObject] = [:]
+    let hotkeys = HotkeyMonitor()
+    var closeNotches: () -> Void = {}
+    var openTab: (String) -> Void = { _ in }
+    private func service<T: AnyObject>(_ id: String, _ make: () -> T) -> T {
+        if let value = instances[id] as? T { return value }
+        let value = make(); instances[id] = value; return value
+    }
+    func release(_ id: String, stop: (AnyObject) -> Void = { _ in }) {
+        guard let value = instances.removeValue(forKey: id) else { return }; stop(value)
+    }
+    var media: MediaController { service("media", MediaController.init) }
+    var timers: TimerService { service("timers", TimerService.init) }
+    var shelf: FileShelf { service("shelf", FileShelf.init) }
+    var system: SystemStats { service("system", SystemStats.init) }
+    var proxy: ProxyService { service("proxy", ProxyService.init) }
+    var dictation: DictationService { service("dictation", DictationService.init) }
+    var audio: AudioMixer { service("audio", AudioMixer.init) }
+    var mouse: MouseFixService { service("mouse", MouseFixService.init) }
+    var links: LinkCatcher { service("links", LinkCatcher.init) }
+    var commands: AICommands {
+        service("commands") {
+            let value = AICommands()
+            value.closeNotches = { [weak self] in self?.closeNotches() }
+            value.openTab = { [weak self] in self?.openTab($0) }
+            return value
+        }
+    }
     let plugins = PluginRegistry()
 
     /// Set by web plugins through `nook.activity.set`; shown on the closed notch.
     @Published var pluginActivity: PluginActivity?
 
     @MainActor func start() {
-        CleanerBridge.register()
-        AgentService.register()
-        WindowManager.shared.start()
-        ClipsFeature.start()
-        PluginStore.register()
-        FileSearchService.shared.register()
-        KeyboardActions.shared.start()
-        NativeShortcutIntegration.register()
-        LauncherFeature.start()
+        Features.shared.start(self)
         plugins.start()
-        media.start()
-        proxy.restoreOnLaunch()
-        dictation.start()
-        audio.start()
-        mouse.registerBridge()
-        mouse.start()
-        links.start()
     }
 
     func shutdown() {
-        FileNameIndex.shared.shutdown()
-        AgentService.shared.shutdown()
+        Features.shared.shutdown()
         SettingsPersistence.shared.flush()
-        proxy.shutdown()
-        audio.shutdown() // remove taps so no app is left muted
-        mouse.shutdown() // release the event tap and the pointer
+        instances.removeAll()
     }
+
 }
 
 struct PluginActivity: Equatable {

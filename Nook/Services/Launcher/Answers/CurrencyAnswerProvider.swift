@@ -13,7 +13,8 @@ final class CurrencyAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider
         "¥": "JPY", "yen": "JPY", "yuan": "CNY", "dirham": "MAD", "dirhams": "MAD", "dh": "MAD", "dhs": "MAD"]
     private static let codes = Set(Locale.commonISOCurrencyCodes.map { $0.uppercased() })
     private static let names = ["USD": "US Dollar", "EUR": "Euro", "GBP": "British Pound", "JPY": "Japanese Yen", "MAD": "Moroccan Dirham"]
-    required init() { super.init(); _ = Self.codes; _ = LauncherCurrencyStore.shared }
+    private let store = LauncherCurrencyStore()
+    required init() { super.init(); _ = Self.codes }
 
     private func code(_ token: String) -> String? {
         if let alias = Self.aliases[token.lowercased()] { return alias }
@@ -29,7 +30,7 @@ final class CurrencyAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider
     }
     func answer(for query: String, context: LauncherAnswerContext) -> LauncherAnswer? {
         var context = context
-        if context.currency == nil { LauncherCurrencyStore.shared.fill(&context) }
+        if context.currency == nil { store.fill(&context) }
         guard context.hasTime, let (amount, from, to) = parse(query, target: context.defaultCurrency) else { return nil }
         let name: (String) -> String = { Self.names[$0] ?? AnswerText.posix.localizedString(forCurrencyCode: $0) ?? $0 }
         let attribution = LauncherAnswer.Action(title: "Rates by ExchangeRate-API", value: .open(URL(string: "https://www.exchangerate-api.com")!))
@@ -57,13 +58,12 @@ final class CurrencyAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider
     }
     func refine(for query: String, context: LauncherAnswerContext, completion: @escaping () -> Void) {
         guard let (_, from, to) = parse(query, target: context.defaultCurrency), from != to else { return }
-        LauncherCurrencyStore.shared.refreshIfNeeded(now: context.now, completion: completion)
+        store.refreshIfNeeded(now: context.now, completion: completion)
     }
 }
 
 /// Only this cache service performs I/O. Queries, amounts and target currencies never leave the Mac.
 final class LauncherCurrencyStore: @unchecked Sendable {
-    static let shared = LauncherCurrencyStore()
     private struct Disk: Codable { var snapshot: LauncherCurrencySnapshot?; var attemptedAt: Date? }
     private let queue = DispatchQueue(label: "nook.answers.currency", qos: .utility)
     private let lock = NSLock()
@@ -73,6 +73,7 @@ final class LauncherCurrencyStore: @unchecked Sendable {
     private var failure: String?
     private var waiters: [() -> Void] = []
     private let file: URL
+    private var task: URLSessionDataTask?
     private let session: URLSession
 
     init(file: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -110,7 +111,7 @@ final class LauncherCurrencyStore: @unchecked Sendable {
             completion()
             var request = URLRequest(url: URL(string: "https://open.er-api.com/v6/latest/USD")!)
             request.timeoutInterval = 12; request.cachePolicy = .reloadIgnoringLocalCacheData
-            session.dataTask(with: request) { [weak self] data, response, _ in
+            task = session.dataTask(with: request) { [weak self] data, response, _ in
                 guard let self else { return }
                 self.queue.async {
                     var snapshot: LauncherCurrencySnapshot?
@@ -126,9 +127,12 @@ final class LauncherCurrencyStore: @unchecked Sendable {
                     let callbacks = self.waiters; self.waiters = []
                     callbacks.forEach { $0() }
                 }
-            }.resume()
+            }
+            task?.resume()
         }
     }
+    deinit { task?.cancel() }
+
     static func decode(_ data: Data, now: Date) -> LauncherCurrencySnapshot? {
         guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               json["result"] as? String == "success", json["base_code"] as? String == "USD",

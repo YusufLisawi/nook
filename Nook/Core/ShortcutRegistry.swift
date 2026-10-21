@@ -16,6 +16,11 @@ enum ShortcutRegistry {
     private(set) static var shortcuts: [ShortcutRegistration] = []
     static var externalConflicts: (TabHotkey) -> [String] = { _ in [] }
 
+    static func unregister(prefix: String) {
+        shortcuts.removeAll { $0.id.hasPrefix(prefix) }
+        NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
+    }
+
     static func register(id: String, title: String, group: String = "Extensions", defaultShortcut: TabHotkey? = nil, editable: Bool = true,
                          get: @escaping () -> TabHotkey?, set: @escaping (TabHotkey?) -> Void) {
         shortcuts.removeAll { $0.id == id }

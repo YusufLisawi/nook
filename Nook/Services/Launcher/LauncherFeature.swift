@@ -4,7 +4,11 @@ import SwiftUI
 import WebKit
 
 final class LauncherFeature: ObservableObject {
-    static let shared = LauncherFeature()
+    private static var instance: LauncherFeature?
+    static var shared: LauncherFeature {
+        if let instance { return instance }
+        let value = LauncherFeature(); instance = value; return value
+    }
     @Published private(set) var history: [String: LauncherUsage] = {
         guard let data = UserDefaults.standard.data(forKey: LauncherPreferences.historyKey) else { return [:] }
         return (try? JSONDecoder().decode([String: LauncherUsage].self, from: data)) ?? [:]
@@ -13,7 +17,7 @@ final class LauncherFeature: ObservableObject {
 
     static func start() {
         LauncherApplicationIndex.shared.start()
-        _ = LauncherAnswers.shared
+        // Smart answer providers are created only for the first answer query.
         // Resolve and persist the default once. Later assignments must not move a user's shortcut.
         let fallback = LauncherShortcut.current
         if UserDefaults.standard.data(forKey: LauncherPreferences.shortcutKey) == nil { LauncherShortcut.save(fallback) }
@@ -21,6 +25,20 @@ final class LauncherFeature: ObservableObject {
                                   get: { LauncherShortcut.current }, set: { LauncherShortcut.save($0) })
         SettingsRegistry.register(id: "launcher", title: "Launcher", symbol: "magnifyingglass", tint: .orange, order: 11,
                                   keywords: ["search", "apps", "Raycast", "Spotlight", "recent", "shortcut"]) { LauncherSettingsPane() }
+    }
+
+    static func reconfigure() {
+        guard let instance else { return }
+        for state in instance.states.values { state.reconfigure() }
+    }
+
+    static func stop() {
+        if let instance {
+            for state in instance.states.values { state.dismiss(); state.teardown() }
+            instance.states.removeAll(); instance.history.removeAll()
+        }
+        instance = nil
+        LauncherApplicationIndex.disable()
     }
 
     func state(for vm: NotchViewModel) -> LauncherState {
@@ -33,6 +51,7 @@ final class LauncherFeature: ObservableObject {
     }
 
     static func toggle(_ controller: NotchController) {
+        guard Features.shared.enabled("launcher") else { return }
         let vm = controller.viewModel, state = shared.state(for: controller.viewModel)
         if vm.launcherPresented { state.dismiss(restoreFocus: true); return }
         // Only one launcher owns the external selection/focus at a time, including across displays.
@@ -147,7 +166,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         let index = LauncherApplicationIndex.shared
         Publishers.MergeMany(index.$applications.map { _ in () }.eraseToAnyPublisher(),
                              index.$runningPaths.map { _ in () }.eraseToAnyPublisher(),
-                             vm.services.commands.$commands.map { _ in () }.eraseToAnyPublisher(),
+
                              KeyboardActions.shared.$actions.map { _ in () }.eraseToAnyPublisher(),
                              LauncherFeature.shared.$history.map { _ in () }.eraseToAnyPublisher())
             .receive(on: RunLoop.main).sink { [weak self] in self?.rebuildIfPresented() }.store(in: &bag)
@@ -162,6 +181,16 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         vm.launcherKeyHandler = { [weak self] in self?.handle($0) ?? false }
         vm.launcherEscape = { [weak self] in self?.escape() }
         vm.launcherDidClose = { [weak self] in self?.closed() }
+    }
+
+    func reconfigure() {
+        if !Features.shared.enabled("smartAnswers") { smartRequest?.cancel(); smartRequest = nil; smartAnswer = nil }
+        if vm?.launcherPresented == true { rebuild() }
+    }
+
+    func teardown() {
+        closed(); bag.removeAll(); candidates.removeAll(); byID.removeAll(); results.removeAll()
+        vm?.launcherKeyHandler = nil; vm?.launcherEscape = nil; vm?.launcherDidClose = nil
     }
 
     var selected: LauncherEntry? { results.indices.contains(selectedIndex) ? results[selectedIndex] : nil }
@@ -195,7 +224,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
 
     func closed() {
         smartGeneration += 1; smartRequest?.cancel(); smartRequest = nil; smartAnswer = nil
-        FileSearchService.shared.cancel("native.launcher:launcher:\(ObjectIdentifier(self))")
+        if Features.shared.enabled("files") { FileSearchService.shared.cancel("native.launcher:launcher:\(ObjectIdentifier(self))") }
         operation += 1
         chatTask?.cancel(); chatTask = nil
         context = nil
@@ -273,7 +302,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         resize()
         fileRequest += 1
         let request = fileRequest
-        if LauncherPreferences.sources.contains(.files), parsed.source == nil || parsed.source == .files {
+        if Features.shared.enabled("launcherFiles"), LauncherPreferences.sources.contains(.files), parsed.source == nil || parsed.source == .files {
             LauncherFileSource.search(parsed.text, client: "launcher:\(ObjectIdentifier(self))") { [weak self] result in
                 guard let self, self.fileRequest == request, self.vm?.launcherPresented == true else { return }
                 switch result {
@@ -296,7 +325,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
             smartQuery = query; smartAnswer = nil
             if selectedIndex < 0 { selectedIndex = 0 }
         }
-        guard LauncherQuery(query).source == nil, !query.isEmpty, chatQuery == nil else {
+        guard Features.shared.enabled("smartAnswers"), LauncherQuery(query).source == nil, !query.isEmpty, chatQuery == nil else {
             smartAnswer = nil; return
         }
         let text = query
@@ -484,7 +513,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         let prompt = LauncherQuery(query).text
         operation += 1
         let token = operation
-        if let agent = AgentService.shared.agents.first, vm.isEnabled("agents"),
+        if vm.isEnabled("agents"), let agent = AgentService.shared.agents.first,
            let tab = vm.enabledTabs.first(where: { $0.id == "agents" }), let web = vm.web.view(for: tab) {
             // Preload while the launcher still owns focus. Wait for the plugin's handler, including cold loads.
             thinking = true

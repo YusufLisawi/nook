@@ -17,6 +17,13 @@ sources = [
     "Nook/Views/Settings/SettingsShortcutRecorder.swift",
 ]
 stubs = r'''
+final class Features {
+    static let shared = Features()
+    func enabled(_ id: String) -> Bool { true }
+    func tabEnabled(_ id: String) -> Bool { true }
+    func registerPlugins(_ tabs: [TabItem]) {}
+}
+
 import AppKit
 import SwiftUI
 
@@ -54,6 +61,7 @@ final class AICommands: ObservableObject {
 final class Services {
     static let shared = Services()
     static let supportDir = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+    let hotkeys = MockHotkeys()
     let dictation = DictationService()
     let commands = AICommands()
     let plugins = PluginRegistry()
@@ -105,7 +113,7 @@ check(UserDefaults.standard.stringArray(forKey: "tabOrder") == registry.customOr
 check(PluginRegistry().orderedTabs.map(\.id) == registry.orderedTabs.map(\.id), "Dock order survives registry recreation")
 registry.resetOrder()
 registry.move(from: IndexSet([0, 2]), to: 4)
-check(registry.orderedTabs.map(\.id) == [original[1], original[3], original[0], original[2]], "Multiple selected rows move together")
+check(registry.orderedTabs.map(\.id) == [original[1], original[3], original[0], original[2]] + Array(original.dropFirst(4)), "Multiple selected rows move together")
 registry.resetOrder()
 check(registry.orderedTabs.map(\.id) == original && registry.customOrder.isEmpty, "Reset restores manifest order")
 UserDefaults.standard.set(["missing", original[2]], forKey: "tabOrder")

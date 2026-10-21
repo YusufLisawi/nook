@@ -14,6 +14,8 @@ final class KeyboardActions: ObservableObject {
     static let shared = KeyboardActions()
     @Published private(set) var actions: [Action] = []
 
+    func stop() { actions = []; BridgeRegistry.unregister("actions") }
+
     func start() {
         BridgeRegistry.register("actions", functions: ["register"]) { [weak self] fn, args, pluginID, reply in
             guard fn == "register", let rows = args.first as? [[String: Any]],

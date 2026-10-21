@@ -145,10 +145,8 @@ struct TabNavigationList: View {
         navigation.moveMembers(group.id, from: IndexSet(integer: index), to: offset > 0 ? index + 2 : index - 1)
     }
     private func enabled(_ id: String) -> Binding<Bool> {
-        Binding(get: { !disabledTabs.split(separator: ",").contains(Substring(id)) }, set: { on in
-            var off = Prefs.disabledTabSet
-            if on { off.remove(id) } else { off.insert(id) }
-            disabledTabs = off.sorted().joined(separator: ",")
+        Binding(get: { Features.shared.tabEnabled(id) }, set: { on in
+                Features.shared.setTab(id, on)
         })
     }
 }

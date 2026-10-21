@@ -7,6 +7,11 @@ final class FileSearchQuickLook: NSResponder, QLPreviewPanelDataSource, QLPrevie
     private weak var origin: NSWindow?
     private var previousResponder: NSResponder?
 
+    func close() {
+        if url != nil, let panel = QLPreviewPanel.sharedPreviewPanelExists() ? QLPreviewPanel.shared() : nil { panel.orderOut(nil) }
+        url = nil; restoreChain()
+    }
+
     func show(_ url: URL) {
         guard let panel = QLPreviewPanel.shared() else { return }
         if panel.isVisible, self.url == url {

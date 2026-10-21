@@ -31,6 +31,7 @@ final class PluginRegistry: ObservableObject {
         TabItem(id: "media", name: "Now Playing", symbol: "music.note", order: 20, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "shelf", name: "Shelf", symbol: "tray.full.fill", order: 30, height: defaultHeight, kind: .native, icon: nil),
         TabItem(id: "scratch", name: "Scratch", symbol: "square.and.pencil", order: 35, height: defaultHeight, kind: .native, icon: nil),
+        TabItem(id: "files", name: "File Search", symbol: "doc.text.magnifyingglass", order: 46, height: 380, kind: .native, icon: nil),
         TabItem(id: "timers", name: "Timers", symbol: "timer", order: 80, height: defaultHeight, kind: .native, icon: nil),
     ]
 
@@ -92,6 +93,7 @@ final class PluginRegistry: ObservableObject {
             for dir in dirs {
                 guard let data = try? Data(contentsOf: dir.appendingPathComponent("plugin.json")),
                       let m = try? JSONDecoder().decode(Manifest.self, from: data) else { continue }
+                if m.id == "files", root == Self.bundledDir { continue } // Native by default; user web overrides still work.
                 byID[m.id] = TabItem(
                     id: m.id, name: m.name, symbol: m.symbol ?? "puzzlepiece.extension.fill", order: m.order ?? 100,
                     height: min(Self.maxHeight, CGFloat(m.height ?? Double(Self.defaultHeight))),

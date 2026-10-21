@@ -99,6 +99,21 @@ struct InteractionTests {
         check(state.answer == "Reply: Explain this literal $(query)" && !state.thinking, "Native Quick AI streams the literal query through the AI pipeline")
         state.escape(); check(state.chatQuery == nil && vm.isOpen, "Escape backs out of Quick AI to search")
         state.escape(); state.escape()
+        state.present(); vm.open(); state.query = "file: report"
+        check(LauncherFileSource.requests.last == "report", "file: prefix shares file index")
+        let staleFileReply = LauncherFileSource.completion
+        state.query = "f invoice"
+        check(LauncherFileSource.requests.last == "invoice", "f-space prefix shares file index")
+        let file = LauncherEntry(id: "file:/tmp/invoice.pdf", title: "invoice.pdf", subtitle: "/tmp", kind: "PDF", symbol: "doc", source: .files, target: .file("/tmp/invoice.pdf"))
+        LauncherFileSource.completion?(.success([file]))
+        check(state.results.first?.id == file.id && state.results.last?.id == "askAI", "files precede final AI row in source-restricted results")
+        staleFileReply?(.success([]))
+        check(state.results.first?.id == file.id, "stale file completion cannot replace new query")
+        LauncherPreferences.set(.files, enabled: false)
+        state.query = "file: report"
+        check(!state.results.contains { $0.source == .files }, "file source toggle respected")
+        LauncherPreferences.set(.files, enabled: true)
+        state.escape(); state.escape()
         print("Passed \(checks) launcher mode, keyboard, source, confirmation, persistence and lifecycle checks without launching Nook")
     }
 }

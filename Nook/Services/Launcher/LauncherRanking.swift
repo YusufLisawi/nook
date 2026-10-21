@@ -2,7 +2,7 @@ import Foundation
 
 /// Pure query/ranking policy. No application discovery, preferences, or UI side effects.
 enum LauncherSource: String, CaseIterable, Codable {
-    case applications, aiCommands, plugins, actions, system, askAI
+    case applications, aiCommands, plugins, actions, system, files, askAI
 
     var title: String {
         switch self {
@@ -11,6 +11,7 @@ enum LauncherSource: String, CaseIterable, Codable {
         case .plugins: return "Plugins & Tab Groups"
         case .actions: return "Plugin Actions"
         case .system: return "System Commands"
+        case .files: return "Files"
         case .askAI: return "Quick AI"
         }
     }
@@ -24,7 +25,7 @@ struct LauncherQuery: Equatable {
     init(_ raw: String) {
         let input = String(raw.prefix(512)).trimmingCharacters(in: .whitespacesAndNewlines)
         let prefixes: [(String, LauncherSource)] = [("app:", .applications), ("ai:", .aiCommands),
-            ("plugin:", .plugins), ("action:", .actions), ("command:", .system)]
+            ("plugin:", .plugins), ("action:", .actions), ("command:", .system), ("file:", .files), ("f ", .files)]
         if let prefix = prefixes.first(where: { input.lowercased().hasPrefix($0.0) }) {
             source = prefix.1
             text = String(input.dropFirst(prefix.0.count)).trimmingCharacters(in: .whitespacesAndNewlines)

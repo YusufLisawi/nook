@@ -43,6 +43,7 @@ final class Services: ObservableObject {
     }
 
     func shutdown() {
+        FileNameIndex.shared.shutdown()
         AgentService.shared.shutdown()
         SettingsPersistence.shared.flush()
         proxy.shutdown()

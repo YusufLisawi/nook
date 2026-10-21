@@ -45,3 +45,21 @@ enum AIBrain {
         return "Reply: " + prompt
     }
 }
+
+// Inert File Search integration: launcher interaction tests never index or open user files.
+final class FileNameIndex {
+    static let changed = Notification.Name("nookFileIndexChanged")
+}
+enum LauncherFileSource {
+    static var requests: [String] = []
+    static var completion: ((Result<[LauncherEntry], Error>) -> Void)?
+    static func search(_ text: String, client: String, reply: @escaping (Result<[LauncherEntry], Error>) -> Void) {
+        requests.append(text); completion = reply; reply(.success([]))
+    }
+}
+enum FileSearchService {
+    static let shared = FileSearchServiceStub()
+    final class FileSearchServiceStub {
+        func handle(_ action: String, args: [Any], reply: @escaping (Any?, String?) -> Void) { reply(nil, nil) }
+    }
+}

@@ -38,6 +38,7 @@ struct NotchRootView: View {
         }
         .frame(width: NotchController.panelSize.width, height: NotchController.panelSize.height)
         .environment(\.colorScheme, .dark)
+        .focusEffectDisabled() // no system focus rings anywhere in the notch; focused controls get a soft tint instead
     }
 }
 

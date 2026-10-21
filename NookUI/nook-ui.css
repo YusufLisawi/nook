@@ -100,10 +100,10 @@
 .nk-in { animation: nk-in .22s ease-out both; }
 @keyframes nk-in { from { opacity: 0; transform: translateY(4px); } }
 
-/* Keyboard focus is equally visible on kit controls and custom bundled-plugin controls. */
-:is(button, a, input, textarea, select, [tabindex], [contenteditable]):focus-visible {
-  outline: 2px solid var(--accent) !important; outline-offset: -2px;
-}
-.nk-switch:focus-within span { outline: 2px solid var(--accent); outline-offset: 2px; }
-[data-nk-item]:focus-visible { background: var(--card-hover); }
+/* Keyboard focus: no rings. A soft light tint over whatever the control already looks like (works on any background);
+   text fields show just the caret. Applies to every plugin, overriding their own outlines. */
+*:focus-visible { outline: none !important; }
+:is(button, a, select, summary, [tabindex], [data-nk-item]):focus-visible { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .07) !important; }
+:is(input, textarea, [contenteditable]):focus-visible { box-shadow: none !important; }
+.nk-switch:focus-within span { box-shadow: 0 0 0 3px rgba(255, 255, 255, .12); }
 .nk-shortcuts { flex: none; color: var(--muted); font: 10px -apple-system, sans-serif; white-space: nowrap; }

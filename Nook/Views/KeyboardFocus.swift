@@ -37,8 +37,10 @@ private struct KeyboardFocusRing: ViewModifier {
     @FocusState private var focused: Bool
 
     func body(content: Content) -> some View {
-        content.focusable().focused($focused)
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.orange.opacity(focused ? 1 : 0), lineWidth: 2).allowsHitTesting(false))
+        // No ring: a soft light tint, like hover. The system's own blue ring is turned off.
+        content.focusable().focused($focused).focusEffectDisabled()
+            .background(Capsule().fill(.white.opacity(focused ? 0.08 : 0)).allowsHitTesting(false))
+            .animation(.easeOut(duration: 0.12), value: focused)
             .onReceive(NotificationCenter.default.publisher(for: .nookKeyboardFocus)) { note in
                 guard let initialTab, note.userInfo?["owner"] as? String == owner, note.userInfo?["tab"] as? String == initialTab,
                       let window = note.object as? NSWindow, window.isKeyWindow else { return }

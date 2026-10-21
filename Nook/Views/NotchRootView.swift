@@ -146,6 +146,8 @@ struct ExpandedView: View {
                 Color.clear.frame(width: notch.width)
                 HStack(spacing: 2) {
                     Spacer()
+                    IconButton("magnifyingglass", size: 12) { (NSApp.delegate as? AppDelegate)?.openLauncher(in: vm) }
+                        .help("Search apps, AI commands and plugins (\(LauncherShortcut.current?.display ?? "⌃⌥Space"))")
                     if vm.currentTab != nil {
                         IconButton(vm.showingSettings ? "slider.horizontal.3" : "slider.horizontal.3", size: 12) {
                             withAnimation(.snappy(duration: 0.2)) { vm.showingSettings.toggle() }

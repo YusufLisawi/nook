@@ -154,6 +154,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openNotch() { notchUnderMouse()?.openWithKeyboard() }
 
+    /// The search button in the notch header: switch that notch to the launcher.
+    func openLauncher(in vm: NotchViewModel) {
+        guard let controller = controllers.first(where: { $0.viewModel === vm }), !vm.launcherPresented else { return }
+        LauncherFeature.toggle(controller)
+    }
+
     private func notchUnderMouse() -> NotchController? {
         let mouse = NSEvent.mouseLocation
         return controllers.first { $0.viewModel.geometry.screen.frame.contains(mouse) } ?? controllers.first

@@ -61,14 +61,12 @@ struct TabStateTests {
         service.searches.last!.reply(payload(["b.pdf"]))
         pending.reply(payload(["a.pdf"]))
         precondition(state.current?.name == "b.pdf", "stale search response cannot replace newer rows")
-        spin { !service.previews.isEmpty }
-        let preview = service.previews.last!
-        let previewsBefore = service.previews.count
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        precondition(service.previews.isEmpty, "no inline previews (removed: they re-rendered on every selection)")
         state.query = "a"; service.searches.last!.reply(payload(["a.pdf"]))
-        spin { service.previews.count > previewsBefore }
-        service.previews.last!.1(["text": "new preview"], nil)
-        preview.1(["text": "stale preview"], nil)
-        precondition(state.preview["text"] as? String == "new preview", "stale preview cannot replace current selection")
+        let rows = state.results.map(\.path)
+        service.searches.last!.reply(payload(["a.pdf"]))
+        precondition(state.results.map(\.path) == rows, "an identical streamed update leaves the list untouched")
         let originalKind = state.kind
         _ = key(48)
         precondition(state.kind != originalKind)
@@ -80,6 +78,6 @@ struct TabStateTests {
         precondition(!key(53), "empty-query Escape returns to the notch's close route")
         state.stop()
         precondition(!service.canceled.isEmpty && !key(125))
-        print("PASS: native per-notch keyboard routing, arrows, open/reveal, Quick Look, copy path/name, local actions, kind cycling, Trash confirmation/cancel, pending/stale search safety, preview races, loading/error/empty state and cancellation; no app or GUI launched")
+        print("PASS: native per-notch keyboard routing, arrows, open/reveal, Quick Look, copy path/name, local actions, kind cycling, Trash confirmation/cancel, pending/stale search safety, no inline previews, no redundant list refreshes, loading/error/empty state and cancellation; no app or GUI launched")
     }
 }

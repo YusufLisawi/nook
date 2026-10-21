@@ -48,27 +48,23 @@ final class FileSearchTabState: ObservableObject {
             guard let self, self.visible, self.request == token else { return }
             self.resolvedRequest = token
             let previous = self.current?.path
-            self.results = (payload["results"] as? [[String: Any]] ?? []).compactMap(FileSearchResult.init(json:))
-            self.gathering = payload["gathering"] as? Bool == true || payload["indexing"] as? Bool == true
-            self.notice = payload["notice"] as? String ?? ""
-            self.error = payload["error"] as? String
+            let rows = (payload["results"] as? [[String: Any]] ?? []).compactMap(FileSearchResult.init(json:))
+            // The index streams updates while it builds/changes; only touch the list when the rows actually differ,
+            // and keep the current list instead of blanking it on an empty interim update.
+            if rows.map(\.path) != self.results.map(\.path), !(rows.isEmpty && self.resolvedRequest == token && !self.results.isEmpty && payload["gathering"] as? Bool == true) {
+                self.results = rows
+            }
+            let gathering = payload["gathering"] as? Bool == true || payload["indexing"] as? Bool == true
+            if self.gathering != gathering { self.gathering = gathering }
+            let notice = payload["notice"] as? String ?? ""
+            if self.notice != notice { self.notice = notice }
+            let error = payload["error"] as? String
+            if self.error != error { self.error = error }
             self.selected = self.results.firstIndex(where: { $0.path == previous }) ?? 0
         }
     }
-    private func loadPreview() {
-        previewWork?.cancel(); preview = [:]
-        previewVersion += 1; let token = previewVersion
-        guard let path = current?.path, visible else { previewLoading = false; return }
-        previewLoading = true
-        let work = DispatchWorkItem { [weak self] in
-            FileSearchService.shared.handle("preview", args: [path]) { [weak self] value, failure in
-                guard let self, self.visible, self.current?.path == path, self.previewVersion == token else { return }
-                self.previewLoading = false
-                self.preview = value as? [String: Any] ?? ["notice": failure ?? "No preview available."]
-            }
-        }
-        previewWork = work; DispatchQueue.main.asyncAfter(deadline: .now() + 0.07, execute: work)
-    }
+    /// No inline preview: it re-rendered on every selection change and felt jumpy. Space still opens Quick Look.
+    private func loadPreview() { previewWork?.cancel() }
     func move(_ delta: Int) {
         if actions { actionIndex = (actionIndex + delta + actionList.count) % actionList.count }
         else if !results.isEmpty { selected = (selected + delta + results.count) % results.count }
@@ -145,10 +141,7 @@ struct FileSearchTab: View {
                     ForEach(FileSearchPreferences.kinds, id: \.self) { Text($0 == "all" ? "All kinds" : $0.capitalized).tag($0) }
                 }.labelsHidden().pickerStyle(.menu).controlSize(.small).fixedSize().help("Tab cycles kinds; Shift Tab goes back")
             }.padding(.horizontal, 8).frame(height: 24)
-            HStack(spacing: 12) {
-                resultList
-                preview.frame(width: 205)
-            }.frame(maxHeight: .infinity)
+            resultList.frame(maxHeight: .infinity)
             if let error = state.error { status(error, color: .orange) }
             else if !state.notice.isEmpty { status(state.notice, color: .secondary) }
             footer
@@ -175,14 +168,13 @@ struct FileSearchTab: View {
                         }.frame(maxWidth: .infinity).padding(.vertical, 40)
                     }
                     ForEach(Array(state.results.enumerated()), id: \.element.path) { index, item in
-                        HStack(spacing: 10) {
-                            Image(systemName: Self.symbol(item.category)).font(.system(size: 22)).foregroundStyle(.secondary).frame(width: 26)
-                            VStack(alignment: .leading, spacing: 3) {
-                                highlighted(item.name).font(.system(size: 13)).lineLimit(1)
-                                Text(Self.shortPath(item.path)).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                            }
+                        // One compact line like Raycast: small icon, name, muted folder.
+                        HStack(spacing: 9) {
+                            Image(systemName: Self.symbol(item.category)).font(.system(size: 13)).foregroundStyle(.secondary).frame(width: 18)
+                            highlighted(item.name).font(.system(size: 13)).lineLimit(1).layoutPriority(1)
+                            Text(Self.shortPath(item.path)).font(.system(size: 11)).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: 0)
-                        }.padding(.horizontal, 9).frame(height: 46).contentShape(Rectangle())
+                        }.padding(.horizontal, 9).frame(height: 32).contentShape(Rectangle())
                             .background(RoundedRectangle(cornerRadius: 9).fill(.white.opacity(state.selected == index ? 0.14 : 0)))
                             .onTapGesture(count: 2) { state.selected = index; state.perform("open") }
                             .onTapGesture { state.selected = index }
@@ -209,25 +201,6 @@ struct FileSearchTab: View {
                 }.padding(6).frame(width: 232).background(RoundedRectangle(cornerRadius: 11).fill(Color(white: 0.12)))
             }
         }
-    }
-    private var preview: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                if state.previewLoading { ProgressView().controlSize(.small).frame(maxWidth: .infinity) }
-                if let item = state.current {
-                    if let thumbnail = state.preview["thumbnail"] as? String,
-                       let data = Data(base64Encoded: String(thumbnail.split(separator: ",", maxSplits: 1).last ?? "")), let image = NSImage(data: data) {
-                        Image(nsImage: image).resizable().scaledToFit().frame(maxHeight: 134).frame(maxWidth: .infinity)
-                    }
-                    Text(item.name).font(.system(size: 12, weight: .medium)).lineLimit(2)
-                    Text(item.kind + " · " + ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file)).font(.system(size: 10)).foregroundStyle(.secondary)
-                    Text("Added " + Date(timeIntervalSince1970: item.added).formatted(date: .abbreviated, time: .shortened)).font(.system(size: 10)).foregroundStyle(.secondary)
-                    Text("Modified " + Date(timeIntervalSince1970: item.modified).formatted(date: .abbreviated, time: .shortened)).font(.system(size: 10)).foregroundStyle(.secondary)
-                    if let text = state.preview["text"] as? String { Text(text).font(.system(size: 10, design: .monospaced)).textSelection(.enabled) }
-                    if let notice = state.preview["notice"] as? String { Text(notice).font(.system(size: 11)).foregroundStyle(.secondary) }
-                } else { Text("Select a file to preview").font(.system(size: 11)).foregroundStyle(.secondary) }
-            }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
-        }.scrollIndicators(.never).background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.035)))
     }
     private var footer: some View {
         HStack(spacing: 9) {

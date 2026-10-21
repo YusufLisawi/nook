@@ -1,0 +1,30 @@
+html, body { margin: 0; overflow: hidden; background: transparent; }
+.nk-root { position: relative; }
+#surface { padding: 6px; overflow: hidden; }
+#content { outline: none; }
+#content.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-content: start; }
+.clip { min-width: 0; outline: none; }
+.clip:focus-visible, button:focus-visible, #content:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.clip-icon { width: 32px; height: 32px; display: grid; place-items: center; flex: none; color: var(--muted); border-radius: 7px; background: var(--card); overflow: hidden; }
+.clip-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.clip-icon img { width: 100%; height: 100%; object-fit: cover; }
+.clip-icon > * { grid-area: 1 / 1; }
+.clip-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.clip-title { white-space: pre; }
+.clip-meta { display: flex; gap: 6px; color: var(--muted); font-size: 10px; }
+.pin { color: var(--accent); font-size: 10px; flex: none; }
+.tile { display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 6px; }
+.tile .clip-icon { width: 100%; height: 83px; background: var(--card); }
+.tile .clip-icon img { object-fit: contain; }
+.tile .clip-icon svg { width: 24px; height: 24px; }
+.tile .clip-title { font-size: 11px; }
+.tile .clip-meta { justify-content: space-between; }
+#menu { position: absolute; right: 0; bottom: 34px; width: 200px; background: var(--card); color: var(--fg); backdrop-filter: blur(32px) brightness(.2); padding: 5px; gap: 2px; border: 1px solid var(--border); }
+#menu .nk-btn { justify-content: flex-start; width: 100%; background: transparent; color: inherit; }
+#menu .nk-btn:hover, #menu .nk-btn:focus-visible { background: var(--border); }
+#menu .nk-danger { color: var(--bad); }
+#menu .nk-btn:disabled { opacity: .35; }
+#notice, #error-text, #confirm-text { overflow-wrap: anywhere; }
+#notice { max-height: 30px; overflow: hidden; }
+#confirmation { min-height: 30px; }
+@media (max-width: 460px) { #content.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

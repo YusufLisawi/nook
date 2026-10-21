@@ -110,6 +110,39 @@ nook.dictation.toggle()  // start/stop recording
 
 Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`.
 
+## Clipboard and screen captures — `nook.clips`
+
+```js
+await nook.clips.history('text:invoice date:today'); // clipboard entries, pinned first, newest first
+await nook.clips.screenshots('name:"Screen Shot"'); // screenshots AND recordings in the capture folder
+await nook.clips.copy(id);                         // text, native image data, or file URLs
+await nook.clips.paste(id);                        // close notches, activate previous app, send ⌘V (Accessibility required)
+await nook.clips.open(id);                         // open a file or link
+await nook.clips.reveal(id);                       // Finder, files only
+await nook.clips.quickLook(id);                    // native Quick Look, files only
+await nook.clips.delete(id);                       // move associated files to Trash, then remove the entry
+await nook.clips.pin(id); await nook.clips.unpin(id);
+await nook.clips.clear();                          // all clipboard entries, including pins; original files stay in place
+await nook.clips.thumbnail(id);                    // small JPEG data URL, or null (Quick Look; load lazily)
+await nook.clips.status();                         // enabled, ocr, indexing, folder, clipboardLoading,
+                                                  // screenshotsLoading, clipboardError, screenshotsError
+```
+
+Filters are optional strings. Bare terms search name, plain/OCR text, source app, and paths. `name:`, `text:`,
+and `date:` clauses are combined with AND; quote values with spaces. Dates accept `today`, `yesterday`,
+or `YYYY-MM-DD` in the local time zone. Invalid dates match nothing.
+
+Entries contain `{id, kind, name, text, paths, date, modifiedAt, source, pinned, hasFile, ocrText}`.
+Dates are Unix milliseconds (`modifiedAt` is 0 when unavailable). Kinds: `text`, `link`, `image`, `files`,
+`color`, `screenshot`, `recording`. Rich text is stored as plain text; native colors become hex strings.
+Images/screenshots copy as TIFF image data; recordings copy as file URLs. Listen for `nook.on('clips', refresh)`
+(invalidation event, empty object payload, sent to the bundled `clips` plugin). All calls return Promises and can reject.
+
+Settings → Clipboard controls capture, age/capacity, ignored app names/bundle IDs (one per line), capture folder,
+OCR, and clearing. Pins are exempt from clipboard retention/capacity. `delete` on a file-reference entry trashes
+the **original referenced files**; confirm this in your UI. Retention and `clear` only trash Nook-owned image copies.
+Screenshots stay in their original folder. History and the OCR index are local in `~/Library/Application Support/Nook/Clips/`.
+
 ## Developer tools
 
 ```bash

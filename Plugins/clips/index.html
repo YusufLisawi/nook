@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="style.css"></head>
+<body>
+<main class="nk-root">
+  <div class="nk-row-flex">
+    <div class="nk-seg" role="tablist" aria-label="History source">
+      <button id="clipboard" role="tab" aria-selected="true" aria-controls="content" class="nk-on">Clipboard</button>
+      <button id="screenshots" role="tab" aria-selected="false" aria-controls="content" tabindex="-1">Screenshots</button>
+    </div>
+    <span id="count" class="nk-muted nk-small nk-fill"></span>
+    <button id="refresh" class="nk-btn nk-ghost" title="Refresh history">Refresh</button>
+  </div>
+  <input id="search" class="nk-input" type="search" autocomplete="off" spellcheck="false" aria-label="Search history" placeholder="Search…  name: text: date:today">
+  <div id="error" class="nk-error" role="alert" hidden><span id="error-text" class="nk-fill"></span><button id="retry" class="nk-btn nk-ghost">Retry</button></div>
+  <div id="notice" class="nk-muted nk-small" hidden></div>
+  <section id="surface" class="nk-card nk-fill nk-col">
+    <div id="loading" class="nk-empty"><i class="nk-spinner" aria-hidden="true"></i><span>Loading history…</span></div>
+    <div id="empty" class="nk-empty" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 3h6v4H9zM9 12h6M9 16h4"/></svg><b id="empty-title">Nothing copied yet</b><span id="empty-detail">Copy text, an image, a color, or a file to save it here.</span></div>
+    <div id="content" class="nk-list nk-scroll nk-fill" role="listbox" aria-label="Clipboard history" tabindex="0" hidden></div>
+  </section>
+  <div id="confirmation" class="nk-row-flex nk-small" role="group" aria-label="Confirm deletion" hidden>
+    <span id="confirm-text" class="nk-fill"></span><button id="cancel" class="nk-btn nk-ghost">Cancel</button><button id="delete" class="nk-btn nk-danger">Delete</button>
+  </div>
+  <footer class="nk-row-flex nk-muted nk-small">
+    <span id="feedback" class="nk-fill" role="status" aria-live="polite">Copy to Clipboard ↩ · Paste ⌘↩</span>
+    <button id="actions" class="nk-btn nk-ghost" aria-haspopup="menu" aria-expanded="false">Actions ⌘K</button>
+  </footer>
+  <div id="menu" class="nk-card nk-col" role="menu" aria-label="Item actions" hidden></div>
+</main>
+<script src="logic.js"></script><script src="main.js"></script>
+</body></html>

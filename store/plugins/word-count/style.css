@@ -1,0 +1,7 @@
+/* All colors, controls and surfaces come from the injected Nook UI kit. */
+html, body { height: 100%; overflow: hidden; background: transparent; }
+[hidden] { display: none !important; }
+#draft { resize: none; min-height: 45px; }
+#empty { padding: 4px; gap: 2px; }
+#error { max-height: 44px; overflow: auto; }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

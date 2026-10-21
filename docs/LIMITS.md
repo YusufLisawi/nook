@@ -23,6 +23,7 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | Get a global shortcut | the user assigns one per tab in Settings → Tabs & plugins |
 | Be driven from outside | `nook open|toggle <id>` / `nook://open/<id>` URLs (scripts, Raycast, Shortcuts) |
 | Override a built-in tab | ship a plugin with the same `id` (e.g. `home`) |
+| Browse/install community plugins | Native Settings → Plugin Store; `nook search`, `install`, `update`, `uninstall`; `nook://install/<id>` opens details |
 
 Because `nook.shell` exists, **most "native" ideas are still plugins**: control Spotify/Music via `osascript`, read
 `~/Library` data, call `gh`/`bb`/`vercel` CLIs, ping servers, run local LLMs, tail logs, etc.
@@ -49,3 +50,4 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
 - **One plugin, every screen:** with "All screens" on, each notch has its own web view of your plugin (state is shared only via `nook.storage`).
 - **Debugging:** `nook logs <id> -f` (console + uncaught errors), or Safari → Develop → [your Mac] → Nook to inspect a plugin's DOM.
 - **Size:** the content area is the hard constraint. Design for 650 × 210 first.
+- **Store:** the public GitHub catalog is cached for offline browsing; installing/updating requires GitHub and is subject to its public API rate limits. An unpublished repository is shown as an empty Store. Packages are pinned to Git tree hashes and limited to 200 regular non-executable files, 5 MB each, 20 MB total. Updates refuse local edits; replaced/uninstalled copies go to Trash while saved data remains. `nook publish <path>` previews a validated contribution and requires `--yes` before using authenticated `gh` to fork, branch, upload, and open a PR. Store validation is a packaging/UI check, not a security review.

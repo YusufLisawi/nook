@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="nk-root">
+    <div id="loading" class="nk-row-flex nk-muted" role="status"><i class="nk-spinner"></i> Loading draft…</div>
+    <div id="error" class="nk-error" role="alert" hidden></div>
+    <div id="empty" class="nk-empty" hidden><b>Start with a thought</b><span>Write or paste below. Your draft saves automatically.</span></div>
+    <textarea id="draft" class="nk-textarea nk-fill" aria-label="Text to count" placeholder="Write or paste some text…" disabled></textarea>
+    <div class="nk-row-flex">
+      <span id="counts" class="nk-fill nk-num" aria-live="polite">0 words · 0 characters</span>
+      <span id="status" class="nk-muted nk-small" role="status"></span>
+      <button id="retry" class="nk-btn" hidden>Retry</button>
+      <button id="copy" class="nk-btn" disabled>Copy counts <span class="nk-muted">⌘↵</span></button>
+    </div>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

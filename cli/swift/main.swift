@@ -174,6 +174,11 @@ nook — build and drive Nook plugins (no app rebuild needed)
   nook new <id> [--name N] [--symbol S] [--height H] [--order O]
                                   scaffold a plugin in your Plugins folder (live immediately)
   nook validate [id|path]         check a plugin (or all) against the rules
+  nook search <q> [--json]        search the community Plugin Store
+  nook install <id>               install a Store plugin (plugins can run commands as you)
+  nook uninstall <id>             move a user plugin to Trash; keep saved data
+  nook update [id]                update one or all Store plugins; preserve local edits
+  nook publish <path> [--yes]     validate and preview a Store contribution; --yes opens a PR
   nook eject <id>                 copy a bundled plugin into your folder so you can change it
   nook open <id> | toggle <id>    show a tab in the notch under the mouse
   nook close | reload | settings  close notches · reload all plugins · open Settings
@@ -188,6 +193,20 @@ nook — build and drive Nook plugins (no app rebuild needed)
 """
 
 switch command {
+case "search", "install", "uninstall", "update":
+    runStoreCommand { try await PluginStoreCommands.run(command, arguments: args) }
+
+case "publish":
+    if let unknown = args.first(where: { $0.hasPrefix("--") && $0 != "--yes" }) { die("Unknown option: \(unknown)") }
+    let operands = args.filter { !$0.hasPrefix("--") }
+    guard operands.count == 1 else { die("Usage: nook publish <path> [--yes]") }
+    let directory = URL(fileURLWithPath: (operands[0] as NSString).expandingTildeInPath).standardizedFileURL
+    let result = validate(Plugin(manifest: [:], dir: directory, source: "path"))
+    result.warnings.forEach { print("warn: \($0)") }
+    if !result.errors.isEmpty { die(result.errors.joined(separator: "\n")) }
+    do { try PluginStorePublisher.publish(directory, confirmed: args.contains("--yes")) }
+    catch { die(error.localizedDescription) }
+
 case "help", "-h", "--help":
     print(help)
 

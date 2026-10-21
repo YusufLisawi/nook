@@ -7,10 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		009976B5742F31F5A7FFC090 /* PluginStoreClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02CB27AE100899E458C57A38 /* PluginStoreClient.swift */; };
 		01381470FD8777D82669823C /* ToolsInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A33F966890CC6F544C6D730 /* ToolsInstaller.swift */; };
 		069A1C7A36B1F5ADBDB89BE9 /* AIBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134231D8AC8BB99035F80039 /* AIBrain.swift */; };
 		090E3A91C0607295B1B6509A /* skill in Resources */ = {isa = PBXBuildFile; fileRef = 251F2F98844B8FDBF322E6BB /* skill */; };
+		0DD34E0849B813D48E4D472A /* PluginStoreCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C28711F85CADC23250C7502C /* PluginStoreCommands.swift */; };
 		1830C87670856F04FDE26E8B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A708EC61760010B0EA91A3 /* main.swift */; };
+		1E12765695120CAD5AB0EB3A /* PluginStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FE341CD71E95E7E4C20ED3 /* PluginStore.swift */; };
 		2C07176FCE68482897504420 /* CodexLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C0E1700B97B0BE8C00E4E /* CodexLink.swift */; };
 		2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44481D567E5664A614F2BDF9 /* MicRecorder.swift */; };
 		318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E3F23227270422F28E8EA8 /* SettingsView.swift */; };
@@ -24,6 +27,7 @@
 		479A9B6EDFC12070BD09201E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BC2C6184ED772D9A964531 /* Extensions.swift */; };
 		5211D767553F2B876DF5720B /* template in Resources */ = {isa = PBXBuildFile; fileRef = FE8D215B0A74BB45D9B25666 /* template */; };
 		5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305C12534BB0A21814E084F9 /* LinkCatcher.swift */; };
+		62885461EC33520A43D69C24 /* PluginStoreClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02CB27AE100899E458C57A38 /* PluginStoreClient.swift */; };
 		658A0FE660FC513F15E1459A /* TabHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB8B9DC39F1086191974395 /* TabHotkeys.swift */; };
 		66CA707E547AFCFFCFF5936B /* HotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */; };
 		70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */; };
@@ -46,10 +50,12 @@
 		C3328EACD94AB4C16FF52AFA /* nook-cli in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = A765987708E7C7A6BDC686EE /* nook-cli */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C37D48E0E711D1632A14D355 /* NotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */; };
 		C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867998E9B233A6020709500D /* NotchController.swift */; };
+		D0A1223E7F4F65DEA0EBAE31 /* PluginStorePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F852F8AAAF23FBC93E0E9D5 /* PluginStorePane.swift */; };
 		D3E46316EDC9B513E855F37E /* TimerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31AA95267FAFBFBDB850E8C /* TimerService.swift */; };
 		DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD70FF370E94556B10546FF6 /* ProxyService.swift */; };
 		E2EC064058B1C574F29BEE02 /* docs in Resources */ = {isa = PBXBuildFile; fileRef = 49066C920CB9F7805A9F9470 /* docs */; };
 		E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B9712B528BBE65144FFBCE /* DictationService.swift */; };
+		EAFB737A2E3E06934A234999 /* PluginStorePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93135239226DC986B1C2CBF5 /* PluginStorePublisher.swift */; };
 		F379C46688C1D44E36A429CE /* SystemStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23055D40A8B72A840805201E /* SystemStats.swift */; };
 		FA09B67D88C18710F1E272DC /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 321028EC0FB1A80BF6BD907A /* Sparkle */; };
 /* End PBXBuildFile section */
@@ -81,6 +87,7 @@
 /* Begin PBXFileReference section */
 		022144C0BA47F49B651F7CB0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		02492F02F9E93673FFF9F475 /* DictationShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationShortcut.swift; sourceTree = "<group>"; };
+		02CB27AE100899E458C57A38 /* PluginStoreClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStoreClient.swift; sourceTree = "<group>"; };
 		03B6606D54090D6D8D4C0CA8 /* HotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyMonitor.swift; sourceTree = "<group>"; };
 		0A33F966890CC6F544C6D730 /* ToolsInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsInstaller.swift; sourceTree = "<group>"; };
 		0ED7F0CE539625E9216FFC57 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
@@ -106,9 +113,12 @@
 		6AF31C476DBDFF1170647A72 /* Nook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nook.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B2061253F9368E64D1A8E14 /* NotchGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchGeometry.swift; sourceTree = "<group>"; };
 		6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginRegistry.swift; sourceTree = "<group>"; };
+		6F852F8AAAF23FBC93E0E9D5 /* PluginStorePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStorePane.swift; sourceTree = "<group>"; };
 		7571D9D06CBA91960D5C4995 /* PluginSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettings.swift; sourceTree = "<group>"; };
 		867998E9B233A6020709500D /* NotchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchController.swift; sourceTree = "<group>"; };
 		88DB59F92E353F6D2904A53A /* Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tabs.swift; sourceTree = "<group>"; };
+		88FE341CD71E95E7E4C20ED3 /* PluginStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStore.swift; sourceTree = "<group>"; };
+		93135239226DC986B1C2CBF5 /* PluginStorePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStorePublisher.swift; sourceTree = "<group>"; };
 		9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		A5F69FD803186572DBBE5C69 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
 		A765987708E7C7A6BDC686EE /* nook-cli */ = {isa = PBXFileReference; includeInIndex = 0; path = "nook-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -117,6 +127,7 @@
 		BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITranscriber.swift; sourceTree = "<group>"; };
 		C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPluginHost.swift; sourceTree = "<group>"; };
 		C1A1BD9CB7BF5C32DC1280CA /* PLUGINS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLUGINS.md; sourceTree = "<group>"; };
+		C28711F85CADC23250C7502C /* PluginStoreCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStoreCommands.swift; sourceTree = "<group>"; };
 		C31AA95267FAFBFBDB850E8C /* TimerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerService.swift; sourceTree = "<group>"; };
 		C56F150318FB5BF1029A8DF1 /* FileShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelf.swift; sourceTree = "<group>"; };
 		D1B9712B528BBE65144FFBCE /* DictationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationService.swift; sourceTree = "<group>"; };
@@ -147,6 +158,7 @@
 				C56F150318FB5BF1029A8DF1 /* FileShelf.swift */,
 				305C12534BB0A21814E084F9 /* LinkCatcher.swift */,
 				66A8305528A9B604368F8C25 /* MediaController.swift */,
+				88FE341CD71E95E7E4C20ED3 /* PluginStore.swift */,
 				FD70FF370E94556B10546FF6 /* ProxyService.swift */,
 				23055D40A8B72A840805201E /* SystemStats.swift */,
 				C31AA95267FAFBFBDB850E8C /* TimerService.swift */,
@@ -175,6 +187,7 @@
 				51BC2C6184ED772D9A964531 /* Extensions.swift */,
 				6C9DD41CE9AB069F9FABE680 /* PluginRegistry.swift */,
 				7571D9D06CBA91960D5C4995 /* PluginSettings.swift */,
+				02CB27AE100899E458C57A38 /* PluginStoreClient.swift */,
 				0ED7F0CE539625E9216FFC57 /* Services.swift */,
 				3DB8B9DC39F1086191974395 /* TabHotkeys.swift */,
 				0A33F966890CC6F544C6D730 /* ToolsInstaller.swift */,
@@ -188,6 +201,7 @@
 			children = (
 				1D42A5D5FCF4370A368C56D5 /* Components.swift */,
 				A5F69FD803186572DBBE5C69 /* NotchRootView.swift */,
+				6F852F8AAAF23FBC93E0E9D5 /* PluginStorePane.swift */,
 				B0E3F23227270422F28E8EA8 /* SettingsView.swift */,
 				88DB59F92E353F6D2904A53A /* Tabs.swift */,
 			);
@@ -198,6 +212,8 @@
 			isa = PBXGroup;
 			children = (
 				6433A88DA315C13F36036589 /* main.swift */,
+				C28711F85CADC23250C7502C /* PluginStoreCommands.swift */,
+				93135239226DC986B1C2CBF5 /* PluginStorePublisher.swift */,
 			);
 			name = swift;
 			path = cli/swift;
@@ -388,6 +404,9 @@
 				452BF7EAA27D896D001EF851 /* OpenAITranscriber.swift in Sources */,
 				70165BF6E3493B18C3EC6B60 /* PluginRegistry.swift in Sources */,
 				A9529D4BD2578A4547009C93 /* PluginSettings.swift in Sources */,
+				1E12765695120CAD5AB0EB3A /* PluginStore.swift in Sources */,
+				009976B5742F31F5A7FFC090 /* PluginStoreClient.swift in Sources */,
+				D0A1223E7F4F65DEA0EBAE31 /* PluginStorePane.swift in Sources */,
 				92CB85BE38CF58A933529F18 /* Prefs.swift in Sources */,
 				DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */,
 				3EC534324EA0668F89733786 /* Services.swift in Sources */,
@@ -406,6 +425,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				62885461EC33520A43D69C24 /* PluginStoreClient.swift in Sources */,
+				0DD34E0849B813D48E4D472A /* PluginStoreCommands.swift in Sources */,
+				EAFB737A2E3E06934A234999 /* PluginStorePublisher.swift in Sources */,
 				A51A9A2CA87A73B6A33DBA09 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -560,6 +582,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LM_FORCE_LINK_GENERATION = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp=none";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook;
 				SDKROOT = macosx;
@@ -620,6 +643,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LM_FORCE_LINK_GENERATION = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp=none";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yusuf.nook;
 				SDKROOT = macosx;

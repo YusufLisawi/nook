@@ -71,10 +71,13 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: Nook/Nook.entitlements
         CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        LM_FORCE_LINK_GENERATION: YES # Complete the empty App Intents pass rather than emit Xcode 26's skipped-extraction warning.
   nook-cli:
     type: tool
     platform: macOS
-    sources: [cli/swift]
+    sources:
+      - path: cli/swift
+      - path: Nook/Core/PluginStoreClient.swift
     settings:
       base:
         PRODUCT_NAME: nook-cli

@@ -24,7 +24,8 @@ final class Services: ObservableObject {
     /// Set by web plugins through `nook.activity.set`; shown on the closed notch.
     @Published var pluginActivity: PluginActivity?
 
-    func start() {
+    @MainActor func start() {
+        PluginStore.register()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

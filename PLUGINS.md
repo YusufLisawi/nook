@@ -128,3 +128,20 @@ nook api | guide | limits
 - ⌘A / ⌘C / ⌘V / ⌘X / ⌘Z work in plugin inputs (routed by the notch panel).
 - What plugins can't do (and workarounds): **docs/LIMITS.md** (`nook limits`).
 
+## Community Plugin Store
+
+Settings → **Plugin Store** browses `YusufLisawi/nook-plugins` on GitHub. Search by name, author, or tag; select a plugin for its source, description, screenshots, version, and install/update/uninstall actions. **Share** copies `nook://install/<id>`, which opens details and waits for an explicit Install click. No new web bridge namespace is required.
+
+```sh
+nook search writing [--json]
+nook install word-count
+nook update [id]                  # one or all Store-managed plugins
+nook uninstall word-count         # Trash; saved data/settings are retained
+nook publish ./my-plugin          # validation + preview; makes no remote changes
+nook publish ./my-plugin --yes    # authenticated gh: fork, contribution branch, PR
+```
+
+The public repository's complete initial contents live in this source tree's `store/` folder. Each `plugins/<id>/` contains a valid Nook plugin and `store.json` with `description`, `author`, semantic `version`, `tags: []`, and `screenshots: []` (local relative image paths). `node scripts/validate.mjs` checks every package; `node scripts/generate-index.mjs` generates the catalog. CI validates PRs and regenerates the index on `main`.
+
+The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow only regular non-executable files (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
+

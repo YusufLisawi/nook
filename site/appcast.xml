@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.4.1</title>
+  <pubDate>Wed, 21 Oct 2026 13:56:24 GMT</pubDate>
+  <sparkle:version>11</sparkle:version>
+  <sparkle:shortVersionString>1.4.1</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>AI Commands: if nothing is selected but your cursor is in a text box, Nook now uses all its text.</li><li>Ready-made hotkeys: Rewrite ⌥⌘. · Spanish ⌥⌘/ · Explain ⌥⌘;</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.4.1/Nook.dmg" type="application/octet-stream" sparkle:edSignature="2ZkNMhquJcfX9UPlEWB5i3eyDdDz3KxSZaT6EcbrMqpRv+XDs73P2n2pJIWnBLfJTiYDGzAvIqSK1oST6FY7CA==" length="7567594"/>
+</item>
+<item>
   <title>Nook 1.4.0</title>
   <pubDate>Wed, 21 Oct 2026 13:01:09 GMT</pubDate>
   <sparkle:version>10</sparkle:version>

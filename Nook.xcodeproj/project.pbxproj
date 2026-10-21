@@ -506,13 +506,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		"TEMP_ECE9FF35-BDF5-43DA-8660-4661DDD92F71" /* Launcher */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Launcher;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */

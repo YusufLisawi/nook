@@ -1,0 +1,8 @@
+{
+  "id": "mouse",
+  "name": "Mouse",
+  "symbol": "computermouse.fill",
+  "entry": "index.html",
+  "order": 47,
+  "height": 260
+}

@@ -114,6 +114,7 @@ final class WebPluginHost: NSObject {
         case "ai.chat":
             AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], reply: reply)
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
+        case let f where f.hasPrefix("mouse."): s.mouse.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default: reply(nil, "Unknown nook call: \(fn)")
         }
@@ -159,6 +160,7 @@ final class WebPluginHost: NSObject {
             timer: { start: m => call('timer.start', Number(m)), stop: () => call('timer.stop'), state: () => call('timer.state') },
             ai: { chat: (messages, o) => call('ai.chat', messages, o || {}) },
             audio: Object.fromEntries(['state','setDefault','setDeviceVolume','setDeviceMute','setPreferred','setAppVolume','setAppMute','resetApp','openPrivacy'].map(n => [n, (...a) => call('audio.' + n, ...a)])),
+            mouse: Object.fromEntries(['state','set','setButton','removeButton','learn','openPrivacy'].map(n => [n, (...a) => call('mouse.' + n, ...a)])),
             dictation: Object.fromEntries(['history','retry','remove','copy','paste','clear','state','toggle'].map(n => [n, (...a) => call('dictation.' + n, ...a)])),
             on: (e, cb) => { (listeners[e] = listeners[e] || []).push(cb); },
             _emit: (e, d) => (listeners[e] || []).forEach(cb => { try { cb(d); } catch (err) { console.error(err); } }),

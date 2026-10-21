@@ -17,6 +17,7 @@ final class Services: ObservableObject {
     let proxy = ProxyService()
     let dictation = DictationService()
     let audio = AudioMixer()
+    let mouse = MouseFixService()
     let links = LinkCatcher()
     let plugins = PluginRegistry()
 
@@ -29,12 +30,14 @@ final class Services: ObservableObject {
         proxy.restoreOnLaunch()
         dictation.start()
         audio.start()
+        mouse.start()
         links.start()
     }
 
     func shutdown() {
         proxy.shutdown()
         audio.shutdown() // remove taps so no app is left muted
+        mouse.shutdown() // release the event tap and the pointer
     }
 }
 

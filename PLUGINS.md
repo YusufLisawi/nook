@@ -110,6 +110,50 @@ nook.dictation.toggle()  // start/stop recording
 
 Events carry the new state: `nook.on('proxy', s => …)` gets the same shape as `proxy.list()`; `'dictation'` gets `history()`.
 
+## Agents (Codex sessions)
+
+Agents use the installed Codex CLI and its existing login, configuration and tools. Manage them in Settings → Agents,
+or create one with **+** in the bundled Agents tab. Full access is enabled by default: commands run without sandboxing
+or approvals. Turn it off to use `workspace-write`; approval requests then fail instead of waiting for a terminal.
+
+```js
+await nook.agents.list()                    // → Agent[]
+await nook.agents.save({ name, instructions, workingDirectory, model, effort, fullAccess, id }) // → saved Agent
+// Omit id to create; defaults: workingDirectory "~", model "gpt-6.1-sol", effort "ultra", fullAccess true.
+await nook.agents.remove(agentId)           // stops are required first; chats move to Trash
+await nook.agents.models()                  // → [{ id, name }], ~/.codex/models_cache.json or fallback list
+await nook.agents.sessions(agentId)         // → session summaries, newest first
+await nook.agents.open(sessionId)           // → session including items
+await nook.agents.send(agentId, null, text) // → new session; pass a sessionId to resume
+await nook.agents.cancel(sessionId)         // terminate this turn's process tree
+```
+
+Agents have `{id, name, instructions, workingDirectory, model, effort, fullAccess}`. Effort levels are
+`low/medium/high/xhigh/max/ultra`; availability depends on the model. Instructions are sent with Codex's
+`developer_instructions` config on each turn. Prompts use stdin, never shell interpolation.
+
+A session has `{id, agentId, title, codexSessionId, createdAt, updatedAt, status, revision, usage}` and, when opened,
+`items`. Dates are Unix seconds. Status is `running/stopping/done/error/cancelled/interrupted` (`idle` before a turn).
+One turn may run per chat; different chats may run concurrently. The local `id` is distinct from `codexSessionId`.
+
+The **agents plugin** receives `nook.on('agents', agents)` when definitions change,
+`nook.on('agentSession', ({session, item}) => …)` for streaming updates, and `agentStorageError` with an error string.
+When `item` is present, `session` is a summary; upsert the item by `id`. Otherwise `session` includes the full transcript.
+Discard updates older than the cached `revision`. Item IDs are scoped to a turn, since Codex reuses its wire IDs on resume.
+Items preserve Codex's JSON fields (`agent_message`, `reasoning`, `command_execution`, `file_change`, `web_search`,
+`mcp_tool_call`, `collab_tool_call`, `todo_list`, `error`), plus `user_message`. Command items include `command`,
+`aggregated_output`, `exit_code`, `status`; tool arguments/results stay structured. Usage is Codex's latest turn usage.
+
+Codex 0.163 emits item snapshots, not raw token deltas, and file changes contain paths/kinds rather than patch text.
+File cards add a bounded **working-tree preview**, which can include pre-existing edits; new files show a bounded
+content preview. A non-Git folder may have no diff. Session history lives in
+`~/Library/Application Support/Nook/AgentSessions/<agentId>/<sessionId>.json`, definitions in `agents.json` (0600).
+Codex also maintains its own session files. Removing an agent trashes Nook's history, leaving Codex's own history intact.
+
+The bundled plugin pins after sending and unpins when leaving, changing chats/tabs or closing. Running chats continue
+in the background and show the agent name with `sparkles` on the closed notch. Shortcuts: **⌘K** switch, **⌘N** new chat,
+**Enter/⌘Enter** send, **Shift+Enter** newline, **Esc/⌘.** stop; Esc closes when idle. Tool cards support Tab and Enter/Space.
+
 ## Developer tools
 
 ```bash

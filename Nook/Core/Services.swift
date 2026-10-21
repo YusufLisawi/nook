@@ -25,6 +25,7 @@ final class Services: ObservableObject {
     @Published var pluginActivity: PluginActivity?
 
     func start() {
+        AgentService.register()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()
@@ -34,6 +35,7 @@ final class Services: ObservableObject {
     }
 
     func shutdown() {
+        AgentService.shared.shutdown()
         proxy.shutdown()
         audio.shutdown() // remove taps so no app is left muted
     }

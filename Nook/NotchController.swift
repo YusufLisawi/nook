@@ -29,7 +29,8 @@ final class NotchController {
         rebuild()
         viewModel.onClose = { [weak self] in self?.dropKeyFocus() }
         let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
-            guard let self, self.viewModel.isOpen, !self.viewModel.pinned, !self.viewModel.liveRect.contains(NSEvent.mouseLocation) else { return }
+            guard let self, self.viewModel.isOpen, !self.viewModel.pinned, !self.viewModel.liveRect.contains(NSEvent.mouseLocation),
+                  self.viewModel.holdRect?.contains(NSEvent.mouseLocation) != true else { return }
             self.viewModel.close()
         }
         if let monitor { monitors.append(monitor) }
@@ -85,7 +86,11 @@ final class NotchController {
         let draggingIn = pressed && dragBoard.changeCount != dragChangeCount
 
         // Grow the hit area upward so the very top pixel row counts as inside.
-        let inside = viewModel.liveRect.insetBy(dx: -2, dy: -6).contains(mouse)
+        let live = viewModel.liveRect.insetBy(dx: -2, dy: -6)
+        if let hold = viewModel.holdRect, live.contains(mouse) || !hold.insetBy(dx: -2, dy: -6).contains(mouse) {
+            viewModel.holdRect = nil
+        }
+        let inside = live.contains(mouse) || viewModel.holdRect?.insetBy(dx: -2, dy: -6).contains(mouse) == true
         panel.ignoresMouseEvents = !inside
 
         if inside, draggingIn, !viewModel.isOpen, Prefs.bool(Prefs.shelfAutoOpen), viewModel.isEnabled("shelf") {

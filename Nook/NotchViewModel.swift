@@ -20,6 +20,11 @@ final class NotchViewModel: ObservableObject {
 
     @Published var state: NotchState = .closed
     @Published var tab: String = "home" {
+        willSet {
+            // A shorter tab shrinks the notch away from the dock the user just clicked; keep the old area "inside"
+            // until the mouse re-enters the new shape or leaves the old one, so switching tabs never closes the notch.
+            if isOpen, newValue != tab { holdRect = liveRect.union(holdRect ?? .null) }
+        }
         didSet {
             guard tab != oldValue else { return }
             showingSettings = false
@@ -39,6 +44,8 @@ final class NotchViewModel: ObservableObject {
     let services = Services.shared
     lazy var web = WebPluginHost(vm: self)
     var onClose: (() -> Void)?
+    /// The notch's shape before a tab switch; still counts as hovered (see `tab`).
+    var holdRect: CGRect?
     private var pendingOpen: DispatchWorkItem?
     private var bag = Set<AnyCancellable>()
 
@@ -160,6 +167,7 @@ final class NotchViewModel: ObservableObject {
 
     func close() {
         guard isOpen else { return }
+        holdRect = nil
         pinned = false
         showingSettings = false
         withAnimation(Self.spring) { state = .closed }

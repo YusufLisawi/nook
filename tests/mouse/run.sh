@@ -6,7 +6,7 @@ swiftc -swift-version 5 -warnings-as-errors -target "$(uname -m)-apple-macos14.2
   Nook/Core/SyntheticInput.swift store/plugins/mouse/native/MouseEventState.swift \
   store/plugins/mouse/native/MouseConfig.swift store/plugins/mouse/native/MouseActions.swift \
   store/plugins/mouse/native/MouseFixService.swift store/plugins/mouse/native/MouseScroller.swift \
-  Nook/Services/Dictation/HotkeyMonitor.swift Nook/Services/Dictation/DictationShortcut.swift \
+  Nook/Core/HotkeyMonitor.swift Nook/Core/ShortcutGesture.swift \
   tests/mouse/Stubs.swift tests/mouse/NativeTests.swift -o "$mouse_test_dir/native"
 "$mouse_test_dir/native"
 node --check store/plugins/mouse/main.js

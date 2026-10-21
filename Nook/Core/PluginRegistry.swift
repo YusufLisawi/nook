@@ -92,7 +92,9 @@ final class PluginRegistry: ObservableObject {
             let dirs = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
             for dir in dirs {
                 guard let data = try? Data(contentsOf: dir.appendingPathComponent("plugin.json")),
-                      let m = try? JSONDecoder().decode(Manifest.self, from: data) else { continue }
+                      let m = try? JSONDecoder().decode(Manifest.self, from: data),
+                      let checked = try? PluginManifestV2(directory: dir),
+                      checked.apiVersion < 2 || checked.id == dir.lastPathComponent else { continue }
                 if m.id == "files", root == Self.bundledDir { continue } // Native by default; user web overrides still work.
                 byID[m.id] = TabItem(
                     id: m.id, name: m.name, symbol: m.symbol ?? "puzzlepiece.extension.fill", order: m.order ?? 100,

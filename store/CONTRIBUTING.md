@@ -33,3 +33,17 @@ npm test
 Test your plugin's logic with a mocked `window.nook`. Include manual keyboard checks and screenshots at the supported height in the PR. Maintainers review behavior and source before merging. CI checks packaging; passing CI alone does not establish trust.
 
 Alternatively, `nook publish <path>` validates and shows exactly which files will be submitted. Add `--yes` only after reviewing the plan. GitHub CLI (`gh`) must be installed and authenticated. The command creates a fork if needed, adds a contribution branch, and opens a PR without modifying your current Git checkout. An unsuccessful submission may leave a remote branch; it never merges the PR.
+
+## Native v2 submissions
+
+Follow [Build a plug-and-play Nook plugin](SKILL.md). Set apiVersion:2, declare only needed capabilities, and
+ship an executable under bin/ (universal or arm64/x86_64 folders) or a supported interpreter + relative script.
+Build scripts must be ordinary non-executable source files, explicitly run by the developer before packaging.
+No scripts run during install. Explain helper provenance, reproducibility, runtime dependencies, third-party
+licenses, signing/notarization and TCC behavior. Native helpers are unsandboxed; a hash is integrity, not a
+security audit. Keep stdout JSON-RPC only, stop on EOF/SIGTERM, never daemonize. Keep data in NOOK_DATA_DIR.
+
+Include pipe/protocol tests and mocked UI/keyboard state tests. Native input/event taps must have an inert
+probe mode; don't automate a user's apps to test. Update both versions, run npm test/validate/generate, and
+check generated sha256/executable-mode Git hashes. Maintainers decide which plugins may set default:true.
+Defaults are preinstalled from this index; they are not bundled in Nook. Permission increases require review.

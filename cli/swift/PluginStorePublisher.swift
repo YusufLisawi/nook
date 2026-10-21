@@ -9,7 +9,7 @@ enum PluginStorePublisher {
         let id = manifest["id"] as! String
         let version = metadata["version"] as! String
         let files = try PluginStorePackage.files(source)
-        let snapshot = try files.map { url in (try PluginStorePackage.relativePath(url, in: source), try Data(contentsOf: url)) }
+        let snapshot = try files.map { url in (try PluginStorePackage.relativePath(url, in: source), try Data(contentsOf: url), FileManager.default.isExecutableFile(atPath: url.path)) }
         print("Publish plan for \(id) \(version):")
         print("  1. Use your authenticated gh account; fork \(PluginStoreClient.repository) if needed.")
         print("  2. Create a new contribution branch based on the Store's current main.")
@@ -26,10 +26,11 @@ enum PluginStorePublisher {
         defer { try? fm.removeItem(at: temporary) }
         // Revalidate an immutable local snapshot before uploading anything.
         let package = temporary.appendingPathComponent(id)
-        for (path, data) in snapshot {
+        for (path, data, executable) in snapshot {
             let file = package.appendingPathComponent(path)
             try fm.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: file)
+            try fm.setAttributes([.posixPermissions: executable ? 0o755 : 0o644], ofItemAtPath: file.path)
         }
         try PluginStorePackage.validate(package)
 
@@ -66,9 +67,9 @@ enum PluginStorePublisher {
         guard let baseTree = baseCommit["tree"] as? [String: Any] else { throw PluginStoreError("Couldn't read the Store's base tree.") }
         let baseTreeSHA = try string(baseTree, "sha")
         var blobs: [[String: Any]] = []
-        for (path, data) in snapshot {
+        for (path, data, executable) in snapshot {
             let blob = try api("repos/\(destination)/git/blobs", body: ["content": data.base64EncodedString(), "encoding": "base64"])
-            blobs.append(["path": path, "mode": "100644", "type": "blob", "sha": try string(blob, "sha")])
+            blobs.append(["path": path, "mode": executable ? "100755" : "100644", "type": "blob", "sha": try string(blob, "sha")])
         }
         let pluginTree = try api("repos/\(destination)/git/trees", body: ["tree": blobs])
         let tree = try api("repos/\(destination)/git/trees", body: ["base_tree": baseTreeSHA, "tree": [

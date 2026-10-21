@@ -10,11 +10,12 @@ final class WebPluginHost: NSObject {
     private var views: [String: WKWebView] = [:]
     private var revision = 0
 
-    deinit { KeyboardActions.shared.remove(ownerID: keyboardID) }
+    deinit { KeyboardActions.shared.remove(ownerID: keyboardID); PluginEngine.shared.removeOwner(keyboardID) }
 
     init(vm: NotchViewModel) {
         self.vm = vm
         super.init()
+        PluginHostAPI.shared.register(vm)
         NotificationCenter.default.addObserver(forName: .nookPluginEvent, object: nil, queue: .main) { [weak self] note in
             guard let event = note.userInfo?["event"] as? String else { return }
             self?.emit(event, note.userInfo?["payload"] ?? NSNull(), to: note.userInfo?["plugin"] as? String)
@@ -27,7 +28,11 @@ final class WebPluginHost: NSObject {
         if current != revision {
             revision = current
             KeyboardActions.shared.remove(ownerID: keyboardID)
-            views.values.forEach { $0.reload() } // pick up edited files without losing the view
+            for (id, view) in views {
+                guard let tab = Services.shared.plugins.tabs.first(where: { $0.id == id }), case let .web(dir, entry) = tab.kind else { continue }
+                injectScripts(view.configuration.userContentController, tab: tab, dir: dir)
+                view.loadFileURL(dir.appendingPathComponent(entry), allowingReadAccessTo: dir)
+            } // Refresh SDK/entry too, including a v1 → v2 Store update, without discarding web views.
         }
         if let view = views[tab.id] { return view }
         let view = makeView(tab: tab, dir: dir, entry: entry)
@@ -36,6 +41,7 @@ final class WebPluginHost: NSObject {
     }
 
     func emit(_ event: String, _ payload: Any, to pluginID: String? = nil) {
+        if event != "show" || vm?.isOpen == true { PluginEngine.shared.lifecycle(owner: keyboardID, event: event, payload: payload) }
         guard let data = try? JSONSerialization.data(withJSONObject: ["e": event, "d": payload], options: [.fragmentsAllowed]),
               let json = String(data: data, encoding: .utf8) else { return }
         for (id, view) in views where pluginID == nil || pluginID == id {
@@ -47,8 +53,7 @@ final class WebPluginHost: NSObject {
         let config = WKWebViewConfiguration()
         let content = config.userContentController
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
-        let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + WindowManager.shared.bridgeContext(for: vm) + "\n" + KeyboardWebSupport.script, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        injectScripts(content, tab: tab, dir: dir)
         let view = DropWebView(frame: .zero, configuration: config)
         view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")
@@ -58,9 +63,18 @@ final class WebPluginHost: NSObject {
         return view
     }
 
+    private func injectScripts(_ content: WKUserContentController, tab: TabItem, dir: URL) {
+        let pluginInfo: [String: Any] = ["id": tab.id, "name": tab.name, "apiVersion": (try? PluginManifestV2(directory: dir).apiVersion) ?? 1]
+        let info = (try? JSONSerialization.data(withJSONObject: pluginInfo)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        content.removeAllUserScripts()
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + WindowManager.shared.bridgeContext(for: vm) + "\n" + KeyboardWebSupport.script + "\n" + PluginEngine.javascript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+    }
+
     // MARK: Bridge
 
     fileprivate func handle(pluginID: String, fn: String, args: [Any], reply: @escaping (Any?, String?) -> Void) {
+        guard let directory = Services.shared.plugins.tabs.first(where: { $0.id == pluginID })?.dir else { return reply(nil, "Plugin is no longer installed.") }
+        if PluginEngine.shared.intercept(id: pluginID, directory: directory, method: fn, args: args, vm: vm, reply: reply) { return }
         let s = Services.shared
         let arg = { (i: Int) -> Any? in i < args.count && !(args[i] is NSNull) ? args[i] : nil }
         let str = { (i: Int) -> String in arg(i) as? String ?? "" }

@@ -1,5 +1,24 @@
 [
   {
+    "id": "mouse",
+    "name": "Mouse",
+    "description": "Smooth discrete mouse wheels and remap extra buttons with an isolated Swift helper. Accessibility required; disabled until you turn it on.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "computermouse.fill",
+    "tags": [
+      "mouse",
+      "native",
+      "accessibility"
+    ],
+    "screenshots": [],
+    "path": "plugins/mouse",
+    "sha": "8381854653b45844463a43060937d6fc8736d8c6",
+    "sha256": "3c0f6f67209adf89106588504352fadee47dfc062c4ce67e06d56c0001504dc7",
+    "default": true,
+    "updatedAt": "2026-10-21T19:56:00Z"
+  },
+  {
     "id": "word-count",
     "name": "Word Count",
     "description": "Count words and characters in a small local scratchpad. Your draft stays on your Mac.",
@@ -14,6 +33,8 @@
     "screenshots": [],
     "path": "plugins/word-count",
     "sha": "0aa7aff1bd43887f33adeed6c3134f93958f52fa",
+    "sha256": "2f2b684a89468854379a33479a9d5254af00e233290ec7ded6625837dd34ee21",
+    "default": false,
     "updatedAt": "2026-10-21T14:16:42Z"
   }
 ]

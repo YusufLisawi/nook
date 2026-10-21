@@ -33,6 +33,7 @@ struct TabsPane: View {
                     } footer: {
                         Text("A shortcut opens this tab from any app, even when hidden. Hiding removes it from dock navigation; disabling makes it unavailable.")
                     }
+                    PluginPermissionsSection(tab: tab)
                     PluginSettingsForm(tab: tab, grouped: true)
                         .id("\(tab.id):\(tab.dir?.path ?? "native"):\(plugins.revision)")
                 }

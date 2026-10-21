@@ -49,7 +49,7 @@ import SwiftUI
         error = nil
         defer { busyID = nil }
         do {
-            try await client.install(entry, update: update)
+            try await client.install(entry, update: update, approve: PluginAutomaticUpdates.approve)
             changed()
         } catch { self.error = error.localizedDescription }
         await refreshInstallations()

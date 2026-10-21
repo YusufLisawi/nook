@@ -48,7 +48,7 @@ final class NotchKeyboardState: ObservableObject {
                   shortcut: $0.hotkey?.display ?? "", target: .command($0.id))
         }
         entries += KeyboardActions.shared.actions.filter { action in
-            action.ownerID == vm.web.keyboardID && vm.isEnabled(action.pluginID)
+            (action.ownerID == vm.web.keyboardID || action.ownerID == PluginContributions.actionOwner) && vm.isEnabled(action.pluginID)
         }.map { action in
             let pluginName = vm.enabledTabs.first { $0.id == action.pluginID }?.name ?? action.pluginID
             return Entry(id: "action:\(action.pluginID):\(action.id)", title: action.title,
@@ -222,6 +222,10 @@ final class NotchKeyboardController {
                 (NSApp.delegate as? AppDelegate)?.showSettings(pane: "commands")
             } else { vm.services.commands.run(id, fromNotch: true) }
         case let .action(action):
+            if action.ownerID == PluginContributions.actionOwner {
+                PluginEvents.emit(alternate ? "actionAlternate" : "action", action.id, to: action.pluginID)
+                return
+            }
             vm.select(action.pluginID)
             // Let the tab subscription schedule first; then deliver after focus, so an
             // action such as "New note" can put the caret in its own editor.
@@ -285,9 +289,12 @@ final class NotchKeyboardController {
             return true
         }
         if !vm.keyboard.isPresented, let action = KeyboardActions.shared.actions.first(where: {
-            $0.ownerID == vm.web.keyboardID && $0.pluginID == vm.tab && KeyboardActions.matches($0.shortcut, event: event)
+            ($0.ownerID == vm.web.keyboardID || $0.ownerID == PluginContributions.actionOwner) && $0.pluginID == vm.tab && KeyboardActions.matches($0.shortcut, event: event)
         }) {
-            if !event.isARepeat { vm.web.emit("action", action.id, to: action.pluginID) }
+            if !event.isARepeat {
+                if action.ownerID == PluginContributions.actionOwner { PluginEvents.emit("action", action.id, to: action.pluginID) }
+                else { vm.web.emit("action", action.id, to: action.pluginID) }
+            }
             return true
         }
         if !vm.keyboard.isPresented {

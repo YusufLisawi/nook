@@ -49,6 +49,11 @@ struct SettingsExtension: Identifiable {
 enum SettingsRegistry {
     private(set) static var panes: [SettingsExtension] = []
 
+    static func unregister(_ id: String) {
+        panes.removeAll { $0.id == id }
+        NotificationCenter.default.post(name: .nookSettingsRegistryChanged, object: nil)
+    }
+
     static func register<V: View>(id: String, title: String, symbol: String, tint: Color, order: Int, keywords: [String] = [], @ViewBuilder view: @escaping () -> V) {
         panes.removeAll { $0.id == id }
         panes.append(SettingsExtension(id: id, title: title, symbol: symbol, tint: tint, order: order, keywords: keywords, view: { AnyView(view()) }))

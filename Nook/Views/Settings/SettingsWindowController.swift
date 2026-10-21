@@ -22,6 +22,7 @@ final class SettingsWindowController {
     }
 
     func show(pane: String?) {
+        Task { @MainActor in await PluginAutomaticUpdates.shared.check(settingsOpened: true) }
         if let pane, SettingsRouter.isKnown(pane) { SettingsRouter.shared.pane = pane }
         prepare()
         NSApp.activate(ignoringOtherApps: true)

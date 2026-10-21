@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, relative, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { pluginDirectories, validatePlugin, treeSHA } from './validate.mjs';
+import { pluginDirectories, validatePlugin, treeSHA, packageSHA256 } from './validate.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const indexPath = join(root, 'index.json');
@@ -25,7 +25,7 @@ for (const directory of await pluginDirectories(root)) {
   if (!updatedAt) updatedAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   entries.push({ id: manifest.id, name: manifest.name, description: metadata.description,
     author: metadata.author, version: metadata.version, symbol: manifest.symbol ?? 'puzzlepiece.extension.fill',
-    tags: metadata.tags, screenshots: metadata.screenshots, path: `plugins/${manifest.id}`, sha, updatedAt });
+    tags: metadata.tags, screenshots: metadata.screenshots, path: `plugins/${manifest.id}`, sha, sha256: await packageSHA256(directory), default: metadata.default === true, updatedAt });
 }
 entries.sort((a, b) => a.id.localeCompare(b.id, 'en'));
 await writeFile(indexPath, `${JSON.stringify(entries, null, 2)}\n`);

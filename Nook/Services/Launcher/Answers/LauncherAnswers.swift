@@ -59,6 +59,9 @@ final class LauncherAnswers: @unchecked Sendable {
         slots.removeAll { $0.provider.id == provider.id }
         slots.append(Slot(provider)); slots.sort { $0.provider.id < $1.provider.id }
     }
+    func unregister(_ id: String) {
+        lock.lock(); defer { lock.unlock() }; slots.removeAll { $0.provider.id == id }
+    }
     var providerIDs: [String] { lock.lock(); defer { lock.unlock() }; return slots.map { $0.provider.id } }
 
     /// Each provider gets at most 2 ms of waiting, on its own serial queue. A timed-out provider stays busy until it

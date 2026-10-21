@@ -56,7 +56,7 @@ private final class TrashMock {
         let cache = root.appendingPathComponent("Cache")
         let client = PluginStoreClient(pluginsRoot: plugins, cacheRoot: cache, session: session, trash: trash.move)
         let source = URL(fileURLWithPath: CommandLine.arguments[1]).standardizedFileURL
-        let entry = try JSONDecoder().decode([PluginStoreEntry].self, from: Data(contentsOf: source.appendingPathComponent("index.json")))[0]
+        let entry = try JSONDecoder().decode([PluginStoreEntry].self, from: Data(contentsOf: source.appendingPathComponent("index.json"))).first { $0.id == "word-count" }!
         let original = source.appendingPathComponent(entry.path)
         try expect(try PluginStorePackage.treeSHA(original) == entry.sha, "Swift tree hashing matches generated Node/Git hash")
         try expect(!PluginStorePackage.validID("bad\n"), "Reject newline IDs")

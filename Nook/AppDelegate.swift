@@ -77,6 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case "reload": Services.shared.plugins.reload(); Services.shared.plugins.touch()
             case "settings": showSettings(pane: tab)
             case "install": PluginStore.shared.open(tab)
+            case "plugin": PluginContributions.handleURL(url)
             case "launcher": // nook://launcher[/query] — open the launcher, optionally pre-filled (scripts, tests)
                 guard let controller = notchUnderMouse() else { break }
                 if !controller.viewModel.launcherPresented { LauncherFeature.toggle(controller) }

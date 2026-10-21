@@ -28,6 +28,7 @@ async function setup(failFirst = false) {
       return JSON.parse(JSON.stringify(state));
     }; }
   }) };
+  w.nook.native = { call(method, params) { return w.nook.mouse[method.slice(6)](...params.args); }, on(event, callback) { events[event] = callback; } };
   w.eval(source);
   await tick();
   return { w, events, state, calls, $: id => w.document.getElementById(id), close: () => w.close() };

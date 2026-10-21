@@ -4,6 +4,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import { resolve, relative, basename, extname, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { validateV2 } from './validate-v2.mjs';
 
 export const validID = (id) => typeof id === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(id) && !/\s/.test(id);
 export const validVersion = (version) => typeof version === 'string' && /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(version) && !/\s/.test(version);
@@ -27,8 +28,8 @@ export async function packageFiles(root) {
       const stat = await lstat(file);
       if (stat.isSymbolicLink()) throw new Error(`Symlinks are not allowed: ${path}`);
       if (stat.isDirectory()) { await walk(file); continue; }
-      if (!stat.isFile() || (stat.mode & 0o111) || stat.size > 5_000_000) throw new Error(`Files must be regular, non-executable files up to 5 MB: ${path}`);
-      files.push({ path, file, size: stat.size });
+      if (!stat.isFile() || ((stat.mode & 0o111) && !path.startsWith('bin/')) || stat.size > 5_000_000) throw new Error(`Files must be regular, non-executable files up to 5 MB: ${path}`);
+      files.push({ path, file, size: stat.size, executable: !!(stat.mode & 0o111) });
       total += stat.size;
       if (files.length > 200 || total > 20_000_000) throw new Error('Plugins are limited to 200 files and 20 MB.');
     }
@@ -51,11 +52,20 @@ export async function treeSHA(root) {
     const body = [];
     for (const [name, child] of sorted) {
       const sha = child.directory ? await tree(`${prefix}${name}/`) : objectSHA('blob', await readFile(child.file));
-      body.push(Buffer.from(`${child.directory ? '40000' : '100644'} ${name}\0`), Buffer.from(sha, 'hex'));
+      body.push(Buffer.from(`${child.directory ? '40000' : child.executable ? '100755' : '100644'} ${name}\0`), Buffer.from(sha, 'hex'));
     }
     return objectSHA('tree', Buffer.concat(body));
   }
   return tree('');
+}
+
+export async function packageSHA256(root) {
+  const hash = createHash('sha256');
+  for (const file of await packageFiles(root)) {
+    hash.update(`${file.path}\0${file.executable ? '100755' : '100644'}\0${file.size}\0`);
+    hash.update(await readFile(file.file));
+  }
+  return hash.digest('hex');
 }
 
 export async function validatePlugin(root) {
@@ -70,6 +80,7 @@ export async function validatePlugin(root) {
   for (const key of ['id', 'name']) if (!nonempty(manifest[key])) error(`plugin.json needs "${key}"`);
   if (!validID(manifest.id)) error('id must be lowercase letters, digits and dashes, at most 80 characters');
   if (manifest.id !== basename(root)) error('folder name must match plugin id');
+  errors.push(...validateV2(manifest, files));
   const paths = new Set(files.map((f) => f.path));
   const entry = manifest.entry ?? 'index.html';
   for (const key of ['entry', 'symbol', 'icon']) if (manifest[key] !== undefined && !nonempty(manifest[key])) error(`${key} must be a nonempty string`);

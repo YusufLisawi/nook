@@ -1,4 +1,4 @@
-// Mouse — smooth scrolling, scroll modifiers and button remapping. Engine: nook.mouse.* (an event tap in Nook).
+// Mouse — smooth scrolling, scroll modifiers and button remapping. Engine: JSON-RPC to an isolated Swift helper.
 const $ = (id) => document.getElementById(id);
 let state = null;
 let view = 'scroll';
@@ -23,7 +23,7 @@ function showError(message, action) {
 
 async function call(fn, ...args) {
   try {
-    const next = await nook.mouse[fn](...args);
+    const next = await nook.native.call('mouse.' + fn, { args });
     if (next) { state = next; render(); }
   } catch (err) {
     showError(`Couldn't ${fn.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${err.message || err}`);
@@ -237,7 +237,7 @@ function render() {
 
 async function refresh() {
   try {
-    state = await nook.mouse.state();
+    state = await nook.native.call('mouse.state', { args: [] });
     render();
   } catch (err) {
     if (!state) {
@@ -260,7 +260,7 @@ $('view').onclick = (e) => {
   $('buttons').hidden = view !== 'buttons';
 };
 
-nook.on('mouse', (d) => {
+nook.native.on('mouse', (d) => {
   if (d.button !== undefined && state) {
     // Learned a button: add it (every action starts as "Default"; the user picks), unless it's already listed.
     if (!state.config.buttons[d.button]) call('setButton', String(d.button), {});
@@ -269,6 +269,7 @@ nook.on('mouse', (d) => {
     refresh();
   }
 });
+nook.native.on('ready', refresh);
 nook.on('show', refresh);
 nook.on('open', refresh);
 nook.on('close', () => { if (state?.learning) call('learn', false); });

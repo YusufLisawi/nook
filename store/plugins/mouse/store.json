@@ -1,0 +1,8 @@
+{
+  "description": "Smooth discrete mouse wheels and remap extra buttons with an isolated Swift helper. Accessibility required; disabled until you turn it on.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": true,
+  "tags": ["mouse", "native", "accessibility"],
+  "screenshots": []
+}

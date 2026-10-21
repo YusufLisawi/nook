@@ -1,0 +1,8 @@
+{
+  "id": "clips",
+  "name": "Clips",
+  "symbol": "doc.on.clipboard",
+  "entry": "index.html",
+  "order": 44,
+  "height": 360
+}

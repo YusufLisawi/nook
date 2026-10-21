@@ -27,6 +27,7 @@ final class Services: ObservableObject {
     func start() {
         AgentService.register()
         WindowManager.shared.start()
+        ClipsFeature.start()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

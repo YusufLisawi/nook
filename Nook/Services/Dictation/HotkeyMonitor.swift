@@ -3,8 +3,8 @@ import AppKit
 /// Global shortcuts via an active event tap (needs Accessibility; it can swallow keys).
 /// Hold: record while held. Toggle: press to start, press again to stop and transcribe. Both are configurable.
 final class HotkeyMonitor {
-    var hold: DictationShortcut? = .defaultHold
-    var toggle: DictationShortcut? = .defaultToggle
+    var hold: DictationShortcut?
+    var toggle: DictationShortcut?
     var paused = false
 
     var onHoldStart: () -> Void = {}
@@ -15,6 +15,7 @@ final class HotkeyMonitor {
     var onShortcut: (Int64, CGEventFlags) -> Bool = { _, _ in false }
 
     private var tap: CFMachPort?
+    private var source: CFRunLoopSource?
     private var retryTimer: Timer?
     private var holding = false
     private var holdByKey = false
@@ -24,7 +25,7 @@ final class HotkeyMonitor {
     var isTrusted: Bool { AXIsProcessTrusted() }
 
     func start() {
-        guard tap == nil else { return }
+        guard tap == nil, retryTimer == nil else { return }
         if !AXIsProcessTrusted() {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
@@ -33,12 +34,21 @@ final class HotkeyMonitor {
             retryTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
                 guard AXIsProcessTrusted() else { return }
                 timer.invalidate()
+                self?.retryTimer = nil
                 self?.installTap()
             }
             return
         }
         installTap()
     }
+
+    func stop() {
+        retryTimer?.invalidate(); retryTimer = nil
+        if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
+        if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        tap = nil; source = nil; holding = false; holdByKey = false; toggleArmed = false; swallowedKey = nil
+    }
+
 
     private func installTap() {
         let mask = (1 << CGEventType.flagsChanged.rawValue) | (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
@@ -54,6 +64,7 @@ final class HotkeyMonitor {
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
         self.tap = tap
+        self.source = source
     }
 
     func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {

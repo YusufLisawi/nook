@@ -72,6 +72,7 @@ typedef struct {
     uint32_t extension;
 } Entry;
 struct NFIndex {
+    _Atomic int cancelled;
     Entry *entries;
     char *blob, *names, *common_root;
     uint32_t *table;
@@ -261,14 +262,16 @@ static void scan(NFIndex *s,const char *path,const Config *c,int depth,int inher
     DIR *d=fdopendir(fd);
     if(!d) { close(fd); s->skipped++; return; }
     struct dirent *entry;
-    while((entry=readdir(d))) {
+    while(!atomic_load(&s->cancelled) && (entry=readdir(d))) {
         if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) continue;
         char child[4096]; int n=snprintf(child,sizeof(child),"%s/%s",path,entry->d_name);
         if(n>0 && (size_t)n<sizeof(child)) scan(s,child,c,depth+1,hidden,dirfd(d),entry->d_name,root_device);
     }
     closedir(d);
 }
+void nf_cancel(NFIndex *s) { if(s) atomic_store(&s->cancelled,1); }
 void nf_scan(NFIndex *s,const char *root,const char *exclusions,int hidden,int library,int dependencies,int packages) {
+    if(atomic_load(&s->cancelled)) return;
     Config c={exclusions,root,hidden,library,dependencies,packages}; scan(s,root,&c,0,0,AT_FDCWD,root,0);
 }
 

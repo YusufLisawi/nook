@@ -20,6 +20,7 @@ final class AudioMixer {
     private var taps: [String: AppTap] = [:] // app key → live tap
     private var levels: [String: AppLevel] // app key → saved gain/mute (keyed by bundle id or app path)
     private var iconCache: [String: String] = [:]
+    private var listeners: [(AudioObjectPropertyAddress, AudioObjectPropertyListenerBlock)] = []
     private var listening = false
     private var refreshWork: DispatchWorkItem?
     /// Set when a tap delivered only silence while the app was playing: audio capture permission is missing.
@@ -53,6 +54,12 @@ final class AudioMixer {
 
     func shutdown() {
         queue.sync {
+            listening = false
+            refreshWork?.cancel(); refreshWork = nil
+            pollTimer?.cancel(); pollTimer = nil
+            let system = AudioObjectID(kAudioObjectSystemObject)
+            for (var address, block) in listeners { AudioObjectRemovePropertyListenerBlock(system, &address, queue, block) }
+            listeners = []; iconCache = [:]
             taps.values.forEach { $0.stop() }
             taps.removeAll()
         }
@@ -178,6 +185,8 @@ final class AudioMixer {
 
     /// Create/update/remove taps so they match the saved levels for running apps.
     private func syncTaps() {
+        updatePolling()
+        guard !taps.isEmpty || levels.values.contains(where: { $0.gain != 1 || $0.muted }) else { return }
         let output = Self.defaultDevice(.output)
         guard output != kAudioObjectUnknown, let outputUID = Self.uid(output) else { return }
         let groups = appGroups()
@@ -227,7 +236,7 @@ final class AudioMixer {
             tap.stop()
             self.taps.removeValue(forKey: key)
             self.needsPermission = true
-            PluginEvents.emit("audio", self.state())
+            if FeatureVisibility.isVisible("mixer") { PluginEvents.emit("audio", self.state()) }
         }
     }
 
@@ -284,25 +293,33 @@ final class AudioMixer {
         for selector in [kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDefaultInputDevice,
                          kAudioHardwarePropertyDevices, kAudioHardwarePropertyProcessObjectList] {
             var address = Self.address(selector)
-            AudioObjectAddPropertyListenerBlock(system, &address, queue) { [weak self] _, _ in self?.scheduleRefresh() }
+            let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.scheduleRefresh() }
+            AudioObjectAddPropertyListenerBlock(system, &address, queue, block)
+            listeners.append((address, block))
         }
-        // Apps start/stop playing without the process list changing; poll lightly for that.
+        updatePolling()
+    }
+
+    private func updatePolling() {
+        let needed = levels.values.contains { $0.gain != 1 || $0.muted }
+        if !needed { pollTimer?.cancel(); pollTimer = nil; return }
+        guard listening, pollTimer == nil else { return }
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 2, repeating: 2)
+        timer.schedule(deadline: .now() + 5, repeating: 5, leeway: .seconds(1))
         timer.setEventHandler { [weak self] in self?.syncTaps() }
-        timer.resume()
-        pollTimer = timer
+        timer.resume(); pollTimer = timer
     }
 
     private var pollTimer: DispatchSourceTimer?
 
     private func scheduleRefresh() {
+        guard listening else { return }
         refreshWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
+            guard let self, self.listening else { return }
             self.enforcePreferredDevices()
             self.syncTaps()
-            PluginEvents.emit("audio", self.state())
+            if FeatureVisibility.isVisible("mixer") { PluginEvents.emit("audio", self.state()) }
         }
         refreshWork = work
         queue.asyncAfter(deadline: .now() + 0.25, execute: work)

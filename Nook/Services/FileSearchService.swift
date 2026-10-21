@@ -4,7 +4,11 @@ import SwiftUI
 
 /// Compatibility bridge and file actions. Search ownership is in FileNameIndex.
 final class FileSearchService {
-    static let shared = FileSearchService()
+    private static var instance: FileSearchService?
+    static var shared: FileSearchService {
+        if let instance { return instance }
+        let value = FileSearchService(); instance = value; return value
+    }
     private var sessions: [String: FileIndexClient] = [:]
     private var observers: [NSObjectProtocol] = []
     private let index: FileNameIndex
@@ -17,6 +21,18 @@ final class FileSearchService {
         self.index = index
         self.defaults = defaults
         preferences = FileSearchPreferences.Snapshot(defaults: defaults)
+    }
+
+    static func disable() {
+        guard let value = instance else { return }
+        for key in Array(value.sessions.keys) { value.cancel(key) }
+        for observer in value.observers { NotificationCenter.default.removeObserver(observer) }; value.observers = []
+        value.quickLook.close()
+        value.index.stop()
+        FileNameIndex.disable()
+        FileSearchWebShortcuts.stop()
+        FileSearchAccess.disable()
+        instance = nil
     }
 
     func register() {

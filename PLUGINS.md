@@ -63,7 +63,7 @@ Plugins folder (your copy wins) and reveals it; **Revert to built-in** trashes y
   `--border rgba(255,255,255,.08)`, `--accent #ff9f0a`, `--good #30d158`, `--bad #ff453a`, `--radius 14px`. Font: `-apple-system`.
 - No network CDNs; keep everything inline or in the folder. Use `nook.fetch` for HTTP (no CORS).
 - Style: follow **docs/UI-GUIDELINES.md** (`nook guide`). The **Nook UI kit** (`nk-*` classes: cards, rows, buttons, pills, inputs, empty/error states…) is injected into every plugin — use it instead of writing your own.
-- The webview stays alive while the app runs, so timers keep going between tab switches.
+- Web views are created on first display. Hidden views unload after a 15-second save grace period; disabling a feature unloads its views immediately. Persist drafts with `nook.storage` and restore them on load. Native timers and agent runs remain owned by their enabled native features.
 
 ## Bridge — `window.nook` (all calls return Promises)
 
@@ -567,3 +567,29 @@ For optional asynchronous work, also conform to `LauncherAnswerRefining` and imp
 outside the answer budget, then call completion to re-evaluate the current query. Protect shared caches and throttle I/O;
 callbacks from superseded searches cannot change the card. Test fixtures belong in `tests/answers/`, including positives,
 ordinary searches that must return nil, malformed inputs, and warmed timing checks. Run `bash tests/answers/run.sh`.
+
+
+## Feature availability and page lifetime
+
+Settings → Features controls native service lifetimes and reuses the existing disabled-tab preference.
+Disabled features reject bridge calls without creating their services; extension namespaces are registered only while
+needed. Shortcuts keep their saved assignments but do not route while their owner is off.
+
+```js
+const features = await nook.features.list(); // [{ id, title, enabled }] — effective state, including dependencies
+nook.on('features', rows => { /* hide controls for disabled capabilities */ });
+nook.on('visibility', visible => { /* start/stop page polling immediately */ });
+```
+
+`open`/`show` still carry the selected tab ID; `close` means the notch closed. Stop page timers on hide/close and restart
+on show. A loaded page receives `visibility` when its host changes visibility. Pages load only when shown, so initialize
+as visible. Unopened tabs create no web view. A disabled tab unloads immediately; a hidden tab unloads after 15 seconds.
+Unloading cancels that page's pending shell, HTTP and `ai.chat` work and removes its action registrations. Long-lived
+agent chats and native countdowns belong to their native services, not a page. Detached processes deliberately launched
+outside the shell's process tree are outside page lifetime control.
+
+Native feature IDs include `launcher`, `smartAnswers`, `launcherFiles`, `files`, `clipboard`, `screenshots`, `windows`,
+`mouse`, `commands`, `agents`, `dictation`, `links`, `proxy`, `mixer`, `monitor`, `media`, `timers`, `keyboard`,
+`teleprompter`, `cleaner`, `pluginStore`, `home`, `notes`, `scratch`, and `shelf`. Other discovered plugins use
+`plugin:<id>`. Clipboard and screenshot history share the Clips tab; either can run independently. `system` calls require
+Monitor and a visible calling tab. Home checks capabilities before invoking stats/timer APIs.

@@ -13,7 +13,11 @@ struct LauncherApplication: Codable, Identifiable {
 /// All filesystem enumeration, bundle reads and icon rendering use a serial utility queue.
 /// Spotlight and FSEvents lifetimes stay on the main run loop.
 final class LauncherApplicationIndex: ObservableObject {
-    static let shared = LauncherApplicationIndex()
+    private static var instance: LauncherApplicationIndex?
+    static var shared: LauncherApplicationIndex {
+        if let instance { return instance }
+        let value = LauncherApplicationIndex(); instance = value; return value
+    }
     @Published private(set) var applications: [LauncherApplication] = []
     @Published private(set) var gathering = true
     @Published private(set) var diagnostic: String?
@@ -26,6 +30,14 @@ final class LauncherApplicationIndex: ObservableObject {
     private var spotlightPaths: [String] = []
     private var icons: [String: NSImage] = [:]
     private var iconWaiters: [String: [(NSImage?) -> Void]] = [:]
+    private final class Cancellation: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+        var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
+        func cancel() { lock.lock(); cancelled = true; lock.unlock() }
+    }
+    private var cancellation = Cancellation()
+
     private var generation = 0
     private let roots = ["/Applications", "/System/Applications", "/System/Applications/Utilities", NSHomeDirectory() + "/Applications"]
     /// Apps people open, like Raycast lists: only the Applications folders (plus Finder) — never helpers, agents or
@@ -38,8 +50,21 @@ final class LauncherApplicationIndex: ObservableObject {
     private let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("com.yusuf.nook/Launcher", isDirectory: true)
 
+    private var active = false
+    static func disable() {
+        guard let value = instance else { return }
+        value.active = false; value.generation += 1; value.cancellation.cancel()
+        value.query?.stop(); value.query = nil
+        value.pending?.cancel(); value.pending = nil
+        for observer in value.observers { NotificationCenter.default.removeObserver(observer); NSWorkspace.shared.notificationCenter.removeObserver(observer) }
+        value.observers = []
+        if let stream = value.stream { FSEventStreamStop(stream); FSEventStreamInvalidate(stream); FSEventStreamRelease(stream) }; value.stream = nil
+        value.applications = []; value.icons = [:]; value.iconWaiters = [:]; value.spotlightPaths = []; value.runningPaths = []
+        instance = nil
+    }
+
     func start() {
-        guard query == nil else { return }
+        guard !active else { return }; active = true; cancellation = Cancellation()
         updateRunning()
         let workspace = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
@@ -47,11 +72,12 @@ final class LauncherApplicationIndex: ObservableObject {
                 self?.updateRunning(); self?.scheduleRefresh()
             })
         }
-        let file = cache.appendingPathComponent("applications.json")
+        let file = cache.appendingPathComponent("applications.json"), cancellation = cancellation
         queue.async { [weak self] in
+            guard !cancellation.isCancelled else { return }
             let cached = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([LauncherApplication].self, from: $0) } ?? []
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self, self.active else { return }
                 if !cached.isEmpty {
                     let cachedPaths = Set(cached.map(\.path))
                     self.applications = cached.filter { $0.bundleID != Bundle.main.bundleIdentifier && Self.isListed($0.path) }
@@ -98,19 +124,26 @@ final class LauncherApplicationIndex: ObservableObject {
     }
 
     private func refresh() {
+        guard active else { return }
         generation += 1
+        let cancellation = cancellation
         let token = generation, roots = roots, extra = spotlightPaths + Array(runningPaths), file = cache.appendingPathComponent("applications.json")
         queue.async { [weak self] in
+            guard !cancellation.isCancelled else { return }
             let manager = FileManager.default
             var paths = Set(extra.filter { $0.hasSuffix(".app") && Self.isListed($0) })
             paths.insert("/System/Library/CoreServices/Finder.app")
             for root in roots {
+                guard !cancellation.isCancelled else { return }
                 guard let enumerator = manager.enumerator(at: URL(fileURLWithPath: root), includingPropertiesForKeys: [.isDirectoryKey],
                                                           options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { continue }
-                for case let url as URL in enumerator where url.pathExtension.lowercased() == "app" { paths.insert(url.standardizedFileURL.path) }
+                for case let url as URL in enumerator {
+                    guard !cancellation.isCancelled else { return }
+                    if url.pathExtension.lowercased() == "app" { paths.insert(url.standardizedFileURL.path) }
+                }
             }
             let apps = paths.compactMap { path -> LauncherApplication? in
-                guard manager.fileExists(atPath: path), let bundle = Bundle(path: path),
+                guard !cancellation.isCancelled, manager.fileExists(atPath: path), let bundle = Bundle(path: path),
                       bundle.bundleIdentifier != Bundle.main.bundleIdentifier,
                       bundle.infoDictionary?["LSBackgroundOnly"] as? Bool != true else { return nil }
                 let name = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
@@ -122,6 +155,7 @@ final class LauncherApplicationIndex: ObservableObject {
             var seen = Set<String>()
             let unique = apps.sorted { $0.path.count < $1.path.count }.filter { $0.bundleID.isEmpty || seen.insert($0.bundleID).inserted }
             let sorted = unique.sorted { ($0.name.localizedLowercase, $0.path) < ($1.name.localizedLowercase, $1.path) }
+            guard !cancellation.isCancelled else { return }
             try? manager.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             if let data = try? JSONEncoder().encode(sorted) { try? data.write(to: file, options: .atomic) }
             DispatchQueue.main.async {
@@ -136,8 +170,9 @@ final class LauncherApplicationIndex: ObservableObject {
         if let icon = icons[path] { completion(icon); return }
         if iconWaiters[path] != nil { iconWaiters[path]?.append(completion); return }
         iconWaiters[path] = [completion]
-        let cache = cache
+        let cache = cache, cancellation = cancellation
         queue.async { [weak self] in
+            guard !cancellation.isCancelled else { return }
             // Include bundle modification time so an updated app doesn't keep an obsolete icon.
             let modified = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
             let key = SHA256.hash(data: Data((path + String(modified)).utf8)).map { String(format: "%02x", $0) }.joined()
@@ -159,9 +194,10 @@ final class LauncherApplicationIndex: ObservableObject {
                     }
                 }
             }
+            guard !cancellation.isCancelled else { return }
             let result = image
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self, self.active else { return }
                 self.icons[path] = result
                 let waiters = self.iconWaiters.removeValue(forKey: path) ?? []
                 waiters.forEach { $0(result) }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ShortcutsPane: View {
     @ObservedObject private var plugins = Services.shared.plugins
-    @ObservedObject private var commands = Services.shared.commands
+    @ObservedObject private var features = Features.shared
     @ObservedObject private var navigation = TabNavigationStore.shared
     @State private var revision = 0
     @State private var trusted = AXIsProcessTrusted()
@@ -25,11 +25,12 @@ struct ShortcutsPane: View {
                 Text("Click a recorder, then press a shortcut. Esc cancels; Delete clears it. Existing assignments are checked across all tabs, AI commands, dictation, and registered extensions.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
-            shortcutSection("Tabs & Plugins", items: plugins.orderedTabs.map(SettingsShortcutItem.tab))
+            shortcutSection("Tabs & Plugins", items: plugins.orderedTabs.filter { features.tabEnabled($0.id) }.map(SettingsShortcutItem.tab))
             if !navigation.groups.isEmpty {
-                shortcutSection("Tab Groups", items: navigation.groups.map(SettingsShortcutItem.group))
+                shortcutSection("Tab Groups", items: navigation.groups.filter { $0.members.contains(where: features.tabEnabled) }.map(SettingsShortcutItem.group))
             }
-            shortcutSection("AI Commands", items: commands.commands.map(SettingsShortcutItem.command))
+            if features.enabled("commands") { shortcutSection("AI Commands", items: Services.shared.commands.commands.map(SettingsShortcutItem.command)) }
+            if features.enabled("dictation") {
             Section {
                 ForEach([SettingsShortcutItem.dictation(hold: true), .dictation(hold: false)]) { item in
                     LabeledContent(item.title) { SettingsShortcutRecorder(item: item) }
@@ -52,6 +53,7 @@ struct ShortcutsPane: View {
                 Text("Dictation")
             } footer: {
                 Text("Hold to Talk records while held. Toggle Recording starts on the first press and transcribes on the next. Modifier-only gestures are supported.")
+            }
             }
             let groups = Set(ShortcutRegistry.shortcuts.map(\.group)).sorted()
             ForEach(groups, id: \.self) { group in

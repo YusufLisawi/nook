@@ -3,7 +3,11 @@ import SwiftUI
 
 /// Main-thread confined. Codex owns tool execution and its conversation context; Nook owns the rendered history.
 final class AgentService: ObservableObject {
-    static let shared = AgentService(root: Services.supportDir)
+    private static var instance: AgentService?
+    static var shared: AgentService {
+        if let instance { return instance }
+        let value = AgentService(root: Services.supportDir); instance = value; return value
+    }
     @Published private(set) var agents: [NookAgent] = []
     @Published private(set) var storageError: String?
     private var chats: [String: AgentSession] = [:]
@@ -42,6 +46,17 @@ final class AgentService: ObservableObject {
 
     private var sessionsRoot: URL { root.appendingPathComponent("AgentSessions", isDirectory: true) }
     private func folder(_ id: String) -> URL { sessionsRoot.appendingPathComponent(id, isDirectory: true) }
+
+    static func disable() {
+        guard let value = instance else { return }
+        value.shutdown()
+        if let observer = value.terminationObserver { NotificationCenter.default.removeObserver(observer) }
+        value.terminationObserver = nil
+        value.pendingSave?.cancel(); value.pendingSave = nil
+        value.chats.removeAll(); value.agents.removeAll()
+        BridgeRegistry.unregister("agents")
+        instance = nil
+    }
 
     static func register() {
         let service = shared

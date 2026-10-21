@@ -321,3 +321,45 @@ focus, and permission toggles require a manual check in a single running Nook in
   before sending Command V. It leaves the result on the clipboard. If the app quits or loses focus, no paste is sent.
   Real focus/paste, screen-reader behavior, multi-display layout and notch resizing still need manual review in a single
   running Nook instance; automated tests use inert output and offscreen rendering, never launch Nook or type into apps.
+
+
+## Optional features and idle work
+
+- Settings → Features owns optional native lifetimes. The same switch state is reflected in Tabs & Plugins. Disabled
+  owners leave the dock, launcher/palette, native Settings panes/rows and shortcut routing, while saved data and shortcut
+  assignments remain on disk. The notch and its basic pointer/navigation infrastructure remain available.
+- Launcher, smart answers, launcher file source, File Search, clipboard history, screenshot/recording history, window
+  management and Mouse default off. A one-time migration (`features.raycastMigration.v1`) applies those choices before
+  any service starts on the next launch. Existing choices for other tabs are respected. No installer/build/test writes
+  the running user's preferences. The Features pane re-enables them explicitly.
+- Disabling File Search cancels Spotlight clients, removes FSEvents/access/local-key observers, cancels scans between
+  filesystem operations, destroys C storage/query cursors, and drops previews. Launcher releases its app index, icons,
+  query/watchers and state. Smart-answer location tables are provider-owned and can be released. Enabling Launcher File
+  Source requires both Launcher and File Search; enabling Smart Answers requires Launcher.
+- Clipboard and screenshot lifetimes are independent. Off stops clipboard polling, closes the capture-folder descriptor,
+  cancels Vision/thumbnail requests and drops in-memory history/OCR data. Saved history and originals remain in place.
+  Dictation off cancels recording/transcription, preserves interrupted history for Retry, and drops its in-memory data.
+  Audio captures removed by dictation cancellation/retention now use Trash semantics.
+- Mixer off removes the exact Core Audio listener blocks, stops its timer, destroys every tap/aggregate device and clears
+  icons/levels in memory. Its enforcement poll exists only with a non-default saved app level. Window targets/Restore
+  history and lazily opened SkyLight handles are released when Window Management is off. Proxy off finishes system-proxy
+  cleanup before closing its forwarder. Agent processes are cancelled and chat/history state is released.
+- One shared global keyboard tap runs only for enabled, assigned shortcuts or dictation gestures. Dictation off does not
+  reserve its default gestures. Turning Keyboard & Open Nook off removes the palette/Open Nook assignment from runtime;
+  other enabled features may still need the shared tap. Saved assignments are retained for re-enable.
+- Pointer hover/click-through and fullscreen changes use input/workspace events, with no per-display polling timer.
+  Hidden fullscreen panels detach collapsed activity views so their animations stop. Media checks every five seconds
+  only while Music or Spotify is running; Link Catcher checks pasteboard change counts every two seconds when enabled.
+  Timers tick once a second only while running. Idle features do not suppress App Nap.
+- Web views are lazy, disabled tabs unload immediately and hidden tabs unload after 15 seconds for pending saves.
+  Monitor/Home/Mixer stop intervals immediately while hidden. System stats sample on demand only for visible callers.
+  Store initialization does not fetch; disabling cancels its network session. Closing Settings releases its view tree.
+- Native work already executing a filesystem/AppleScript/system call may finish that call before releasing its last
+  temporary allocation. Cancellation prevents further result publication/work. Framework caches and malloc high-water
+  pages are OS-owned, so releasing feature references does not promise a zero-byte process footprint. Detached external
+  processes created by plugin scripts cannot be reclaimed reliably. Keep durable plugin state in `nook.storage`.
+- `scripts/measure-idle.sh PID [seconds] [output]` measures an already-running **built review copy**, never launches Nook,
+  never uses sudo, and rejects `/Applications/Nook.app`. It reports one-core CPU, interrupt/package idle wakeups per second,
+  physical footprint and captures top/footprint/sample. Timer stack matches are sample evidence, not a registered-timer
+  count. A single-instance, multi-display hover/fullscreen/permission pass and before/after idle measurements remain lead
+  review steps; this change was built and tested without launching Nook.

@@ -80,6 +80,8 @@ actor PluginStoreClient {
         self.trash = trash
     }
 
+    nonisolated func cancelRequests() { session.invalidateAndCancel() }
+
     private var cacheFile: URL { cacheRoot.appendingPathComponent("index.json") }
 
     func cachedCatalog() -> PluginStoreCatalog? {

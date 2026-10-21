@@ -27,7 +27,7 @@ struct NotchRootView: View {
                             }
                         }
                         .transition(.opacity)
-                    } else if !vm.isOpen {
+                    } else if !vm.isOpen, vm.panelVisible {
                         CollapsedView(vm: vm).transition(.opacity)
                     }
                 }
@@ -44,6 +44,7 @@ struct NotchRootView: View {
                 if case .dictation(.failed) = vm.activity { vm.open(tab: "dictation") } else { vm.open() }
             }
             .onDrop(of: [.fileURL], isTargeted: $vm.isDropTargeted) { providers in
+                guard Features.shared.tabEnabled("shelf") else { return false }
                 vm.services.shelf.add(providers)
                 vm.open(tab: "shelf")
                 return true
@@ -58,16 +59,9 @@ struct NotchRootView: View {
 
 struct CollapsedView: View {
     @ObservedObject var vm: NotchViewModel
-    @ObservedObject private var media: MediaController
-    @ObservedObject private var timers: TimerService
-    @ObservedObject private var dictation: DictationService
-
-    init(vm: NotchViewModel) {
-        self.vm = vm
-        _media = ObservedObject(wrappedValue: vm.services.media)
-        _timers = ObservedObject(wrappedValue: vm.services.timers)
-        _dictation = ObservedObject(wrappedValue: vm.services.dictation)
-    }
+    private var media: MediaController { vm.services.media }
+    private var timers: TimerService { vm.services.timers }
+    private var dictation: DictationService { vm.services.dictation }
 
     var body: some View {
         let height = vm.geometry.notch.height
@@ -157,8 +151,10 @@ struct ExpandedView: View {
                 Color.clear.frame(width: notch.width)
                 HStack(spacing: 2) {
                     Spacer()
+                    if Features.shared.enabled("launcher") {
                     IconButton("magnifyingglass", size: 12) { (NSApp.delegate as? AppDelegate)?.openLauncher(in: vm) }
                         .help("Search apps, AI commands and plugins (\(LauncherShortcut.current?.display ?? "⌃⌥Space"))")
+                    }
                     if vm.currentTab != nil {
                         IconButton(vm.showingSettings ? "slider.horizontal.3" : "slider.horizontal.3", size: 12) {
                             withAnimation(.snappy(duration: 0.2)) { vm.showingSettings.toggle() }
@@ -191,7 +187,7 @@ struct ExpandedView: View {
                     .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(white: 0.09)))
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
-                KeyboardPalette(vm: vm)
+                if Features.shared.enabled("keyboard"), vm.keyboard.isPresented { KeyboardPalette(vm: vm) }
             }
             .frame(maxWidth: .infinity)
             .frame(height: vm.contentHeight, alignment: .topLeading)
@@ -209,7 +205,7 @@ struct ExpandedView: View {
         let s = vm.services
         if let tab = vm.currentTab, let webView = vm.web.view(for: tab) {
             WebPluginView(webView: webView).id(tab.id)
-        } else {
+        } else if vm.currentTab != nil {
             switch vm.tab {
             case "media": HomeTab(media: s.media)
             case "shelf": ShelfTab(shelf: s.shelf, isTargeted: vm.isDropTargeted)

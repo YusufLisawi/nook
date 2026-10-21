@@ -65,11 +65,18 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
         }
     }
 
+    func stop() {
+        running?.cancel(); running = nil
+        if let recordMonitor { NSEvent.removeMonitor(recordMonitor) }
+        recordMonitor = nil; commands = []; lastRun = nil
+        if Services.shared.pluginActivity?.pluginID == Self.pluginID { Services.shared.pluginActivity = nil }
+    }
+
     // MARK: Hotkeys
 
     /// Called from the global event tap. Returns true if a command owns this shortcut.
     func handleShortcut(key: Int64, modifiers: CGEventFlags) -> Bool {
-        guard let command = commands.first(where: { $0.enabled && $0.hotkey?.keyCode == Int(key) && $0.hotkey?.modifiers == modifiers.rawValue })
+        guard Features.shared.enabled("commands"), let command = commands.first(where: { $0.enabled && $0.hotkey?.keyCode == Int(key) && $0.hotkey?.modifiers == modifiers.rawValue })
         else { return false }
         DispatchQueue.main.async { self.run(command.id, fromNotch: false) }
         return true
@@ -78,7 +85,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
     // MARK: Running
 
     func run(_ id: String, fromNotch: Bool, context: AICommandContext? = nil) {
-        guard let command = commands.first(where: { $0.id == id }) else { return }
+        guard Features.shared.enabled("commands"), let command = commands.first(where: { $0.id == id }) else { return }
         running?.cancel()
         let runID = "\(Int(Date().timeIntervalSince1970 * 1000))"
         running = Task { @MainActor in
@@ -88,6 +95,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
                 context?.application?.activate()
                 try? await Task.sleep(nanoseconds: 250_000_000)
             }
+            guard !Task.isCancelled else { return }
             if let context, !context.restoreTarget() {
                 finish(runID, command, status: "error", text: "", error: "The original app is unavailable. Focus it and try again.", selection: "")
                 return
@@ -137,6 +145,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
     }
 
     private func publish(_ runID: String, _ c: Command, status: String, text: String, error: String?, selection: String) {
+        guard Features.shared.enabled("commands") else { return }
         let run: [String: Any] = ["runId": runID, "commandId": c.id, "name": c.name, "status": status,
                                   "text": text, "error": error ?? NSNull(), "output": c.output, "selection": selection]
         lastRun = run
@@ -145,6 +154,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
 
     @MainActor
     private func finish(_ runID: String, _ c: Command, status: String, text: String, error: String?, selection: String) {
+        guard Features.shared.enabled("commands"), !Task.isCancelled else { return }
         publish(runID, c, status: status, text: text, error: error, selection: selection)
         let note: (String, String, String)? = switch (status, c.output) {
         case ("error", _): ("Failed", "exclamationmark.triangle.fill", "#ff453a")
@@ -247,14 +257,14 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
     /// Next key combo pressed while the notch has focus becomes this command's global hotkey. Esc cancels.
     private func recordHotkey(_ id: String, reply: @escaping (Any?, String?) -> Void) {
         if let recordMonitor { NSEvent.removeMonitor(recordMonitor) }
-        Services.shared.dictation.hotkeys.paused = true
+        Services.shared.hotkeys.paused = true
         var replied = false
         let done: (Any?) -> Void = { [weak self] value in
             guard !replied else { return }
             replied = true
             if let monitor = self?.recordMonitor { NSEvent.removeMonitor(monitor) }
             self?.recordMonitor = nil
-            Services.shared.dictation.hotkeys.paused = false
+            Services.shared.hotkeys.paused = false
             reply(value ?? NSNull(), nil)
         }
         recordMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -270,6 +280,7 @@ final class AICommands: ObservableObject, @unchecked Sendable { // main-thread c
     }
 
     private func save() {
+        DispatchQueue.main.async { Features.shared.refreshHotkeys() }
         let snapshot = commands
         let target = fileURL
         SettingsPersistence.shared.submit(id: target.path) {

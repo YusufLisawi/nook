@@ -51,7 +51,7 @@ final class ProxyService: ObservableObject {
     /// Must run before quitting, or the Mac is left pointing at a closed local port.
     func shutdown() {
         guard activeID != nil else { return }
-        Self.setSystemProxy(nil, services: Self.allServiceNames())
+        queue.sync { Self.setSystemProxy(nil, services: Self.allServiceNames()) }
         forwarder.stop()
     }
 

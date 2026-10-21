@@ -8,21 +8,61 @@ final class WebPluginHost: NSObject {
     let keyboardID = UUID().uuidString
     weak var vm: NotchViewModel?
     private var views: [String: WKWebView] = [:]
+    private var work: [String: PluginWork] = [:]
     private var revision = 0
+    private var observers: [NSObjectProtocol] = []
+    private var evictions: [String: DispatchWorkItem] = [:]
 
-    deinit { KeyboardActions.shared.remove(ownerID: keyboardID) }
+    deinit {
+        FeatureVisibility.set(owner: keyboardID, plugin: nil)
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+        evictions.values.forEach { $0.cancel() }
+        work.values.forEach { $0.cancel() }
+        for view in views.values { view.stopLoading(); view.configuration.userContentController.removeScriptMessageHandler(forName: "nook") }
+        KeyboardActions.shared.remove(ownerID: keyboardID)
+    }
 
     init(vm: NotchViewModel) {
         self.vm = vm
         super.init()
-        NotificationCenter.default.addObserver(forName: .nookPluginEvent, object: nil, queue: .main) { [weak self] note in
+        observers.append(NotificationCenter.default.addObserver(forName: .nookPluginEvent, object: nil, queue: .main) { [weak self] note in
             guard let event = note.userInfo?["event"] as? String else { return }
             self?.emit(event, note.userInfo?["payload"] ?? NSNull(), to: note.userInfo?["plugin"] as? String)
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: .nookFeaturesChanged, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            for id in Array(self.views.keys) where !Features.shared.tabEnabled(id) { self.unload(id) }
+            for view in self.views.values {
+                let context = Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: self.vm) : ""
+                view.evaluateJavaScript(BridgeRegistry.javascript + "\n" + context)
+            }
+        })
+    }
+
+    private func unload(_ id: String) {
+        evictions.removeValue(forKey: id)?.cancel()
+        work.removeValue(forKey: id)?.cancel()
+        guard let view = views.removeValue(forKey: id) else { return }
+        view.stopLoading(); view.configuration.userContentController.removeScriptMessageHandler(forName: "nook")
+        view.removeFromSuperview()
+        KeyboardActions.shared.remove(ownerID: keyboardID, pluginID: id)
+    }
+    func visibilityChanged() {
+        FeatureVisibility.set(owner: keyboardID, plugin: vm?.isOpen == true && vm?.launcherPresented == false ? vm?.tab : nil)
+        for id in Array(views.keys) {
+            let visible = vm?.isOpen == true && vm?.tab == id && vm?.launcherPresented == false
+            if visible { evictions.removeValue(forKey: id)?.cancel() }
+            else if evictions[id] == nil {
+                let work = DispatchWorkItem { [weak self] in self?.unload(id) }
+                evictions[id] = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: work)
+            }
+            views[id]?.evaluateJavaScript("window.nook && nook._emit('visibility', \(visible ? "true" : "false"))")
         }
     }
 
     func view(for tab: TabItem) -> WKWebView? {
-        guard case let .web(dir, entry) = tab.kind else { return nil }
+        guard Features.shared.tabEnabled(tab.id), case let .web(dir, entry) = tab.kind else { return nil }
         let current = Services.shared.plugins.revision
         if current != revision {
             revision = current
@@ -30,8 +70,10 @@ final class WebPluginHost: NSObject {
             views.values.forEach { $0.reload() } // pick up edited files without losing the view
         }
         if let view = views[tab.id] { return view }
+        work[tab.id] = PluginWork()
         let view = makeView(tab: tab, dir: dir, entry: entry)
         views[tab.id] = view
+        visibilityChanged()
         return view
     }
 
@@ -48,7 +90,7 @@ final class WebPluginHost: NSObject {
         let content = config.userContentController
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
         let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + WindowManager.shared.bridgeContext(for: vm) + "\n" + KeyboardWebSupport.script, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + (Features.shared.enabled("windows") ? WindowManager.shared.bridgeContext(for: vm) : "") + "\n" + KeyboardWebSupport.script, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let view = DropWebView(frame: .zero, configuration: config)
         view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")
@@ -61,6 +103,8 @@ final class WebPluginHost: NSObject {
     // MARK: Bridge
 
     fileprivate func handle(pluginID: String, fn: String, args: [Any], reply: @escaping (Any?, String?) -> Void) {
+        guard Features.shared.tabEnabled(pluginID), Features.shared.allowsBridge(fn) else { reply(nil, "This feature is turned off in Settings → Features."); return }
+        if fn == "system", vm?.isOpen != true || vm?.tab != pluginID { reply(nil, "System stats are sampled only while visible."); return }
         let s = Services.shared
         let arg = { (i: Int) -> Any? in i < args.count && !(args[i] is NSNull) ? args[i] : nil }
         let str = { (i: Int) -> String in arg(i) as? String ?? "" }
@@ -79,8 +123,8 @@ final class WebPluginHost: NSObject {
         case "settings.open": vm?.showingSettings = true; ok()
         case "shell":
             let timeout = (arg(1) as? [String: Any])?["timeout"] as? Double ?? 15
-            Shell.run(str(0), timeout: timeout) { reply($0, nil) }
-        case "fetch": HTTP.fetch(str(0), options: arg(1) as? [String: Any] ?? [:]) { result, error in reply(result, error) }
+            Shell.run(str(0), timeout: timeout, work: work[pluginID]) { reply($0, nil) }
+        case "fetch": HTTP.fetch(str(0), options: arg(1) as? [String: Any] ?? [:], work: work[pluginID]) { result, error in reply(result, error) }
         case "system": reply(s.system.snapshot(), nil)
         case "clipboard.write":
             NSPasteboard.general.clearContents()
@@ -117,7 +161,7 @@ final class WebPluginHost: NSObject {
         case "timer.state": reply(timerState(s.timers), nil)
         case let f where f.hasPrefix("proxy."): s.proxy.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case "ai.chat":
-            AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], reply: reply)
+            AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], work: work[pluginID], reply: reply)
         case let f where f.hasPrefix("commands."): s.commands.handle(String(f.dropFirst(9)), args: args, reply: reply)
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
@@ -290,43 +334,59 @@ struct PluginStorage {
 }
 
 enum Shell {
-    static func run(_ command: String, timeout: Double, completion: @escaping ([String: Any]) -> Void) {
+    static func run(_ command: String, timeout: Double, work: PluginWork? = nil, completion: @escaping ([String: Any]) -> Void) {
+        let scope = work ?? PluginWork(), id = UUID(), process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = ["-lc", command]
+        let out = Pipe(), err = Pipe()
+        process.standardOutput = out; process.standardError = err
+        scope.add(id) { if process.isRunning { AgentProcess.terminateTree(process.processIdentifier) } }
         DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-lc", command]
-            let out = Pipe(), err = Pipe()
-            process.standardOutput = out
-            process.standardError = err
-            do { try process.run() } catch {
+            defer {
+                scope.remove(id)
+                try? out.fileHandleForReading.close(); try? err.fileHandleForReading.close()
+            }
+            do { try scope.perform { try process.run() } } catch {
                 return completion(["code": -1, "stdout": "", "stderr": error.localizedDescription])
             }
-            let killer = DispatchWorkItem { if process.isRunning { process.terminate() } }
-            DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: killer)
+            let killer = DispatchSource.makeTimerSource(queue: .global())
+            killer.schedule(deadline: .now() + max(0.1, timeout))
+            killer.setEventHandler { if process.isRunning { AgentProcess.terminateTree(process.processIdentifier) } }
+            killer.resume()
+            defer { killer.cancel() }
+            // Drain both pipes concurrently; a full stderr pipe must not prevent cancellation/exit.
+            let errors = ShellErrors(), group = DispatchGroup()
+            group.enter()
+            DispatchQueue.global(qos: .utility).async {
+                errors.data = err.fileHandleForReading.readDataToEndOfFile(); group.leave()
+            }
             let stdout = out.fileHandleForReading.readDataToEndOfFile()
-            let stderr = err.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            killer.cancel()
-            completion(["code": Int(process.terminationStatus),
-                        "stdout": String(decoding: stdout, as: UTF8.self),
-                        "stderr": String(decoding: stderr, as: UTF8.self)])
+            process.waitUntilExit(); group.wait()
+            completion(["code": Int(process.terminationStatus), "stdout": String(decoding: stdout, as: UTF8.self),
+                        "stderr": String(decoding: errors.data, as: UTF8.self)])
         }
     }
 }
 
+/// One writer, read only after DispatchGroup.wait establishes completion.
+private final class ShellErrors: @unchecked Sendable { var data = Data() }
+
 enum HTTP {
-    static func fetch(_ urlString: String, options: [String: Any], completion: @escaping ([String: Any]?, String?) -> Void) {
+    static func fetch(_ urlString: String, options: [String: Any], work: PluginWork? = nil, completion: @escaping ([String: Any]?, String?) -> Void) {
         guard let url = URL(string: urlString) else { return completion(nil, "Bad URL") }
         var request = URLRequest(url: url, timeoutInterval: 20)
         request.httpMethod = options["method"] as? String ?? "GET"
         (options["headers"] as? [String: String])?.forEach { request.setValue($1, forHTTPHeaderField: $0) }
         if let body = options["body"] as? String { request.httpBody = Data(body.utf8) }
-        URLSession(configuration: .ephemeral).dataTask(with: request) { data, response, error in
+        let scope = work ?? PluginWork(), id = UUID(), session = URLSession(configuration: .ephemeral)
+        let task = session.dataTask(with: request) { data, response, error in
+            defer { scope.remove(id); session.finishTasksAndInvalidate() }
             if let error { return completion(nil, error.localizedDescription) }
             let http = response as? HTTPURLResponse
             let headers = (http?.allHeaderFields as? [String: String]) ?? [:]
             completion(["status": http?.statusCode ?? 0, "headers": headers, "body": String(decoding: data ?? Data(), as: UTF8.self)], nil)
-        }.resume()
+        }
+        if scope.add(id, cancel: { task.cancel(); session.invalidateAndCancel() }) { task.resume() }
     }
 }
 
@@ -374,7 +434,7 @@ enum PluginLog {
 enum AIChat {
     static let defaultModel = "openai/gpt-oss-120b"
 
-    static func send(messages: [[String: Any]], options: [String: Any], reply: @escaping (Any?, String?) -> Void) {
+    static func send(messages: [[String: Any]], options: [String: Any], work: PluginWork? = nil, reply: @escaping (Any?, String?) -> Void) {
         guard let key = Secrets.get(DictationService.Keys.groqSecret) else {
             return reply(nil, "Add a Groq API key in Nook Settings → Dictation")
         }
@@ -391,7 +451,9 @@ enum AIChat {
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        let scope = work ?? PluginWork(), id = UUID()
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            defer { scope.remove(id) }
             if let error { return reply(nil, error.localizedDescription) }
             let json = (data.flatMap { try? JSONSerialization.jsonObject(with: $0) }) as? [String: Any] ?? [:]
             guard (response as? HTTPURLResponse)?.statusCode == 200 else {
@@ -399,6 +461,7 @@ enum AIChat {
             }
             let text = ((json["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any])?["content"] as? String ?? ""
             reply(text, nil)
-        }.resume()
+        }
+        if scope.add(id, cancel: { task.cancel() }) { task.resume() }
     }
 }

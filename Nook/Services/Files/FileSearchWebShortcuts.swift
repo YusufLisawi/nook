@@ -5,6 +5,8 @@ import WebKit
 /// the native tab with a files plugin. Other web views keep ordinary text editing.
 enum FileSearchWebShortcuts {
     private static var monitor: Any?
+    static func stop() { if let monitor { NSEvent.removeMonitor(monitor) }; monitor = nil }
+
     static func register() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in

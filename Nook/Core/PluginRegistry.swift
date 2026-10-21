@@ -75,6 +75,7 @@ final class PluginRegistry: ObservableObject {
 
     func reload() {
         tabs = Self.discoverTabs()
+        Features.shared.registerPlugins(tabs)
     }
 
     /// Settings can refresh a large plugin directory without blocking window interaction.
@@ -83,6 +84,7 @@ final class PluginRegistry: ObservableObject {
         let discovered = await Task.detached(priority: .utility) { Self.discoverTabs() }.value
         guard version == revision else { return } // a newer filesystem event already refreshed the registry
         tabs = discovered
+        Features.shared.registerPlugins(tabs)
         touch()
     }
 

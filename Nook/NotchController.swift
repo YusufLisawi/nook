@@ -1,17 +1,19 @@
 import AppKit
 import SwiftUI
+import Combine
 
-/// Owns the panel and polls the mouse at 30 Hz to drive hover, click-through and drag-to-shelf.
+/// Owns the panel; pointer and workspace events drive hover, click-through and drag-to-shelf.
 final class NotchController {
     static let panelSize = CGSize(width: 880, height: 560)
 
     let viewModel: NotchViewModel
     private var panel: NotchPanel?
     private var keyboard: NotchKeyboardController?
-    private var timer: Timer?
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private var preferenceSubscription: AnyCancellable?
+    private var geometrySubscription: AnyCancellable?
     private var lastHover = false
     private var dragChangeCount = NSPasteboard(name: .drag).changeCount
-    private var ticks = 0
     private var hiddenForFullscreen = false
 
     private var screen: NSScreen
@@ -38,14 +40,24 @@ final class NotchController {
         if let scroll = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] event in
             self?.handleScroll(event) ?? event
         }) { monitors.append(scroll) }
-        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.tick() }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .leftMouseDown, .leftMouseUp]
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] _ in self?.tick() }) { monitors.append(monitor) }
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in self?.tick(); return event }) { monitors.append(monitor) }
+        for name in [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification] {
+            workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.updateFullscreenVisibility(); self?.tick()
+            })
+        }
+        preferenceSubscription = NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main).sink { [weak self] _ in self?.updateFullscreenVisibility() }
+        geometrySubscription = viewModel.objectWillChange.sink { [weak self] in DispatchQueue.main.async { self?.tick() } }
+        updateFullscreenVisibility()
+        tick()
     }
 
     func stop() {
-        timer?.invalidate()
-        monitors.forEach(NSEvent.removeMonitor)
+        geometrySubscription = nil; preferenceSubscription = nil
+        workspaceObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }; workspaceObservers = []
+        monitors.forEach(NSEvent.removeMonitor); monitors = []
         viewModel.close()
         panel?.orderOut(nil)
         keyboard = nil
@@ -75,11 +87,13 @@ final class NotchController {
         host.frame = CGRect(origin: .zero, size: size)
         panel.contentView = host
         panel.orderFrontRegardless()
+        panel.acceptsMouseMovedEvents = true
         self.panel = panel
     }
 
     func openWithKeyboard() {
         hiddenForFullscreen = false
+        viewModel.panelVisible = true
         keyboard?.open()
     }
 
@@ -95,8 +109,6 @@ final class NotchController {
 
     private func tick() {
         guard let panel else { return }
-        ticks += 1
-        if ticks % 30 == 0 { updateFullscreenVisibility() }
         if hiddenForFullscreen { return }
 
         let mouse = NSEvent.mouseLocation
@@ -111,7 +123,7 @@ final class NotchController {
             viewModel.holdRect = nil
         }
         let inside = live.contains(mouse) || viewModel.holdRect?.insetBy(dx: -2, dy: -6).contains(mouse) == true
-        panel.ignoresMouseEvents = !inside
+        if panel.ignoresMouseEvents == inside { panel.ignoresMouseEvents = !inside }
 
         if inside, draggingIn, !viewModel.isOpen, Prefs.bool(Prefs.shelfAutoOpen), viewModel.isEnabled("shelf") {
             viewModel.open(tab: "shelf")
@@ -168,6 +180,7 @@ final class NotchController {
         let hide = !viewModel.keyboard.engaged && Prefs.bool(Prefs.hideInFullscreen) && Self.frontAppIsFullscreen(on: viewModel.geometry.screen)
         guard hide != hiddenForFullscreen else { return }
         hiddenForFullscreen = hide
+        viewModel.panelVisible = !hide
         if hide {
             viewModel.close()
             panel.orderOut(nil)

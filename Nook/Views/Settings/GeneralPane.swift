@@ -14,6 +14,7 @@ struct GeneralPane: View {
     @AppStorage(Prefs.showMusic) private var showMusic = true
     @AppStorage(Prefs.showTimer) private var showTimer = true
     @AppStorage(Prefs.preferredScreen) private var screenSetting = ""
+    @ObservedObject private var features = Features.shared
     @ObservedObject private var login = SettingsSnapshots.login
     @State private var changingLogin = false
     @State private var loginError: String?
@@ -50,15 +51,17 @@ struct GeneralPane: View {
             Section {
                 Toggle("Haptic feedback", isOn: $haptics)
                 Toggle("Two-finger swipes", isOn: $swipes)
-                Toggle("Open Shelf when dragging files onto the notch", isOn: $shelfAutoOpen)
+                if features.enabled("shelf") { Toggle("Open Shelf when dragging files onto the notch", isOn: $shelfAutoOpen) }
             } header: {
                 Text("Interaction")
             } footer: {
                 Text("Swipe left or right to switch tabs or deck members, down on the closed notch to open it, or up on the top bar to close it.")
             }
-            Section("On the closed notch") {
-                Toggle("Show what's playing", isOn: $showMusic)
-                Toggle("Show a running timer", isOn: $showTimer)
+            if features.enabled("media") || features.enabled("timers") {
+                Section("On the closed notch") {
+                    if features.enabled("media") { Toggle("Show what's playing", isOn: $showMusic) }
+                    if features.enabled("timers") { Toggle("Show a running timer", isOn: $showTimer) }
+                }
             }
             Section {
                 Toggle("Launch at login", isOn: Binding(get: { login.value == .enabled }, set: { on in

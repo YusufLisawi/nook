@@ -88,6 +88,11 @@ enum PluginSettingsStore {
         Services.supportDir.appendingPathComponent("Data/\(id).settings.json")
     }
 
+    static func releaseCaches(for ids: Set<String>) {
+        lock.lock(); defer { lock.unlock() }
+        for id in ids { stores.removeValue(forKey: id) }
+    }
+
     static func saved(_ id: String) -> [String: JSONValue] {
         store(id).read()
     }

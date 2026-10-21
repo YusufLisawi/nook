@@ -36,7 +36,7 @@ final class DictationService: ObservableObject {
     @Published private(set) var recordingStartedAt: Date?
     @Published private(set) var history: [Entry] = []
 
-    let hotkeys = HotkeyMonitor()
+    var hotkeys: HotkeyMonitor { Services.shared.hotkeys }
     private let mic = MicRecorder()
     private var recording = false
     private var meterTimer: Timer?
@@ -73,7 +73,23 @@ final class DictationService: ObservableObject {
         cleanupRecordings()
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in self?.cleanupRecordings() }
         reloadShortcuts()
-        hotkeys.start()
+        // Features owns the shared shortcut tap, independently of Dictation.
+    }
+
+    private var tasks: [UUID: Task<Void, Never>] = [:]
+    func stop() {
+        if recording { finish(cancel: true) }
+        tasks.values.forEach { $0.cancel() }; tasks.removeAll()
+        idleWork?.cancel(); idleWork = nil
+        cleanupTimer?.invalidate(); cleanupTimer = nil
+        meterTimer?.invalidate(); meterTimer = nil
+        hotkeys.hold = nil; hotkeys.toggle = nil
+        hotkeys.onHoldStart = {}; hotkeys.onHoldEnd = {}; hotkeys.onHoldCancel = {}; hotkeys.onToggle = {}
+        for i in history.indices where history[i].status == "transcribing" {
+            history[i].status = "failed"; history[i].error = "Dictation was turned off."
+        }
+        saveHistory()
+        history = []; phase = .idle; level = 0
     }
 
     /// One-time: use the same microphone FreeFlow was set to.
@@ -158,7 +174,7 @@ final class DictationService: ObservableObject {
         self.current = nil
         level = 0
         if cancel || duration < 0.4 { // accidental tap
-            try? FileManager.default.removeItem(at: current.url)
+            try? FileManager.default.trashItem(at: current.url, resultingItemURL: nil)
             phase = .idle
             return
         }
@@ -190,14 +206,14 @@ final class DictationService: ObservableObject {
             guard entry.status != "transcribing" else { continue }
             let keep = entry.status == "failed" ? max(hours, 24 * 7) : hours
             if now.timeIntervalSince(entry.date) > keep * 3600 {
-                try? fm.removeItem(at: Self.dir.appendingPathComponent(entry.audio))
+                try? fm.trashItem(at: Self.dir.appendingPathComponent(entry.audio), resultingItemURL: nil)
             }
         }
         // Strays (e.g. a crash mid-recording) that no history entry points to.
         let files = (try? fm.contentsOfDirectory(at: Self.dir, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
         for file in files where !referenced.contains(file.lastPathComponent) && file.lastPathComponent != current?.url.lastPathComponent {
             let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? now
-            if now.timeIntervalSince(modified) > hours * 3600 { try? fm.removeItem(at: file) }
+            if now.timeIntervalSince(modified) > hours * 3600 { try? fm.trashItem(at: file, resultingItemURL: nil) }
         }
     }
 
@@ -216,7 +232,10 @@ final class DictationService: ObservableObject {
         let useChatGPT = defaults.string(forKey: Keys.engine) == "chatgpt"
         let groqKey = apiKey
         if !useChatGPT, groqKey == nil { return fail(id, "Add a Groq API key in Nook Settings, or switch the engine to ChatGPT") }
-        Task { @MainActor in
+        let workID = UUID()
+        tasks[workID] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.tasks.removeValue(forKey: workID) }
             do {
                 let hint = vocabulary.split(whereSeparator: \.isNewline).joined(separator: ", ")
                 let raw = useChatGPT
@@ -226,6 +245,7 @@ final class DictationService: ObservableObject {
                 if doCleanup, !raw.isEmpty, let groqKey {
                     text = (try? await Groq.cleanup(raw, key: groqKey, systemPrompt: prompt, vocabulary: vocabulary)) ?? raw
                 }
+                try Task.checkCancellation()
                 update(id) { $0.raw = raw; $0.text = text; $0.status = "done"; $0.error = nil }
                 if text.isEmpty {
                     phase = .idle
@@ -234,7 +254,7 @@ final class DictationService: ObservableObject {
                 if paste { Self.paste(text) } else { Self.copy(text) }
                 flash(.done)
             } catch {
-                fail(id, error.localizedDescription)
+                if !Task.isCancelled { fail(id, error.localizedDescription) }
             }
         }
     }
@@ -317,12 +337,12 @@ final class DictationService: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { Self.paste(t) }
             reply(NSNull(), nil)
         case "remove":
-            if let entry = history.first(where: { $0.id == id }) { try? FileManager.default.removeItem(at: Self.dir.appendingPathComponent(entry.audio)) }
+            if let entry = history.first(where: { $0.id == id }) { try? FileManager.default.trashItem(at: Self.dir.appendingPathComponent(entry.audio), resultingItemURL: nil) }
             history.removeAll { $0.id == id }
             saveHistory()
             reply(NSNull(), nil)
         case "clear":
-            history.forEach { try? FileManager.default.removeItem(at: Self.dir.appendingPathComponent($0.audio)) }
+            history.forEach { try? FileManager.default.trashItem(at: Self.dir.appendingPathComponent($0.audio), resultingItemURL: nil) }
             history = []
             saveHistory()
             reply(NSNull(), nil)

@@ -3,6 +3,7 @@ import SwiftUI
 struct TabsPane: View {
     @ObservedObject private var plugins = Services.shared.plugins
     @AppStorage(Prefs.disabledTabs) private var disabledTabs = ""
+    @ObservedObject private var features = Features.shared
     @State private var selection: String?
     @ObservedObject private var navigation = TabNavigationStore.shared
 
@@ -29,12 +30,14 @@ struct TabsPane: View {
                         Toggle("Enable plugin", isOn: enabled(tab.id))
                         Toggle("Hide from dock", isOn: Binding(get: { navigation.hidden.contains(tab.id) },
                                                               set: { navigation.setHidden(tab.id, $0) }))
-                        LabeledContent("Keyboard shortcut") { SettingsShortcutRecorder(item: .tab(tab)) }
+                        if features.tabEnabled(tab.id) { LabeledContent("Keyboard shortcut") { SettingsShortcutRecorder(item: .tab(tab)) } }
                     } footer: {
                         Text("A shortcut opens this tab from any app, even when hidden. Hiding removes it from dock navigation; disabling makes it unavailable.")
                     }
+                    if features.tabEnabled(tab.id) {
                     PluginSettingsForm(tab: tab, grouped: true)
                         .id("\(tab.id):\(tab.dir?.path ?? "native"):\(plugins.revision)")
+                    }
                 }
                 .formStyle(.grouped)
                 .frame(minWidth: 430, maxWidth: .infinity, maxHeight: .infinity)
@@ -58,11 +61,9 @@ struct TabsPane: View {
 
     private func enabled(_ id: String) -> Binding<Bool> {
         Binding(
-            get: { !disabledTabs.split(separator: ",").contains(Substring(id)) },
+            get: { Features.shared.tabEnabled(id) },
             set: { on in
-                var off = Prefs.disabledTabSet
-                if on { off.remove(id) } else { off.insert(id) }
-                disabledTabs = off.sorted().joined(separator: ",")
+                Features.shared.setTab(id, on)
             }
         )
     }

@@ -26,7 +26,10 @@ enum TabHotkeys {
     }
 
     static func tab(forKey keyCode: Int64, modifiers: CGEventFlags) -> String? {
-        all().first { $0.value.keyCode == Int(keyCode) && $0.value.modifiers == modifiers.rawValue }?.key
+        all().first { id, shortcut in
+            Features.shared.tabEnabled(id) && Services.shared.plugins.tabs.contains { $0.id == id } &&
+                shortcut.keyCode == Int(keyCode) && shortcut.modifiers == modifiers.rawValue
+        }?.key
     }
 
     static func make(from event: NSEvent) -> TabHotkey? {
@@ -69,7 +72,7 @@ struct HotkeyRecorder: View {
 
     private func start() {
         recording = true
-        Services.shared.dictation.hotkeys.paused = true
+        Services.shared.hotkeys.paused = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             switch event.keyCode {
             case 53: break // Esc
@@ -90,6 +93,6 @@ struct HotkeyRecorder: View {
         recording = false
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-        Services.shared.dictation.hotkeys.paused = false
+        Services.shared.hotkeys.paused = false
     }
 }

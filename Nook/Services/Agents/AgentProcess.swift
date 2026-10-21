@@ -101,6 +101,11 @@ final class AgentProcess: @unchecked Sendable {
     func cancel() {
         guard pid > 0, !finished, !cancelled else { return }
         cancelled = true
+        Self.terminateTree(pid)
+    }
+
+    static func terminateTree(_ pid: pid_t) {
+        guard pid > 0 else { return }
         kill(pid, SIGSTOP)
         kill(-pid, SIGSTOP)
         let descendants = Self.descendants(of: pid)

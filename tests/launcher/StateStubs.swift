@@ -21,6 +21,7 @@ final class LauncherApplicationIndex: ObservableObject {
     @Published var applications: [LauncherApplication] = []
     @Published var runningPaths = Set<String>()
     func start() {}
+    static func disable() {}
 }
 final class NotchController {
     let viewModel = NotchViewModel(geometry: NotchGeometry())

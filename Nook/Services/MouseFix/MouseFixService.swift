@@ -39,7 +39,8 @@ final class MouseFixService {
     func start() { reconfigure(prompt: false) }
 
     func shutdown() {
-        trustTimer?.invalidate()
+        learnTimeout?.cancel(); learnTimeout = nil
+        trustTimer?.invalidate(); trustTimer = nil
         tapThread?.stopAndWait()
         tapThread = nil
         CGAssociateMouseAndMouseCursorPosition(1) // never leave the pointer frozen

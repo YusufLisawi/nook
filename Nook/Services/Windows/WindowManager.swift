@@ -2,12 +2,18 @@ import AppKit
 import SwiftUI
 
 final class WindowManager {
-    static let shared = WindowManager()
-    var closeNotches: () -> Void = {}
+    private static var instance: WindowManager?
+    static var shared: WindowManager {
+        if let instance { return instance }
+        let value = WindowManager(); instance = value; return value
+    }
+    static func disable() { instance?.stop(); instance = nil }
+    var closeNotches: () -> Void = { Services.shared.closeNotches() }
     private var targets = WindowTargets<ManagedWindow>()
+    private var tasks: [UUID: Task<Void, Never>] = [:]
     private var running = false
     private var lastError = ""
-    private let spaces = WindowSpaces()
+    private lazy var spaces = WindowSpaces()
     private struct SavedFrame {
         let element: AXUIElement
         let original: CGRect
@@ -16,6 +22,16 @@ final class WindowManager {
     private var saved: [SavedFrame] = []
 
     private init() {}
+
+    func stop() { tasks.values.forEach { $0.cancel() }; tasks = [:]; targets = WindowTargets<ManagedWindow>(); saved.removeAll(); lastError = "" }
+
+    private func launch(_ operation: @escaping @MainActor () async -> Void) {
+        let id = UUID()
+        tasks[id] = Task { @MainActor [weak self] in
+            defer { self?.tasks.removeValue(forKey: id) }
+            await operation()
+        }
+    }
 
     func start() {
         UserDefaults.standard.register(defaults: [WindowShortcuts.almostScaleKey: 0.9])
@@ -31,13 +47,13 @@ final class WindowManager {
                     reply(nil, "Unknown window action.")
                     return
                 }
-                Task { @MainActor in
+                launch { @MainActor in
                     do {
                         let context = args.dropFirst().first as? String
                         try await self.apply(action, fromNotch: true, context: context)
                         reply(self.state(context: context), nil)
                     } catch {
-                        self.showFailure(error.localizedDescription)
+                        if !Task.isCancelled { self.showFailure(error.localizedDescription) }
                         reply(nil, error.localizedDescription)
                     }
                 }
@@ -53,7 +69,7 @@ final class WindowManager {
     /// Called synchronously before a closed notch changes tabs or takes keyboard focus.
     /// Never retarget an existing capture just because a plugin asks for state.
     func captureBeforeNotchOpen(_ notch: NotchViewModel) {
-        guard !running else { return }
+        guard Features.shared.enabled("windows"), !running else { return }
         let context = Self.context(for: notch)
         do {
             let window = try ManagedWindow.focused()
@@ -71,7 +87,7 @@ final class WindowManager {
     /// Bind the registered API to its host notch, including a lazily created web view's first state call.
     /// A pinned notch on another display must keep its own pre-open target.
     func bridgeContext(for notch: NotchViewModel?) -> String {
-        guard let notch else { return "" }
+        guard Features.shared.enabled("windows"), let notch else { return "" }
         let context = Self.context(for: notch)
         return """
         (() => {
@@ -83,11 +99,11 @@ final class WindowManager {
     }
 
     func handleShortcut(key: Int64, modifiers: CGEventFlags, from notch: NotchViewModel? = nil) -> Bool {
-        guard let action = WindowShortcuts.shared.action(key: key, modifiers: modifiers) else { return false }
+        guard Features.shared.enabled("windows"), let action = WindowShortcuts.shared.action(key: key, modifiers: modifiers) else { return false }
         let context = notch.map(Self.context)
-        Task { @MainActor in
+        launch { @MainActor in
             do { try await self.apply(action, fromNotch: context != nil, context: context) }
-            catch { self.showFailure(error.localizedDescription) }
+            catch { if !Task.isCancelled { self.showFailure(error.localizedDescription) } }
         }
         return true
     }
@@ -112,6 +128,8 @@ final class WindowManager {
 
     @MainActor
     private func apply(_ action: WindowAction, fromNotch: Bool, context: String? = nil) async throws {
+        try Task.checkCancellation()
+        guard Features.shared.enabled("windows") else { throw WindowManagementError("Window management is turned off.") }
         guard !running else { throw WindowManagementError("A window move is in progress. Try again in a moment.") }
         guard AXIsProcessTrusted() else {
             throw WindowManagementError("Allow Nook in System Settings → Privacy & Security → Accessibility.")

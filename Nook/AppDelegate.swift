@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 if let tab { notchUnderMouse()?.viewModel.toggle(tab: tab) }
             case "close": controllers.forEach { $0.viewModel.close() }
             case "reload": Services.shared.plugins.reload(); Services.shared.plugins.touch()
-            case "settings": openSettings()
+            case "settings": showSettings(pane: tab)
             case "check-updates": updater.checkForUpdates(nil)
             default: break
             }
@@ -137,15 +137,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return controllers.first { $0.viewModel.geometry.screen.frame.contains(mouse) } ?? controllers.first
     }
 
-    @objc func openSettings() {
+    @objc func openSettings() { showSettings(pane: nil) }
+
+    /// Opens (or brings back) the Settings window, optionally on a pane ("commands", "ai", …).
+    func showSettings(pane: String?) {
+        if let pane, let target = SettingsPane(rawValue: pane) { SettingsRouter.shared.pane = target }
         if settingsWindow == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(onScreensChanged: { [weak self] in self?.rebuildNotches() })))
             window.title = "Nook Settings"
-            window.styleMask = [.titled, .closable]
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+            window.toolbarStyle = .unified
+            window.titlebarSeparatorStyle = .automatic
+            window.setContentSize(NSSize(width: 820, height: 600))
             window.isReleasedWhenClosed = false
+            window.center()
             settingsWindow = window
         }
-        settingsWindow?.center()
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
     }

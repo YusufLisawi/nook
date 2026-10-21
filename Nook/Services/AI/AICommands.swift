@@ -3,22 +3,47 @@ import ApplicationServices
 
 /// Raycast-style AI Commands: saved prompts with placeholders, run from a hotkey or the notch, on the current selection.
 /// Output: replace the selection, paste after it, copy, or show in the notch.
-final class AICommands: @unchecked Sendable { // main-thread confined
-    struct Command: Codable, Identifiable {
+final class AICommands: ObservableObject, @unchecked Sendable { // main-thread confined
+    struct Command: Codable, Identifiable, Equatable {
         var id: String
         var name: String
-        var icon: String
         var prompt: String
         var provider: String // codex | groq | openai
         var model: String
         var effort: String   // none | low | medium | high
         var output: String   // replace | paste | copy | notch
+        var copyToo: Bool    // also leave the answer on the clipboard (e.g. translations)
         var hotkey: TabHotkey?
         var enabled: Bool
+
+        static func blank() -> Command {
+            Command(id: UUID().uuidString, name: "New command", prompt: "{selection}", provider: "codex", model: "gpt-6-luna",
+                    effort: "none", output: "replace", copyToo: false, hotkey: nil, enabled: true)
+        }
+
+        init(id: String, name: String, prompt: String, provider: String, model: String, effort: String,
+             output: String, copyToo: Bool, hotkey: TabHotkey?, enabled: Bool) {
+            (self.id, self.name, self.prompt, self.provider, self.model) = (id, name, prompt, provider, model)
+            (self.effort, self.output, self.copyToo, self.hotkey, self.enabled) = (effort, output, copyToo, hotkey, enabled)
+        }
+
+        init(from decoder: Decoder) throws { // tolerate files from older versions
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            name = try c.decode(String.self, forKey: .name)
+            prompt = try c.decode(String.self, forKey: .prompt)
+            provider = try c.decodeIfPresent(String.self, forKey: .provider) ?? "codex"
+            model = try c.decodeIfPresent(String.self, forKey: .model) ?? "gpt-6-luna"
+            effort = try c.decodeIfPresent(String.self, forKey: .effort) ?? "none"
+            output = try c.decodeIfPresent(String.self, forKey: .output) ?? "replace"
+            copyToo = try c.decodeIfPresent(Bool.self, forKey: .copyToo) ?? false
+            hotkey = try c.decodeIfPresent(TabHotkey.self, forKey: .hotkey)
+            enabled = try c.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+        }
     }
 
     static let pluginID = "commands"
-    private(set) var commands: [Command] = []
+    @Published private(set) var commands: [Command] = []
     private var lastRun: [String: Any]?
     private var running: Task<Void, Never>?
     private var recordMonitor: Any?
@@ -29,9 +54,12 @@ final class AICommands: @unchecked Sendable { // main-thread confined
     private var fileURL: URL { Services.supportDir.appendingPathComponent("ai-commands.json") }
 
     init() {
-        if let data = try? Data(contentsOf: fileURL), let list = try? JSONDecoder().decode([Command].self, from: data) {
+        // v2 starter set (Rewrite, Spanish translator, Explain & Translate) replaces the first, larger one once.
+        let seeded = UserDefaults.standard.integer(forKey: "aiCommandsSeed") >= 2
+        if seeded, let data = try? Data(contentsOf: fileURL), let list = try? JSONDecoder().decode([Command].self, from: data) {
             commands = list
         } else {
+            UserDefaults.standard.set(2, forKey: "aiCommandsSeed")
             commands = Self.defaults
             save()
         }
@@ -81,8 +109,8 @@ final class AICommands: @unchecked Sendable { // main-thread confined
                 }
                 guard !Task.isCancelled else { return }
                 switch command.output {
-                case "replace": SelectionGrabber.paste(text)
-                case "paste": SelectionGrabber.paste(text, after: true)
+                case "replace": SelectionGrabber.paste(text, keepOnClipboard: command.copyToo)
+                case "paste": SelectionGrabber.paste(text, after: true, keepOnClipboard: command.copyToo)
                 case "copy":
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
@@ -96,7 +124,7 @@ final class AICommands: @unchecked Sendable { // main-thread confined
     }
 
     private func publish(_ runID: String, _ c: Command, status: String, text: String, error: String?, selection: String) {
-        let run: [String: Any] = ["runId": runID, "commandId": c.id, "name": c.name, "icon": c.icon, "status": status,
+        let run: [String: Any] = ["runId": runID, "commandId": c.id, "name": c.name, "status": status,
                                   "text": text, "error": error ?? NSNull(), "output": c.output, "selection": selection]
         lastRun = run
         PluginEvents.emit("commandRun", run, to: Self.pluginID)
@@ -108,6 +136,7 @@ final class AICommands: @unchecked Sendable { // main-thread confined
         let note: (String, String, String)? = switch (status, c.output) {
         case ("error", _): ("Failed", "exclamationmark.triangle.fill", "#ff453a")
         case (_, "copy"): ("Copied", "checkmark.circle.fill", "#30d158")
+        case (_, _) where c.copyToo: ("Done · copied", "checkmark.circle.fill", "#30d158")
         default: nil
         }
         if status == "error", c.output != "notch" { openTab(Self.pluginID) } // show why it failed
@@ -137,13 +166,8 @@ final class AICommands: @unchecked Sendable { // main-thread confined
         let id = args.first as? String ?? ""
         switch fn {
         case "list": reply(payload(), nil)
-        case "save":
-            guard let dict = args.first as? [String: Any] else { return reply(nil, "Missing command") }
-            upsert(dict)
-            reply(payload(), nil)
         case "remove":
-            commands.removeAll { $0.id == id }
-            save()
+            remove(id)
             reply(payload(), nil)
         case "run":
             run(id, fromNotch: true)
@@ -160,28 +184,50 @@ final class AICommands: @unchecked Sendable { // main-thread confined
 
     private func payload() -> [[String: Any]] {
         commands.map {
-            ["id": $0.id, "name": $0.name, "icon": $0.icon, "prompt": $0.prompt, "provider": $0.provider, "model": $0.model,
-             "effort": $0.effort, "output": $0.output, "enabled": $0.enabled,
+            ["id": $0.id, "name": $0.name, "prompt": $0.prompt, "provider": $0.provider, "model": $0.model,
+             "effort": $0.effort, "output": $0.output, "copyToo": $0.copyToo, "enabled": $0.enabled,
              "hotkey": $0.hotkey.map { ["display": $0.display] } ?? NSNull()]
         }
     }
 
-    private func upsert(_ d: [String: Any]) {
-        let id = (d["id"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? UUID().uuidString
-        let existing = commands.first { $0.id == id }
-        let command = Command(
-            id: id,
-            name: (d["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Untitled command",
-            icon: (d["icon"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "✨",
-            prompt: d["prompt"] as? String ?? "",
-            provider: d["provider"] as? String ?? "codex",
-            model: d["model"] as? String ?? "gpt-6-luna",
-            effort: d["effort"] as? String ?? "low",
-            output: d["output"] as? String ?? "replace",
-            hotkey: existing?.hotkey, // hotkeys change only through recordHotkey / clearHotkey
-            enabled: d["enabled"] as? Bool ?? true
-        )
-        if let i = commands.firstIndex(where: { $0.id == id }) { commands[i] = command } else { commands.append(command) }
+    // MARK: Editing (Settings → AI Commands)
+
+    func add() -> Command {
+        let command = Command.blank()
+        commands.append(command)
+        save()
+        return command
+    }
+
+    func update(_ command: Command) {
+        guard let i = commands.firstIndex(where: { $0.id == command.id }), commands[i] != command else { return }
+        commands[i] = command
+        save()
+    }
+
+    func duplicate(_ id: String) -> Command? {
+        guard var copy = commands.first(where: { $0.id == id }) else { return nil }
+        copy.id = UUID().uuidString
+        copy.name += " copy"
+        copy.hotkey = nil
+        commands.append(copy)
+        save()
+        return copy
+    }
+
+    func remove(_ id: String) {
+        commands.removeAll { $0.id == id }
+        save()
+    }
+
+    func move(from source: IndexSet, to destination: Int) {
+        commands.move(fromOffsets: source, toOffset: destination)
+        save()
+    }
+
+    func setHotkey(_ id: String, _ hotkey: TabHotkey?) {
+        guard let i = commands.firstIndex(where: { $0.id == id }) else { return }
+        commands[i].hotkey = hotkey
         save()
     }
 
@@ -218,20 +264,62 @@ final class AICommands: @unchecked Sendable { // main-thread confined
     // MARK: Starter set (like Raycast's built-ins)
 
     static let defaults: [Command] = {
-        func c(_ name: String, _ icon: String, _ output: String, _ prompt: String) -> Command {
-            Command(id: UUID().uuidString, name: name, icon: icon, prompt: prompt, provider: "codex", model: "gpt-6-luna",
-                    effort: "low", output: output, hotkey: nil, enabled: true)
+        func c(_ name: String, _ output: String, copyToo: Bool = false, _ prompt: String) -> Command {
+            Command(id: UUID().uuidString, name: name, prompt: prompt, provider: "codex", model: "gpt-6-luna",
+                    effort: "none", output: output, copyToo: copyToo, hotkey: nil, enabled: true)
         }
         return [
-            c("Fix Spelling and Grammar", "✍️", "replace", "Fix the spelling and grammar of the text below. Keep the language, tone, formatting and meaning. Return only the corrected text.\n\n{selection}"),
-            c("Improve Writing", "🪄", "replace", "Improve the writing of the text below: clearer, tighter, same meaning and language. Return only the improved text.\n\n{selection}"),
-            c("Change Tone to Professional", "💼", "replace", "Rewrite the text below in a professional, polite tone. Same language and meaning. Return only the rewritten text.\n\n{selection}"),
-            c("Change Tone to Friendly", "😊", "replace", "Rewrite the text below in a warm, friendly tone. Same language and meaning. Return only the rewritten text.\n\n{selection}"),
-            c("Spanish Translator", "🇪🇸", "replace", "Translate the text below to natural Spanish (Spain). Return only the translation, no quotes.\n\n{selection}"),
-            c("Translate to English", "🇬🇧", "replace", "Translate the text below to natural English. Return only the translation, no quotes.\n\n{selection}"),
-            c("Explain This Simply", "💡", "notch", "Explain the following in simple terms, in a few short sentences:\n\n{selection}"),
-            c("Summarize", "📝", "notch", "Summarize the following in 3–5 short bullet points:\n\n{selection}"),
-            c("Find Bugs in Code", "🐞", "notch", "Find bugs and risky spots in this code. Be brief: list each issue with a one-line fix.\n\n{selection}"),
+            c("Rewrite", "replace", """
+            Act as a spelling corrector, content writer, and text improver/editor. Reply only with the rewritten text and nothing else. your job is to understand what i try to mean and simplify it and make it actually well
+
+            Strictly follow these rules:
+            - Correct spelling, grammar, and punctuation errors in the given text
+            - Enhance clarity and conciseness without altering the original meaning
+            - Divide lengthy sentences into shorter, more readable ones
+            - Eliminate unnecessary repetition while preserving important points
+            - Prioritize active voice over passive voice for a more engaging tone
+            - Opt for simpler, more accessible vocabulary when possible
+            - ALWAYS ensure the original meaning and intention of the given text
+            - ALWAYS detect and maintain the original language of the given text
+            - ALWAYS maintain the existing tone of voice and style, e.g. formal, casual, polite, etc.
+            - NEVER surround the improved text with quotes or any additional formatting
+            - If the text is already well-written and requires no improvement, don't change the given text
+
+            Text to improve:
+            {selection}
+
+            Improved text:
+            """),
+            c("Spanish translator", "replace", copyToo: true, """
+            You are a spanish native speaker of castilian, your job is to translate english to castilian and vice versa,
+            I will send messages in English, and you simply reply with the exact same message translated to castilian.
+            Make sure to keep the same tone of voice of the initial message. Translations dont need to be literal, so try to make them sound as native as possible.
+            For example, if I say:
+            "Hi! My name is Pedro."
+            You reply:
+            "Hola! Me llamo Pedro"
+            Or, if I say:
+            "Don't worry about it"
+            You reply:
+            "No pasa nada"
+            # Response instructions:
+            return only the translated text, without any other text, just the translation, no dots in the end, do not think about it
+
+            the following:
+            {selection}
+            """),
+            c("Explain & Translate", "notch", """
+            Explain the text below so I fully understand it, then translate it.
+
+            Rules:
+            - Detect its language. If it is English, translate it to Spanish (Castilian); otherwise translate it to English.
+            - First a short, plain explanation (2–4 sentences) of what it means and any nuance, idiom or tone worth knowing.
+            - Then a line "Translation:" followed by a natural, native-sounding translation that keeps the tone.
+            - No preamble, no quotes around the text.
+
+            Text:
+            {selection}
+            """),
         ]
     }()
 }
@@ -267,7 +355,7 @@ enum SelectionGrabber {
     }
 
     /// Put text in the frontmost app by pasting, then restore the user's clipboard.
-    static func paste(_ text: String, after: Bool = false) {
+    static func paste(_ text: String, after: Bool = false, keepOnClipboard: Bool = false) {
         let board = NSPasteboard.general
         let saved = snapshot(board)
         LinkCatcher.ignoreClipboardUntil = Date().addingTimeInterval(1.5)
@@ -278,7 +366,15 @@ enum SelectionGrabber {
         board.writeObjects([item])
         if after { press(key: 124, flags: []) } // → collapses the selection to its end
         press(key: 9, flags: .maskCommand) // ⌘V
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { restore(board, saved) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            if keepOnClipboard { // leave the answer (not the "\n\n"-prefixed paste) as a normal clipboard item
+                LinkCatcher.ignoreClipboardUntil = Date().addingTimeInterval(1.5)
+                board.clearContents()
+                board.setString(text, forType: .string)
+            } else {
+                restore(board, saved)
+            }
+        }
     }
 
     private static func press(key: CGKeyCode, flags: CGEventFlags) {

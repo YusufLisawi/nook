@@ -1,116 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Commands</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
-    <symbol id="i-wand" viewBox="0 0 20 20"><path d="m3 17 10-10 3 3L6 20M10 10l3 3M5 2v4M3 4h4M15 1v4M13 3h4M17 14v4M15 16h4" transform="translate(0 -1)"/></symbol>
-    <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></symbol>
-    <symbol id="i-edit" viewBox="0 0 20 20"><path d="m12 4 4 4M3 17l1-5L13 3a2.1 2.1 0 0 1 3 3l-9 9-4 2Z"/></symbol>
-    <symbol id="i-back" viewBox="0 0 20 20"><path d="m8 4-6 6 6 6M3 10h14"/></symbol>
-    <symbol id="i-copy" viewBox="0 0 20 20"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/></symbol>
-    <symbol id="i-retry" viewBox="0 0 20 20"><path d="M4 8a6 6 0 1 1 1 6M4 3v5h5"/></symbol>
-    <symbol id="i-close" viewBox="0 0 20 20"><path d="m5 5 10 10M15 5 5 15"/></symbol>
-    <symbol id="i-search" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></symbol>
-  </defs></svg>
-  <main id="app" class="nk-root">
-    <section id="deck" class="workspace-view nk-col nk-fill" aria-label="Commands">
-      <header class="toolbar nk-row-flex">
-        <input id="search" class="nk-input nk-fill" type="search" placeholder="Search commands" aria-label="Search commands by name" autocomplete="off" spellcheck="false">
-        <button id="new-command" class="nk-btn nk-primary" type="button" title="New command (⌘N)"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>New</button>
-      </header>
-      <div id="deck-error" class="nk-error" role="alert" hidden>
-        <span id="deck-error-text" class="nk-fill"></span>
-        <button id="deck-retry" class="nk-btn nk-ghost" type="button">Retry</button>
-        <button id="deck-dismiss" class="nk-icon-btn" type="button" aria-label="Dismiss error"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+  <main class="nk-root">
+    <div id="connect" class="connect nk-card nk-tint-accent" hidden>
+      <div class="nk-fill">
+        <div class="nk-title">Connect your ChatGPT subscription</div>
+        <div class="nk-small nk-muted">AI Commands run through your Codex login — no API key.</div>
       </div>
-      <div id="deck-loading" class="nk-empty" role="status"><span class="nk-spinner" aria-hidden="true"></span><span>Loading commands…</span></div>
-      <div id="deck-empty" class="nk-empty" hidden>
-        <svg class="icon" aria-hidden="true"><use id="empty-icon" href="#i-wand"/></svg>
-        <b id="empty-title">No commands yet</b>
-        <span id="empty-hint">Create a command for the things you write every day.</span>
-        <button id="empty-action" class="nk-btn nk-ghost" type="button">Create command</button>
-      </div>
-      <div id="command-grid" class="command-grid nk-grid-4 nk-scroll nk-fill" role="list" aria-label="AI commands" hidden></div>
-    </section>
+      <button id="setup" class="nk-btn nk-primary">Set up</button>
+    </div>
 
-    <form id="editor" class="workspace-view nk-col nk-fill" aria-labelledby="editor-title" novalidate hidden>
-      <header class="editor-header nk-row-flex">
-        <button id="editor-back" class="nk-icon-btn" type="button" aria-label="Back to commands"><svg class="icon" aria-hidden="true"><use href="#i-back"/></svg></button>
-        <span id="editor-title" class="nk-title nk-fill">New command</span>
-        <span class="nk-small nk-muted">⌘↵ to save</span>
-      </header>
-      <fieldset id="editor-fields" class="editor-columns nk-fill">
-        <legend class="visually-hidden">Command settings</legend>
-        <div class="prompt-pane nk-card nk-col nk-scroll">
-          <div id="editor-error" class="nk-error" role="alert" hidden></div>
-          <div id="models-error" class="nk-error" role="alert" hidden><span id="models-error-text" class="nk-fill"></span><button id="models-retry" class="nk-btn nk-ghost" type="button">Retry</button></div>
-          <label class="nk-label" for="command-prompt">Prompt</label>
-          <textarea id="command-prompt" class="nk-textarea nk-scroll" placeholder="Rewrite this clearly and concisely. Keep the original meaning.&#10;&#10;{selection}" spellcheck="false" aria-describedby="prompt-help" required></textarea>
-          <div id="insert-tokens" class="insert-tokens nk-row-flex" role="group" aria-label="Insert a placeholder">
-            <button class="nk-btn nk-ghost" type="button" data-token="{selection}">{selection}</button>
-            <button class="nk-btn nk-ghost" type="button" data-token="{clipboard}">{clipboard}</button>
-            <button class="nk-btn nk-ghost" type="button" data-token="{app}">{app}</button>
-            <button class="nk-btn nk-ghost" type="button" data-token="{date}">{date}</button>
-            <button class="nk-btn nk-ghost" type="button" data-token="{time}">{time}</button>
-          </div>
-          <p id="prompt-help" class="nk-small nk-muted">Use <code>{selection}</code> for selected text or <code>{clipboard}</code> for copied text. <code>{app}</code>, <code>{date}</code> and <code>{time}</code> add context when you run.</p>
-          <p id="hotkey-hint" class="nk-small nk-muted">Save to add a hotkey.</p>
-        </div>
-        <div class="details-pane">
-          <div class="field-row name-row">
-            <label for="command-name" class="nk-small nk-muted">Name</label>
-            <div class="name-controls nk-row-flex">
-              <button id="command-icon" class="nk-btn emoji-button" type="button" aria-label="Choose command icon" aria-haspopup="dialog" aria-expanded="false" aria-controls="emoji-picker">✨</button>
-              <input id="command-name" class="nk-input nk-fill" placeholder="Fix writing" autocomplete="off" required>
-            </div>
-            <div id="emoji-picker" class="emoji-picker nk-card nk-tight" role="dialog" aria-label="Choose an icon" hidden></div>
-          </div>
-          <div class="provider-field">
-            <div class="field-row"><label for="command-provider" class="nk-small nk-muted">Provider</label><select id="command-provider" class="nk-input" aria-describedby="provider-note"></select></div>
-            <p id="provider-note" class="nk-muted nk-ellipsis" hidden></p>
-          </div>
-          <div class="field-row"><label for="command-model" class="nk-small nk-muted">Model</label><select id="command-model" class="nk-input"></select></div>
-          <div class="field-row"><label for="command-effort" class="nk-small nk-muted">Effort</label><select id="command-effort" class="nk-input" aria-label="Reasoning effort"><option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
-          <div class="field-row"><label for="command-output" class="nk-small nk-muted">Output</label><select id="command-output" class="nk-input" aria-label="Output behavior"><option value="replace">Replace selection</option><option value="paste">Paste after selection</option><option value="copy">Copy to clipboard</option><option value="notch">Show in notch</option></select></div>
-          <div class="field-row"><span id="hotkey-label" class="nk-small nk-muted">Hotkey</span><div class="hotkey-controls nk-row-flex"><button id="record-hotkey" class="nk-btn nk-fill" type="button" aria-describedby="hotkey-hint">Record hotkey</button><button id="clear-hotkey" class="nk-icon-btn" type="button" aria-label="Clear hotkey" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div></div>
-          <div class="field-row"><label id="enabled-label" for="command-enabled" class="nk-small nk-muted">Enabled</label><label class="nk-switch"><input id="command-enabled" type="checkbox" role="switch" aria-labelledby="enabled-label" checked><span></span></label></div>
-        </div>
-      </fieldset>
-      <footer class="editor-footer nk-row-flex">
-        <button id="delete-command" class="nk-btn nk-danger" type="button" hidden>Delete</button>
-        <div id="delete-confirm" class="nk-row-flex" role="group" aria-label="Confirm deletion" hidden><span class="nk-small nk-muted">Delete?</span><button id="confirm-delete" class="nk-btn nk-danger" type="button">Delete</button><button id="keep-command" class="nk-btn nk-ghost" type="button">Keep</button></div>
-        <button id="duplicate-command" class="nk-btn nk-ghost" type="button">Duplicate</button>
-        <span class="nk-fill"></span>
-        <button id="cancel-editor" class="nk-btn nk-ghost" type="button">Cancel</button>
-        <button id="save-command" class="nk-btn nk-primary" type="submit">Save</button>
-      </footer>
-    </form>
+    <section id="deck" class="deck nk-fill"></section>
+    <div id="empty" class="nk-empty" hidden><b>No commands yet</b><span>Create them in Settings → AI Commands.</span></div>
+    <div id="error" class="nk-error" hidden></div>
 
-    <section id="result" class="result-panel nk-card nk-col" role="dialog" aria-modal="true" aria-labelledby="result-name" hidden>
-      <header class="result-header nk-row-flex">
-        <span id="result-icon" class="emoji-tile" aria-hidden="true">✨</span>
-        <span id="result-name" class="nk-title nk-fill nk-ellipsis"></span>
-        <span id="result-status" class="nk-pill" role="status"><span id="result-spinner" class="nk-spinner" aria-hidden="true"></span><span id="result-status-text">Running…</span></span>
+    <footer class="foot">
+      <span id="hint" class="nk-small nk-muted">Select text in any app, then pick a command.</span>
+      <button id="edit" class="nk-btn nk-ghost">Edit in Settings</button>
+    </footer>
+
+    <section id="result" class="result nk-card" hidden>
+      <header class="nk-row-flex">
+        <span id="r-name" class="nk-title nk-ellipsis nk-fill"></span>
+        <span id="r-status" class="nk-pill"></span>
       </header>
-      <div id="result-body" class="result-body nk-col nk-scroll nk-fill" tabindex="0" aria-label="Command response">
-        <div id="run-error" class="nk-error" role="alert" hidden></div>
-        <div id="result-action-error" class="nk-error" role="alert" hidden></div>
-        <div id="result-empty" class="nk-empty"><b id="result-empty-title">Working on it</b><span id="result-empty-hint">The response will appear here.</span></div>
-        <pre id="result-text" hidden></pre>
-      </div>
-      <footer class="result-footer nk-row-flex">
-        <button id="copy-result" class="nk-btn" type="button"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span id="copy-label">Copy</span></button>
-        <button id="retry-result" class="nk-btn nk-ghost" type="button"><svg class="icon" aria-hidden="true"><use href="#i-retry"/></svg>Retry</button>
+      <div id="r-text" class="r-text nk-scroll nk-fill"></div>
+      <footer class="nk-row-flex">
+        <button id="r-copy" class="nk-btn">Copy</button>
+        <button id="r-retry" class="nk-btn nk-ghost">Retry</button>
         <span class="nk-fill"></span>
-        <button id="close-result" class="nk-btn" type="button">Close</button>
+        <button id="r-close" class="nk-btn">Close</button>
       </footer>
     </section>
-    <span id="announcement" class="visually-hidden" role="status" aria-live="polite"></span>
   </main>
   <script src="main.js"></script>
 </body>

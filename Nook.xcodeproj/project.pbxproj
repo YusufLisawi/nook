@@ -11,6 +11,7 @@
 		069A1C7A36B1F5ADBDB89BE9 /* AIBrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134231D8AC8BB99035F80039 /* AIBrain.swift */; };
 		090E3A91C0607295B1B6509A /* skill in Resources */ = {isa = PBXBuildFile; fileRef = 251F2F98844B8FDBF322E6BB /* skill */; };
 		1830C87670856F04FDE26E8B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8A708EC61760010B0EA91A3 /* main.swift */; };
+		2C07176FCE68482897504420 /* CodexLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C0E1700B97B0BE8C00E4E /* CodexLink.swift */; };
 		2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44481D567E5664A614F2BDF9 /* MicRecorder.swift */; };
 		318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E3F23227270422F28E8EA8 /* SettingsView.swift */; };
 		31C2915681CE1780B2E4A3F3 /* Groq.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD88336361791E70385D715 /* Groq.swift */; };
@@ -92,6 +93,7 @@
 		3DB8B9DC39F1086191974395 /* TabHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabHotkeys.swift; sourceTree = "<group>"; };
 		3FC775FBE2FA5D57184584DC /* Nook.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Nook.entitlements; sourceTree = "<group>"; };
 		44481D567E5664A614F2BDF9 /* MicRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicRecorder.swift; sourceTree = "<group>"; };
+		465C0E1700B97B0BE8C00E4E /* CodexLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexLink.swift; sourceTree = "<group>"; };
 		49066C920CB9F7805A9F9470 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = SOURCE_ROOT; };
 		511F04655A88E65837A89A02 /* Plugins */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Plugins; sourceTree = SOURCE_ROOT; };
 		562FB94566365EE9D32B99E1 /* NotchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchPanel.swift; sourceTree = "<group>"; };
@@ -224,6 +226,7 @@
 			children = (
 				134231D8AC8BB99035F80039 /* AIBrain.swift */,
 				E24A1E3AF6C9284DE85E0A58 /* AICommands.swift */,
+				465C0E1700B97B0BE8C00E4E /* CodexLink.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -362,6 +365,7 @@
 				BDAFB897FCB7818B5EF0830C /* AICommands.swift in Sources */,
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
 				369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */,
+				2C07176FCE68482897504420 /* CodexLink.swift in Sources */,
 				9693847AED3AC165044B60F9 /* Components.swift in Sources */,
 				E82A80C9FB14C86FF5CBF284 /* DictationService.swift in Sources */,
 				864E1DCD0564607BE5F16D0C /* DictationShortcut.swift in Sources */,

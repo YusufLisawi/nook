@@ -218,3 +218,25 @@ estimate covers the standard `~/Library/Caches/Homebrew` root, not a custom `HOM
   to all mounted volumes and may need Automation permission. Dark Mode uses System Events and may also need
   Automation permission. Lock Screen sends macOS's ⌃⌘Q shortcut through the existing Accessibility capability.
   These system operations are never part of indexing or automated tests. Quit follows Nook's normal shutdown path.
+
+## Mouse controls
+
+The bundled Mouse plugin uses the native `nook.mouse` engine for discrete wheel smoothing, reverse/speed/acceleration,
+scroll modifiers and extra-button click/hold/drag remapping. It is off by default; enabling or learning requires
+Accessibility. Left/right clicks are never remapped. Continuous trackpad/Magic Mouse scrolling passes through.
+Settings are global rather than per device/app; a nonstandard device reporting discrete wheel events may be affected.
+The optional wheel chatter filter defaults off because a fast direction change can be intentional.
+
+Tap-creation failures appear inline and retry every two seconds while enabled/learning; permission changes recover
+automatically when macOS permits. Disabling or finishing learning retains only outstanding swallowed releases,
+then tears down the tap. Overlapping button gestures keep release ownership for every button, with the latest gesture
+owning the action. Mouse-generated keys bypass Nook shortcuts and dictation state. App Nap is suppressed only during
+scroll animation. System permission revocation, process termination, or a hardware disconnect can interrupt physical
+input delivery; macOS/device behavior still needs hands-on verification. Mission Control, Spaces and other key actions
+follow macOS shortcuts and target-app support. No per-device detection, custom key recorder or per-app rules are added.
+Mouse is a regular plugin and uses the existing 12-item dock cap and customization rules.
+
+Notch content attaches immediately for keyboard entry independently of the delayed hover fade. Native initial focus
+waits for attachment and early typing is replayed after focus is ready; closing cancels pending focus/reveal work.
+The launcher's header crossfade/spring and instant resizing while typing are retained. Visual ghosting, actual first-key
+focus, and permission toggles require a manual check in a single running Nook instance; automated tests never launch it.

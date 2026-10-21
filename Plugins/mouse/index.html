@@ -12,16 +12,16 @@
 
   <main class="nk-root">
     <header class="nk-row-flex">
-      <label class="nk-switch" title="Turn the mouse fixes on or off"><input id="enabled" type="checkbox"><span></span></label>
-      <span id="status" class="nk-pill"><i class="nk-dot"></i><span></span></span>
+      <label class="nk-switch" title="Turn the mouse fixes on or off"><input id="enabled" type="checkbox" aria-label="Enable mouse controls" data-nk-autofocus disabled><span></span></label>
+      <span id="status" class="nk-pill" role="status"><i class="nk-dot"></i><span>Loading…</span></span>
       <span class="nk-fill"></span>
-      <div class="nk-seg" id="view">
-        <button data-view="scroll" class="nk-on">Scroll</button>
-        <button data-view="buttons">Buttons</button>
+      <div class="nk-seg nk-roving" id="view" data-nk-orientation="horizontal" aria-label="Mouse controls">
+        <button data-view="scroll" data-nk-item="scroll" class="nk-on">Scroll</button>
+        <button data-view="buttons" data-nk-item="buttons">Buttons</button>
       </div>
     </header>
 
-    <div id="error" class="nk-error" hidden></div>
+    <div id="error" class="nk-error" role="alert" hidden></div>
 
     <section id="scroll" class="nk-card nk-fill nk-scroll form"><span class="nk-spinner"></span></section>
 
@@ -29,7 +29,7 @@
       <div id="rules" class="nk-list nk-scroll nk-fill"></div>
       <div class="nk-row-flex">
         <span id="learnHint" class="nk-small nk-muted nk-fill"></span>
-        <button id="learn" class="nk-btn nk-primary">Add a button</button>
+        <button id="learn" class="nk-btn nk-primary" disabled>Add a button</button>
       </div>
     </section>
   </main>

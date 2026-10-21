@@ -40,6 +40,7 @@ final class Services: ObservableObject {
         proxy.restoreOnLaunch()
         dictation.start()
         audio.start()
+        mouse.registerBridge()
         mouse.start()
         links.start()
     }

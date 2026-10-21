@@ -10,6 +10,7 @@ struct MouseConfig: Codable, Equatable {
     var speed = 1.0 // 0.3 … 3, × the base distance of one wheel tick
     var acceleration = 0.5 // 0 … 1, how much a fast spin speeds scrolling up
     var reverse = false
+    var filterChatter = false // opt in only for wheels that bounce on direction changes
     var horizontalModifier = "shift" // hold to scroll sideways
     var preciseModifier = "none" // hold to scroll slowly
     var quickModifier = "none" // hold to scroll fast
@@ -43,6 +44,7 @@ struct MouseConfig: Codable, Equatable {
         speed = try c.decodeIfPresent(Double.self, forKey: .speed) ?? d.speed
         acceleration = try c.decodeIfPresent(Double.self, forKey: .acceleration) ?? d.acceleration
         reverse = try c.decodeIfPresent(Bool.self, forKey: .reverse) ?? d.reverse
+        filterChatter = try c.decodeIfPresent(Bool.self, forKey: .filterChatter) ?? d.filterChatter
         horizontalModifier = try c.decodeIfPresent(String.self, forKey: .horizontalModifier) ?? d.horizontalModifier
         preciseModifier = try c.decodeIfPresent(String.self, forKey: .preciseModifier) ?? d.preciseModifier
         quickModifier = try c.decodeIfPresent(String.self, forKey: .quickModifier) ?? d.quickModifier

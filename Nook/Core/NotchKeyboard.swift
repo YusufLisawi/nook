@@ -94,6 +94,7 @@ final class NotchKeyboardController {
         self.vm = vm
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel, self.vm?.isOpen == true else { return event }
+            if let input = event.cgEvent, NookSyntheticInput.isMouseEvent(input) { return event }
             if self.handle(event) { return nil }
             if self.focusPending {
                 self.bufferedKeys.append(event)

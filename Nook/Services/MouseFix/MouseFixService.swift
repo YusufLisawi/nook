@@ -4,15 +4,16 @@ import AppKit
 ///
 /// One active event tap (needs Accessibility) runs on its own thread, so scrolling stays smooth even while the
 /// notch UI is busy. It only handles wheel clicks and the extra buttons (middle, back, forward…): left/right
-/// clicks and pointer movement are never touched. The tap only exists while the feature is on.
+/// clicks and pointer movement are never touched. The tap drains outstanding releases before stopping.
 final class MouseFixService {
     /// Stamped on events we post so our own tap lets them through.
-    static let marker: Int64 = 0x4E4F_4F4B
+    static let marker = NookSyntheticInput.mouseMarker
 
     private let lock = NSLock()
     private var _config = MouseConfig.load()
     private var _learning = false
     private var _running = false
+    private var _error: String?
 
     private var tapThread: TapThread?
     private var trustTimer: Timer?
@@ -25,7 +26,13 @@ final class MouseFixService {
 
     fileprivate var learning: Bool { lock.withLock { _learning } }
     private var isRunning: Bool { lock.withLock { _running } }
-    fileprivate func setRunning(_ on: Bool) { lock.withLock { _running = on } }
+    fileprivate func report(running: Bool, error: String? = nil) {
+        lock.withLock { _running = running; _error = error }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            PluginEvents.emit("mouse", self.state(), to: "mouse")
+        }
+    }
 
     // MARK: Lifecycle
 
@@ -38,27 +45,31 @@ final class MouseFixService {
         CGAssociateMouseAndMouseCursorPosition(1) // never leave the pointer frozen
     }
 
-    /// Start or stop the tap to match the settings.
+    /// Keep a live tap until every swallowed physical button has released. Permission and tap
+    /// failures are retried while wanted, including permission revocation after successful startup.
     private func reconfigure(prompt: Bool) {
         let wanted = config.enabled || learning
         if !wanted {
-            tapThread?.stopAndWait()
-            tapThread = nil
+            tapThread?.setWanted(false)
             trustTimer?.invalidate()
+            trustTimer = nil
             return
         }
-        if let thread = tapThread, !thread.isFinished { return } // a thread that failed to start its tap doesn't count
+        if trustTimer == nil {
+            trustTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+                self?.reconfigure(prompt: false)
+            }
+        }
         guard AXIsProcessTrusted() else {
+            tapThread?.setWanted(false)
+            report(running: false, error: "Allow Nook in Accessibility to use mouse controls.")
             if prompt {
                 AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
             }
-            // Wait for the user to tick Nook in System Settings → Accessibility.
-            trustTimer?.invalidate()
-            trustTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] timer in
-                guard AXIsProcessTrusted() else { return }
-                timer.invalidate()
-                self?.reconfigure(prompt: false)
-            }
+            return
+        }
+        if let thread = tapThread, !thread.isFinished {
+            thread.setWanted(true)
             return
         }
         let thread = TapThread(service: self)
@@ -123,6 +134,7 @@ final class MouseFixService {
             "config": config.json,
             "trusted": AXIsProcessTrusted(),
             "running": isRunning,
+            "error": lock.withLock { _error } as Any? ?? NSNull(),
             "learning": learning,
             "actions": MouseActions.all.map { ["id": $0.id, "label": $0.label] },
         ]
@@ -156,7 +168,7 @@ private final class TapThread: Thread {
     private var holdFired = false
     private var dragFired = false
     private var travelled = CGPoint.zero
-    private var swallowUp: Int64? // a button whose press we swallowed but whose release hasn't come yet
+    private var balance = MouseButtonBalance()
     private var frozen = false // we detached the pointer from the mouse and must give it back
 
     private static let holdDelay = 0.4
@@ -168,6 +180,30 @@ private final class TapThread: Thread {
         super.init()
         name = "nook.mouse"
         qualityOfService = .userInteractive
+    }
+
+    /// Draining cancels actions and scrolling, but retains the tap to consume owed releases.
+    func setWanted(_ wanted: Bool) {
+        guard let runLoop else { return } // startup reads the current service state before running
+        CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes.rawValue) { [weak self] in
+            guard let self else { return }
+            let wasDraining = balance.draining
+            balance.setWanted(wanted)
+            if wanted, let tap {
+                guard CFMachPortIsValid(tap) else {
+                    CFRunLoopStop(CFRunLoopGetCurrent())
+                    return
+                }
+                CGEvent.tapEnable(tap: tap, enable: true)
+                if wasDraining { service.report(running: true) }
+            }
+            if !wanted {
+                endGesture()
+                scroller.cancelScroll()
+            }
+            if balance.canStop { CFRunLoopStop(CFRunLoopGetCurrent()) }
+        }
+        CFRunLoopWakeUp(runLoop)
     }
 
     func stopAndWait() {
@@ -192,23 +228,21 @@ private final class TapThread: Thread {
         guard let tap = CGEvent.tapCreate(tap: .cghidEventTap, place: .headInsertEventTap, options: .defaultTap,
                                           eventsOfInterest: mask, callback: callback,
                                           userInfo: Unmanaged.passUnretained(self).toOpaque())
-        else { return }
+        else {
+            service.report(running: false, error: "Couldn't start the mouse event tap. Check Accessibility; Nook will retry automatically.")
+            return
+        }
         self.tap = tap
         let source = CFMachPortCreateRunLoopSource(nil, tap, 0)
         runLoop = CFRunLoopGetCurrent()
         CFRunLoopAddSource(runLoop, source, .commonModes)
         scroller.start()
         CGEvent.tapEnable(tap: tap, enable: true)
-        service.setRunning(true)
-        DispatchQueue.main.async { PluginEvents.emit("mouse", ["running": true], to: "mouse") }
-        // Without a window the system may throttle us (App Nap), which makes smoothing stutter.
-        let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep, reason: "Mouse smoothing")
+        service.report(running: true)
+        balance.setWanted(service.config.enabled || service.learning)
+        if !isCancelled && !balance.canStop { CFRunLoopRun() }
 
-        if !isCancelled { CFRunLoopRun() }
-
-        ProcessInfo.processInfo.endActivity(activity)
-
-        service.setRunning(false)
+        service.report(running: false)
         endGesture()
         scroller.stop()
         CGEvent.tapEnable(tap: tap, enable: false)
@@ -227,35 +261,45 @@ private final class TapThread: Thread {
         }
         if event.getIntegerValueField(.eventSourceUserData) == MouseFixService.marker { return pass } // ours
         let config = service.config
+        let wanted = config.enabled || service.learning
+        // Observe settings here too: a release may beat the queued reconfiguration block.
+        if !wanted, !balance.draining {
+            balance.setWanted(false)
+            endGesture()
+            scroller.cancelScroll()
+        }
 
         switch type {
         case .scrollWheel:
-            return config.enabled ? scroller.handle(event) : pass
+            return config.enabled && !balance.draining ? scroller.handle(event) : pass
 
         case .otherMouseDown:
             let button = event.getIntegerValueField(.mouseEventButtonNumber)
-            if service.learning {
-                swallowUp = button
+            // A repeat cannot turn a suppressed press into a visible one while draining.
+            if balance.suppressed.contains(button) { return nil }
+            guard !balance.draining else { return pass }
+            if service.learning, balance.suppress(button) {
                 service.learned(button: button)
                 return nil
             }
-            guard config.enabled, let rule = config.buttons[String(button)], rule.isActive else { return pass }
+            guard config.enabled, let rule = config.buttons[String(button)], rule.isActive,
+                  balance.suppress(button) else { return pass }
             begin(button: button, rule: rule)
             return nil
 
         case .otherMouseDragged:
-            guard let active, event.getIntegerValueField(.mouseEventButtonNumber) == active else { return pass }
-            drag(dx: event.getDoubleValueField(.mouseEventDeltaX), dy: event.getDoubleValueField(.mouseEventDeltaY))
+            let button = event.getIntegerValueField(.mouseEventButtonNumber)
+            guard balance.suppressed.contains(button) else { return pass }
+            if button == active {
+                drag(dx: event.getDoubleValueField(.mouseEventDeltaX), dy: event.getDoubleValueField(.mouseEventDeltaY))
+            }
             return nil
 
         case .otherMouseUp:
             let button = event.getIntegerValueField(.mouseEventButtonNumber)
-            if swallowUp == button {
-                swallowUp = nil
-                return nil
-            }
-            guard button == active else { return pass }
-            release()
+            guard balance.release(button) else { return pass }
+            if button == active { release() }
+            if balance.canStop { CFRunLoopStop(CFRunLoopGetCurrent()) }
             return nil
 
         default:
@@ -278,7 +322,8 @@ private final class TapThread: Thread {
         }
         if rule.hold != "none" {
             let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + Self.holdDelay, 0, 0, 0) { [weak self] _ in
-                guard let self, active != nil, !dragFired, !holdFired else { return }
+                guard let self, service.config.enabled, !balance.draining,
+                      active != nil, !dragFired, !holdFired else { return }
                 holdFired = true
                 MouseActions.run(self.rule.hold)
             }
@@ -316,7 +361,7 @@ private final class TapThread: Thread {
 
     /// Abandon a gesture whose button is still down: its release must not reach apps without the press.
     private func cancelGesture() {
-        if let active { swallowUp = active }
+        // Balance owns all suppressed presses independently of the current gesture.
         endGesture()
     }
 

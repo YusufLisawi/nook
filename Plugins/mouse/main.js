@@ -3,7 +3,6 @@ const $ = (id) => document.getElementById(id);
 let state = null;
 let view = 'scroll';
 let built = false;
-let poll = null;
 
 const SMOOTH = [['off', 'Off'], ['low', 'Low'], ['regular', 'Regular'], ['high', 'High']];
 const MODIFIERS = [['none', 'Nothing'], ['shift', '⇧ Shift'], ['option', '⌥ Option'], ['control', '⌃ Control'], ['command', '⌘ Command']];
@@ -45,6 +44,8 @@ function field(label, control, extra = '') {
   const row = document.createElement('div');
   row.className = `field ${extra}`;
   const l = Object.assign(document.createElement('span'), { className: 'name', textContent: label });
+  const input = control.matches('input,select,button') ? control : control.querySelector('input,select');
+  input?.setAttribute('aria-label', label);
   row.append(l, control);
   return row;
 }
@@ -85,17 +86,21 @@ function buildScroll() {
   const form = $('scroll');
   form.replaceChildren(); // the loading spinner
   const seg = document.createElement('div');
-  seg.className = 'nk-seg';
+  seg.className = 'nk-seg nk-roving';
+  seg.dataset.nkOrientation = 'horizontal';
+  seg.setAttribute('aria-label', 'Smoothness');
   seg.dataset.key = 'smoothness';
   for (const [value, text] of SMOOTH) {
     const b = Object.assign(document.createElement('button'), { textContent: text });
     b.dataset.value = value;
+    b.dataset.nkItem = value;
     b.onclick = () => call('set', { smoothness: value });
     seg.append(b);
   }
   form.append(
     field('Smoothness', seg),
     field('Reverse direction', toggle('reverse')),
+    field('Filter wheel chatter', toggle('filterChatter')),
     field('Speed', slider('speed', 0.3, 3, 0.1, (v) => `${v.toFixed(1)}×`)),
     field('Acceleration', slider('acceleration', 0, 1, 0.05, (v) => `${Math.round(v * 100)}%`)),
   );
@@ -128,6 +133,7 @@ function actionSelect(rule, key, none) {
   for (const a of state.actions) {
     el.append(Object.assign(document.createElement('option'), { value: a.id, textContent: a.id === 'none' ? none : a.label }));
   }
+  el.dataset.rule = key;
   el.value = rule[key];
   el.onchange = () => call('setButton', el.dataset.button, { [key]: el.value });
   return el;
@@ -156,6 +162,9 @@ function renderRules() {
     list.append(empty);
     return;
   }
+  const focused = document.activeElement;
+  const focusButton = focused?.dataset.button;
+  const focusRule = focused?.dataset.rule;
   list.replaceChildren(...entries.map(([button, rule]) => {
     const row = document.createElement('div');
     row.className = 'nk-card nk-tight rule nk-in';
@@ -171,16 +180,27 @@ function renderRules() {
       drag.append(Object.assign(document.createElement('option'), { value, textContent: text }));
     }
     drag.value = rule.drag;
-    for (const el of [click, hold, drag]) el.dataset.button = button;
+    drag.dataset.rule = 'drag';
+    for (const el of [click, hold, drag]) {
+      el.dataset.button = button;
+      el.setAttribute('aria-label', `${buttonName(button)} button ${el.dataset.rule}`);
+    }
     drag.onchange = () => call('setButton', button, { drag: drag.value });
     const remove = document.createElement('button');
     remove.className = 'nk-icon-btn';
     remove.title = 'Remove';
+    remove.dataset.button = button;
+    remove.dataset.rule = 'remove';
+    remove.setAttribute('aria-label', `Remove ${buttonName(button)} button`);
     remove.innerHTML = '<svg><use href="#i-x"/></svg>';
     remove.onclick = () => call('removeButton', button);
     row.append(which, opt('Click', click), opt('Hold', hold), opt('Drag', drag), remove);
     return row;
   }));
+  if (focusButton && focusRule) {
+    const next = [...list.querySelectorAll('[data-button]')].find(el => el.dataset.button === focusButton && el.dataset.rule === focusRule);
+    (next || $('learn')).focus();
+  }
 }
 
 // ---- Page --------------------------------------------------------------------
@@ -196,7 +216,7 @@ function render() {
   const pill = $('status');
   const needsPermission = c.enabled && !state.trusted;
   pill.className = `nk-pill ${!c.enabled ? '' : needsPermission ? 'nk-bad' : state.running ? 'nk-good' : 'nk-accent'}`;
-  pill.lastElementChild.textContent = !c.enabled ? 'Off' : needsPermission ? 'Needs permission' : state.running ? 'Active' : 'Starting…';
+  pill.lastElementChild.textContent = !c.enabled ? 'Off' : needsPermission ? 'Needs permission' : state.error ? 'Unavailable' : state.running ? 'Active' : 'Starting…';
 
   const learning = state.learning;
   $('learn').textContent = learning ? 'Cancel' : 'Add a button';
@@ -206,12 +226,13 @@ function render() {
 
   if (needsPermission || (learning && !state.trusted)) {
     showError('Allow Nook in Accessibility so it can read your mouse.', { label: 'Open Settings', run: () => call('openPrivacy') });
+  } else if (state.error && (c.enabled || learning)) {
+    showError(state.error, { label: 'Retry', run: refresh });
   } else {
     showError('');
   }
-  // While permission is pending, check back so the pill flips as soon as it's granted.
-  clearInterval(poll);
-  if (needsPermission) poll = setInterval(refresh, 2000);
+  $('enabled').disabled = false;
+  $('learn').disabled = false;
 }
 
 async function refresh() {
@@ -219,8 +240,12 @@ async function refresh() {
     state = await nook.mouse.state();
     render();
   } catch (err) {
-    $('scroll').replaceChildren();
-    showError(`Couldn't reach the mouse engine: ${err.message || err}`);
+    if (!state) {
+      $('scroll').replaceChildren();
+      built = false;
+      $('status').lastElementChild.textContent = 'Unavailable';
+    }
+    showError(`Couldn't reach the mouse engine: ${err.message || err}`, { label: 'Retry', run: refresh });
   }
 }
 
@@ -245,5 +270,10 @@ nook.on('mouse', (d) => {
   }
 });
 nook.on('show', refresh);
+nook.on('open', refresh);
 nook.on('close', () => { if (state?.learning) call('learn', false); });
+document.addEventListener('nk:alt', (event) => {
+  const button = event.target.closest('button');
+  if (button) { event.preventDefault(); button.click(); }
+});
 refresh();

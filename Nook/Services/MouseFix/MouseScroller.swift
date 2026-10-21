@@ -24,11 +24,11 @@ final class MouseScroller {
     private var lastFrame: CFAbsoluteTime = 0
     private var flags: CGEventFlags = []
     private var frames: CVDisplayLink? // ticks once per screen refresh, so apps get one event per frame
+    private var activity: NSObjectProtocol?
     private var framePending = false
     private let pendingLock = NSLock()
 
     private static let pixelsPerTick = 70.0
-    private static let bounceWindow = 0.1 // seconds
     private static let maxTicksPerEvent = 6.0 // the system bundles fast spins into bigger deltas; cap a runaway wheel
 
     init(config: @escaping () -> MouseConfig) { self.config = config }
@@ -47,8 +47,16 @@ final class MouseScroller {
     }
 
     func stop() {
-        if let frames { CVDisplayLinkStop(frames) }
+        cancelScroll()
         frames = nil
+    }
+
+    func cancelScroll() {
+        scrolling = false
+        remainingY = 0; remainingX = 0
+        carryY = 0; carryX = 0
+        lineCarryY = 0; lineCarryX = 0
+        stopFrames()
     }
 
     private func requestFrame(on runLoop: CFRunLoop) {
@@ -72,11 +80,16 @@ final class MouseScroller {
         var display = CGDirectDisplayID(), count: UInt32 = 0
         CGGetDisplaysWithPoint(CGEvent(source: nil)?.location ?? .zero, 1, &display, &count)
         if count > 0 { CVDisplayLinkSetCurrentCGDisplay(frames, display) }
-        return CVDisplayLinkStart(frames) == kCVReturnSuccess
+        guard CVDisplayLinkStart(frames) == kCVReturnSuccess else { return false }
+        activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep,
+                                                        reason: "Animating mouse scroll")
+        return true
     }
 
     private func stopFrames() {
         if let frames, CVDisplayLinkIsRunning(frames) { CVDisplayLinkStop(frames) }
+        if let activity { ProcessInfo.processInfo.endActivity(activity) }
+        activity = nil
     }
 
     // MARK: Input
@@ -106,26 +119,25 @@ final class MouseScroller {
 
         // Without smoothing, or if frames can't be produced, hand the wheel's own event on (edited) rather than eat it.
         guard c.smoothness != "off", startFrames() else {
+            cancelScroll()
             return passThrough(event, swapAxes: swapAxes, reverse: c.reverse, factor: factor, flags: outFlags)
         }
 
         let now = CFAbsoluteTimeGetCurrent()
         let gap = now - lastTick
-        // A wheel chatters when it's spun hard and let go: a click the other way within a split second of the last one is
-        // a bounce, not you changing your mind. Swallow it instead of stopping the glide dead.
-        let reversing = (dy != 0 && remainingY * dy < 0) || (dx != 0 && remainingX * dx < 0)
-        if reversing, gap < Self.bounceWindow { return nil }
+        if MouseWheelReversal.shouldFilter(dy: dy, dx: dx, remainingY: remainingY, remainingX: remainingX,
+                                          gap: gap, filterChatter: c.filterChatter) { return nil }
         lastTick = now
         tickRate = gap > 0.4 ? 0 : tickRate * 0.6 + min(60, 1 / max(gap, 0.001)) * 0.4
         let boost = 1 + c.acceleration * 3 * min(1, max(0, (tickRate - 6) / 24))
         let distance = Self.pixelsPerTick * factor * boost
 
         if dy != 0 {
-            if remainingY * dy < 0 { remainingY = 0 }
+            MouseWheelReversal.prepare(delta: dy, remaining: &remainingY, carry: &carryY, lineCarry: &lineCarryY)
             remainingY += max(-Self.maxTicksPerEvent, min(Self.maxTicksPerEvent, dy)) * distance
         }
         if dx != 0 {
-            if remainingX * dx < 0 { remainingX = 0 }
+            MouseWheelReversal.prepare(delta: dx, remaining: &remainingX, carry: &carryX, lineCarry: &lineCarryX)
             remainingX += max(-Self.maxTicksPerEvent, min(Self.maxTicksPerEvent, dx)) * distance
         }
         flags = outFlags
@@ -167,6 +179,7 @@ final class MouseScroller {
 
     private func step() {
         guard scrolling else { return }
+        guard config().enabled else { cancelScroll(); return }
         let now = CFAbsoluteTimeGetCurrent()
         let dt = min(0.05, now - lastFrame)
         lastFrame = now

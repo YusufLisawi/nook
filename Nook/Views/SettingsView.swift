@@ -23,6 +23,7 @@ struct SettingsView: View {
     @AppStorage(DictationService.Keys.keepAudioHours) private var keepAudioHours = 24.0
     @State private var mics = MicRecorder.microphones()
     @State private var groqKey = Secrets.get(DictationService.Keys.groqSecret) ?? ""
+    @State private var openAIKey = Secrets.get(AIBrain.openAISecret) ?? ""
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -84,6 +85,18 @@ struct SettingsView: View {
             }
             UpdatesSection()
             ToolsSection()
+            Section {
+                LabeledContent("AI Commands brain") {
+                    Text(OpenAITranscriber.status).foregroundStyle(.secondary).font(.caption)
+                }
+                SecureField("OpenAI API key (optional)", text: $openAIKey)
+                    .onChange(of: openAIKey) { _, key in Secrets.set(AIBrain.openAISecret, key.trimmingCharacters(in: .whitespaces)) }
+            } header: {
+                Text("AI")
+            } footer: {
+                Text("AI Commands use your ChatGPT subscription through Codex by default — no key needed. Groq or OpenAI keys are optional alternatives, picked per command.")
+                    .font(.caption)
+            }
             Section("Dictation") {
                 Picker("Transcription", selection: $engine) {
                     Text("ChatGPT (your Codex login)").tag("chatgpt")

@@ -1,0 +1,8 @@
+{
+  "id": "commands",
+  "name": "AI Commands",
+  "symbol": "wand.and.stars",
+  "entry": "index.html",
+  "order": 15,
+  "height": 300
+}

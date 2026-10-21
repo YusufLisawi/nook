@@ -113,6 +113,7 @@ final class WebPluginHost: NSObject {
         case let f where f.hasPrefix("proxy."): s.proxy.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case "ai.chat":
             AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], reply: reply)
+        case let f where f.hasPrefix("commands."): s.commands.handle(String(f.dropFirst(9)), args: args, reply: reply)
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default: reply(nil, "Unknown nook call: \(fn)")
@@ -158,6 +159,7 @@ final class WebPluginHost: NSObject {
             proxy: Object.fromEntries(['list','add','remove','rename','connect','disconnect','ip'].map(n => [n, (...a) => call('proxy.' + n, ...a)])),
             timer: { start: m => call('timer.start', Number(m)), stop: () => call('timer.stop'), state: () => call('timer.state') },
             ai: { chat: (messages, o) => call('ai.chat', messages, o || {}) },
+            commands: Object.fromEntries(['list','save','remove','run','recordHotkey','clearHotkey','models','lastRun'].map(n => [n, (...a) => call('commands.' + n, ...a)])),
             audio: Object.fromEntries(['state','setDefault','setDeviceVolume','setDeviceMute','setPreferred','setAppVolume','setAppMute','resetApp','openPrivacy'].map(n => [n, (...a) => call('audio.' + n, ...a)])),
             dictation: Object.fromEntries(['history','retry','remove','copy','paste','clear','state','toggle'].map(n => [n, (...a) => call('dictation.' + n, ...a)])),
             on: (e, cb) => { (listeners[e] = listeners[e] || []).push(cb); },

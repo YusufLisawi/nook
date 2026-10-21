@@ -8,6 +8,8 @@ final class LinkCatcher {
     private static let tracking: Set<String> = ["fbclid", "gclid", "dclid", "msclkid", "mc_cid", "mc_eid", "igshid", "si", "ref_src", "_hsenc", "_hsmi", "yclid"]
 
     private var changeCount = NSPasteboard.general.changeCount
+    /// AI Commands copy/paste through the clipboard briefly; ignore those changes.
+    static var ignoreClipboardUntil = Date.distantPast
     private var timer: Timer?
     private let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
@@ -21,6 +23,7 @@ final class LinkCatcher {
         let board = NSPasteboard.general
         guard board.changeCount != changeCount else { return }
         changeCount = board.changeCount
+        guard Date() > Self.ignoreClipboardUntil else { return }
 
         guard let tab = Services.shared.plugins.tabs.first(where: { $0.id == Self.pluginID }),
               !Prefs.disabledTabSet.contains(Self.pluginID) else { return }

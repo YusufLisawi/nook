@@ -40,7 +40,7 @@ nook validate <id>       # must pass before you say "done"
 `nook.fetch(url,{method,headers,body})` · `nook.system()` · `nook.ai.chat(messages,{json})` (LLM via the user's Groq key) · `nook.clipboard.read/write` · `nook.open(url|path)` · `nook.notify(title, body)` ·
 `nook.activity.set({text,symbol,color}) / clear()` (closed-notch status) · `nook.notch.close/pin(bool)/setHeight(px)` ·
 `nook.on('open'|'close'|'show'|'drop'|'dragenter'|'dragleave'|'audio'|'proxy'|'dictation', cb)` ·
-`nook.audio.*` (devices, per-app volume) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})
+`nook.audio.*` (devices, per-app volume) · `nook.commands.*` (AI Commands) · `nook.proxy.*` · `nook.dictation.*` · `nook.timer.*` · `nook.plugin` ({id,name})
 
 ## Starter layout (uses the kit)
 

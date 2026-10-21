@@ -99,6 +99,9 @@ nook.proxy.remove(id) / rename(id, name)
 nook.proxy.connect(id) / disconnect()       // whole machine (system proxy via a local forwarder)
 nook.proxy.ip()          // → { ip, city, country, countryCode, flag }   current public IP, through the proxy if on
 
+nook.commands.list() / save(cmd) / remove(id) / run(id)   // AI Commands (Raycast-style): prompts with {selection} {clipboard} {app} {date} {time}
+nook.commands.recordHotkey(id) / clearHotkey(id) / models() / lastRun()   // events: 'commands', 'commandRun'
+
 nook.dictation.history() // → [{ id, date (ISO), status: 'done'|'failed'|'transcribing', text, raw, error, duration (s) }] newest first
 nook.dictation.retry(id) / remove(id) / copy(id) / paste(id) / clear()
 nook.dictation.state()   // → { recording, transcribing, holdShortcut: "⌃⌥", toggleShortcut: "⌥Space", hasKey }

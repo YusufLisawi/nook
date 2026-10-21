@@ -6,6 +6,7 @@ let built = false;
 
 const SMOOTH = [['off', 'Off'], ['low', 'Low'], ['regular', 'Regular'], ['high', 'High']];
 const MODIFIERS = [['none', 'Nothing'], ['shift', '⇧ Shift'], ['option', '⌥ Option'], ['control', '⌃ Control'], ['command', '⌘ Command']];
+const SCROLL_STYLES = [['trackpad', 'Trackpad-style'], ['classic', 'Classic']];
 const BUTTON_NAMES = { 2: 'Middle', 3: 'Back', 4: 'Forward' };
 const buttonName = (n) => BUTTON_NAMES[n] || `Button ${Number(n) + 1}`;
 
@@ -40,9 +41,10 @@ function setSoon(key, value) {
 
 // ---- Scroll form -------------------------------------------------------------
 
-function field(label, control, extra = '') {
+function field(label, control, extra = '', hint = '') {
   const row = document.createElement('div');
   row.className = `field ${extra}`;
+  if (hint) row.title = hint;
   const l = Object.assign(document.createElement('span'), { className: 'name', textContent: label });
   const input = control.matches('input,select,button') ? control : control.querySelector('input,select');
   input?.setAttribute('aria-label', label);
@@ -110,6 +112,8 @@ function buildScroll() {
     field('Sideways', select(MODIFIERS, 'horizontalModifier')),
     field('Slow (precise)', select(MODIFIERS, 'preciseModifier')),
     field('Fast', select(MODIFIERS, 'quickModifier')),
+    field('Scroll style', select(SCROLL_STYLES, 'scrollStyle'), '',
+      'Trackpad-style sends a swipe-like gesture and momentum, so pages that snap (YouTube Shorts, Safari) work. Classic sends plain scroll events.'),
   );
   built = true;
 }

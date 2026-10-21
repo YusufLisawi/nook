@@ -8,8 +8,9 @@ import Foundation
 /// the other way drops the pool, so scrolling reverses at once. Trackpads and Magic Mouse send continuous events,
 /// which are left alone.
 ///
-/// Output is plain pixel scroll events with no gesture/momentum phases: apps handle those as ordinary scrolling, and
-/// there's no phase state for an app to get confused by when you scroll fast or change your mind mid-glide.
+/// Output imitates a trackpad swipe ("trackpad" style): a gesture while clicks keep coming, then the rest of the glide as
+/// momentum. Apps that snap pages (YouTube Shorts, scroll-snap in browsers) wait for that gesture/momentum end, so they
+/// snap. A click during the glide just adds to it. "Classic" style sends plain pixel events with no phases instead.
 ///
 /// State is only touched from the event tap's thread; the display link just hands frames over to it.
 final class MouseScroller {
@@ -17,6 +18,10 @@ final class MouseScroller {
     private var remainingY = 0.0, remainingX = 0.0
     private var carryY = 0.0, carryX = 0.0 // fractions of a pixel not yet sent
     private var scrolling = false
+    private enum Stage { case gesture, momentum }
+    private var phased = true // this glide sends gesture/momentum phases (the "trackpad" style)
+    private var stage = Stage.gesture
+    private var momentumStarted = false
     private var lineCarryY = 0.0, lineCarryX = 0.0 // fractions of a line not yet sent
     private let source = CGEventSource(stateID: .hidSystemState)
     private var lastTick: CFAbsoluteTime = 0
@@ -29,6 +34,7 @@ final class MouseScroller {
     private let pendingLock = NSLock()
 
     private static let pixelsPerTick = 70.0
+    private static let gestureHold = 0.12 // seconds without a click before the glide becomes momentum
     private static let maxTicksPerEvent = 6.0 // the system bundles fast spins into bigger deltas; cap a runaway wheel
 
     init(config: @escaping () -> MouseConfig) { self.config = config }
@@ -52,6 +58,7 @@ final class MouseScroller {
     }
 
     func cancelScroll() {
+        if scrolling, phased { endPhases() } // don't leave an app in the middle of a gesture
         scrolling = false
         remainingY = 0; remainingX = 0
         carryY = 0; carryX = 0
@@ -146,6 +153,10 @@ final class MouseScroller {
             carryY = 0; carryX = 0
             lineCarryY = 0; lineCarryX = 0
             lastFrame = now
+            phased = c.scrollStyle == "trackpad"
+            stage = .gesture
+            momentumStarted = false
+            if phased { post(dy: 0, dx: 0, scroll: .began, momentum: .none) }
         }
         return nil
     }
@@ -198,16 +209,45 @@ final class MouseScroller {
         let sendY = totalY.rounded(.towardZero), sendX = totalX.rounded(.towardZero)
         carryY = totalY - sendY
         carryX = totalX - sendX
-        if sendY != 0 || sendX != 0 { post(dy: sendY, dx: sendX) }
+        if phased {
+            // Clicks stopped: lift the "finger" and let the rest of the glide run as momentum.
+            if stage == .gesture, !done, now - lastTick > Self.gestureHold {
+                post(dy: 0, dx: 0, scroll: .ended, momentum: .none)
+                stage = .momentum
+            }
+            if sendY != 0 || sendX != 0 {
+                if stage == .gesture {
+                    post(dy: sendY, dx: sendX, scroll: .changed, momentum: .none)
+                } else {
+                    post(dy: sendY, dx: sendX, scroll: .none, momentum: momentumStarted ? .keepGoing : .begin)
+                    momentumStarted = true
+                }
+            }
+            if done { endPhases() }
+        } else if sendY != 0 || sendX != 0 {
+            post(dy: sendY, dx: sendX, scroll: .none, momentum: .none)
+        }
         if done {
             scrolling = false
             stopFrames()
         }
     }
 
+    /// Close the gesture, or the momentum if it had started, so the app sees a proper end.
+    private func endPhases() {
+        if stage == .gesture {
+            post(dy: 0, dx: 0, scroll: .ended, momentum: .none)
+        } else if momentumStarted {
+            post(dy: 0, dx: 0, scroll: .none, momentum: .end)
+        }
+    }
+
+    private enum ScrollPhase: Int64 { case none = 0, began = 1, changed = 2, ended = 4 }
+    private enum MomentumPhase: Int64 { case none = 0, begin = 1, keepGoing = 2, end = 3 }
+
     /// One frame of scrolling. A real wheel event carries the distance three ways (pixels, lines, fixed-point
     /// lines) and apps read whichever they like, so fill in all three; a line is about 10 pixels.
-    private func post(dy: Double, dx: Double) {
+    private func post(dy: Double, dx: Double, scroll: ScrollPhase, momentum: MomentumPhase) {
         guard let event = CGEvent(scrollWheelEvent2Source: source, units: .pixel, wheelCount: 2,
                                   wheel1: Int32(dy), wheel2: Int32(dx), wheel3: 0) else { return }
         let linesY = dy / 10 + lineCarryY, linesX = dx / 10 + lineCarryX
@@ -215,6 +255,8 @@ final class MouseScroller {
         lineCarryY = linesY - wholeY
         lineCarryX = linesX - wholeX
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+        event.setIntegerValueField(.scrollWheelEventScrollPhase, value: scroll.rawValue)
+        event.setIntegerValueField(.scrollWheelEventMomentumPhase, value: momentum.rawValue)
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: Int64(dy))
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: Int64(dx))
         event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: Int64(wholeY))

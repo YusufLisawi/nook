@@ -77,6 +77,10 @@ struct MouseTests {
         check(oldConfig.enabled && !oldConfig.filterChatter, "Existing preferences opt out of filtering")
         check(oldConfig.merging(["filterChatter": true])?.filterChatter == true, "Chatter option merges through bridge settings")
         check(oldConfig.merging(["filterChatter": "bad"]) == nil, "Invalid filter type rejects")
+        check(oldConfig.scrollStyle == "trackpad", "Existing preferences get trackpad-style scrolling")
+        check(oldConfig.merging(["scrollStyle": "classic"])?.scrollStyle == "classic", "Scroll style merges through bridge settings")
+        check(oldConfig.merging(["scrollStyle": "bogus"])?.scrollStyle == "trackpad", "Unknown scroll style falls back")
+        check(oldConfig.merging(["scrollStyle": 3]) == nil, "Invalid scroll style type rejects")
 
         // Call the actual hotkey processor with in-memory events. No tap installation or event posting.
         let hotkeys = HotkeyMonitor()

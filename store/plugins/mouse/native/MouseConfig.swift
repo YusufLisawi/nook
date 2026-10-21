@@ -4,6 +4,7 @@ import Foundation
 struct MouseConfig: Codable, Equatable {
     static let smoothnessLevels = ["off", "low", "regular", "high"]
     static let modifiers = ["none", "shift", "option", "control", "command"]
+    static let scrollStyles = ["trackpad", "classic"]
 
     var enabled = false
     var smoothness = "regular"
@@ -11,6 +12,7 @@ struct MouseConfig: Codable, Equatable {
     var acceleration = 0.5 // 0 … 1, how much a fast spin speeds scrolling up
     var reverse = false
     var filterChatter = false // opt in only for wheels that bounce on direction changes
+    var scrollStyle = "trackpad" // "trackpad": a swipe-like gesture then momentum (page snapping works); "classic": plain scroll events
     var horizontalModifier = "shift" // hold to scroll sideways
     var preciseModifier = "none" // hold to scroll slowly
     var quickModifier = "none" // hold to scroll fast
@@ -45,6 +47,7 @@ struct MouseConfig: Codable, Equatable {
         acceleration = try c.decodeIfPresent(Double.self, forKey: .acceleration) ?? d.acceleration
         reverse = try c.decodeIfPresent(Bool.self, forKey: .reverse) ?? d.reverse
         filterChatter = try c.decodeIfPresent(Bool.self, forKey: .filterChatter) ?? d.filterChatter
+        scrollStyle = try c.decodeIfPresent(String.self, forKey: .scrollStyle) ?? d.scrollStyle
         horizontalModifier = try c.decodeIfPresent(String.self, forKey: .horizontalModifier) ?? d.horizontalModifier
         preciseModifier = try c.decodeIfPresent(String.self, forKey: .preciseModifier) ?? d.preciseModifier
         quickModifier = try c.decodeIfPresent(String.self, forKey: .quickModifier) ?? d.quickModifier
@@ -55,6 +58,7 @@ struct MouseConfig: Codable, Equatable {
     /// Clamp numbers and drop unknown choices, so a bad value from a plugin can't break scrolling.
     mutating func normalize() {
         if !Self.smoothnessLevels.contains(smoothness) { smoothness = "regular" }
+        if !Self.scrollStyles.contains(scrollStyle) { scrollStyle = "trackpad" }
         speed = min(3, max(0.3, speed))
         acceleration = min(1, max(0, acceleration))
         if !Self.modifiers.contains(horizontalModifier) { horizontalModifier = "none" }

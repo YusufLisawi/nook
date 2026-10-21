@@ -6,7 +6,6 @@ enum NotchState { case closed, open }
 
 /// What the closed notch shows on its sides, most important first.
 enum Activity: Equatable {
-    case dictation(DictationService.Phase)
     case plugin(PluginActivity)
     case timer
     case music
@@ -113,19 +112,13 @@ final class NotchViewModel: ObservableObject {
             }.store(in: &featureBag)
             services.timers.onFinish = { [weak self] in self?.open(tab: "timers") }
         }
-        if f.enabled("dictation") {
-            services.dictation.objectWillChange.sink { [weak self] in
-                DispatchQueue.main.async { self?.updateActivity() }
-            }.store(in: &featureBag)
-        }
         services.$pluginActivity.sink { [weak self] _ in DispatchQueue.main.async { self?.updateActivity() } }.store(in: &featureBag)
         updateActivity()
     }
     private func updateActivity() {
         let f = Features.shared
         let next: Activity?
-        if f.enabled("dictation"), services.dictation.phase != .idle { next = .dictation(services.dictation.phase) }
-        else if let plugin = services.pluginActivity, f.tabEnabled(plugin.pluginID) { next = .plugin(plugin) }
+        if let plugin = services.pluginActivity, f.tabEnabled(plugin.pluginID) { next = .plugin(plugin) }
         else if f.enabled("timers"), services.timers.isRunning, Prefs.bool(Prefs.showTimer) { next = .timer }
         else if f.enabled("media"), services.media.track?.isPlaying == true, Prefs.bool(Prefs.showMusic) { next = .music }
         else { next = nil }

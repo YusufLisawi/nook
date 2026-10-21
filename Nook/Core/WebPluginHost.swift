@@ -24,10 +24,12 @@ final class WebPluginHost: NSObject {
         KeyboardActions.shared.remove(ownerID: keyboardID)
     }
 
-    init(vm: NotchViewModel) {
+    var entryOverride: String?
+
+    init(vm: NotchViewModel? = nil) {
         self.vm = vm
         super.init()
-        PluginHostAPI.shared.register(vm)
+        if let vm { PluginHostAPI.shared.register(vm) }
         observers.append(NotificationCenter.default.addObserver(forName: .nookPluginEvent, object: nil, queue: .main) { [weak self] note in
             guard let event = note.userInfo?["event"] as? String else { return }
             self?.emit(event, note.userInfo?["payload"] ?? NSNull(), to: note.userInfo?["plugin"] as? String)
@@ -74,7 +76,7 @@ final class WebPluginHost: NSObject {
             for (id, view) in views {
                 guard let tab = Services.shared.plugins.tabs.first(where: { $0.id == id }), case let .web(dir, entry) = tab.kind else { continue }
                 injectScripts(view.configuration.userContentController, tab: tab, dir: dir)
-                view.loadFileURL(dir.appendingPathComponent(entry), allowingReadAccessTo: dir)
+                view.loadFileURL(dir.appendingPathComponent(entryOverride ?? entry), allowingReadAccessTo: dir)
             } // Refresh SDK/entry too, including a v1 → v2 Store update, without discarding web views.
         }
         if let view = views[tab.id] { return view }
@@ -103,7 +105,7 @@ final class WebPluginHost: NSObject {
         view.setValue(false, forKey: "drawsBackground")
         view.underPageBackgroundColor = .clear
         view.isInspectable = true
-        view.loadFileURL(dir.appendingPathComponent(entry), allowingReadAccessTo: dir)
+        view.loadFileURL(dir.appendingPathComponent(entryOverride ?? entry), allowingReadAccessTo: dir)
         return view
     }
 
@@ -158,11 +160,11 @@ final class WebPluginHost: NSObject {
         case "log": PluginLog.write(pluginID, level: str(0), message: str(1)); ok()
         case "activity.set":
             let a = arg(0) as? [String: Any] ?? [:]
-            s.pluginActivity = PluginActivity(pluginID: pluginID, text: a["text"] as? String ?? "",
-                                              symbol: a["symbol"] as? String ?? "sparkle", color: a["color"] as? String ?? "#ffffff")
+            PluginActivities.set(PluginActivity(pluginID: pluginID, text: a["text"] as? String ?? "",
+                                              symbol: a["symbol"] as? String ?? "sparkle", color: a["color"] as? String ?? "#ffffff"),priority:a["priority"] as? Int ?? 0)
             ok()
         case "activity.clear":
-            if s.pluginActivity?.pluginID == pluginID { s.pluginActivity = nil }
+            PluginActivities.remove(pluginID)
             ok()
         case "notch.close": vm?.close(); ok()
         case "notch.pin": vm?.pinned = arg(0) as? Bool ?? false; ok()
@@ -179,9 +181,6 @@ final class WebPluginHost: NSObject {
         case let f where f.hasPrefix("proxy."): s.proxy.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case "ai.chat":
             AIChat.send(messages: arg(0) as? [[String: Any]] ?? [], options: arg(1) as? [String: Any] ?? [:], work: work[pluginID], reply: reply)
-        case let f where f.hasPrefix("commands."): s.commands.handle(String(f.dropFirst(9)), args: args, reply: reply)
-        case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
-        case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default:
             let scopedArgs: [Any] = fn == "actions.register" ? Array(args.prefix(1)) + [keyboardID] : args
             if !BridgeRegistry.handle(fn, args: scopedArgs, pluginID: pluginID, reply: reply) { reply(nil, "Unknown nook call: \(fn)") }
@@ -357,7 +356,7 @@ enum Shell {
         process.arguments = ["-lc", command]
         let out = Pipe(), err = Pipe()
         process.standardOutput = out; process.standardError = err
-        scope.add(id) { if process.isRunning { AgentProcess.terminateTree(process.processIdentifier) } }
+        scope.add(id) { if process.isRunning { ProcessTree.terminateTree(process.processIdentifier) } }
         DispatchQueue.global(qos: .userInitiated).async {
             defer {
                 scope.remove(id)
@@ -368,7 +367,7 @@ enum Shell {
             }
             let killer = DispatchSource.makeTimerSource(queue: .global())
             killer.schedule(deadline: .now() + max(0.1, timeout))
-            killer.setEventHandler { if process.isRunning { AgentProcess.terminateTree(process.processIdentifier) } }
+            killer.setEventHandler { if process.isRunning { ProcessTree.terminateTree(process.processIdentifier) } }
             killer.resume()
             defer { killer.cancel() }
             // Drain both pipes concurrently; a full stderr pipe must not prevent cancellation/exit.
@@ -452,7 +451,7 @@ enum AIChat {
     static let defaultModel = "openai/gpt-oss-120b"
 
     static func send(messages: [[String: Any]], options: [String: Any], work: PluginWork? = nil, reply: @escaping (Any?, String?) -> Void) {
-        guard let key = Secrets.get(DictationService.Keys.groqSecret) else {
+        guard let key = Secrets.get("groq_api_key") else {
             return reply(nil, "Add a Groq API key in Nook Settings → Dictation")
         }
         guard !messages.isEmpty else { return reply(nil, "No messages") }

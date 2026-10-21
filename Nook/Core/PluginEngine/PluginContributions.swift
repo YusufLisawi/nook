@@ -6,6 +6,8 @@ import SwiftUI
 final class PluginContributions: NSObject {
     static let shared = PluginContributions()
     static let actionOwner = KeyboardActions.extensionOwner
+    private var hotkeyDefinitions: [String:[[String:Any]]] = [:]
+    private var paletteScopes: [String:[String:[[String:Any]]]] = [:]
     private var installed = Set<String>()
     private var consumers = ""
     private var hotkeys: [String: (EventHotKeyRef, UInt32)] = [:]
@@ -50,7 +52,9 @@ final class PluginContributions: NSObject {
             let pane = "plugin-" + id + "-" + key
             settings[pane] = id
             SettingsRegistry.register(id: pane, title: row["title"] as? String ?? manifest.name, symbol: "puzzlepiece.extension", tint: .orange, order: 80) {
-                PluginContributedSettings(pluginID: id)
+                if let entry = row["entry"] as? String, let tab = Services.shared.plugins.tabs.first(where:{ $0.id == id }) {
+                    PluginSettingsPage(tab:tab,entry:entry)
+                } else { PluginContributedSettings(pluginID:id) }
             }
         }
     }
@@ -67,7 +71,9 @@ final class PluginContributions: NSObject {
             LauncherAnswers.unregisterIfLoaded("plugin:" + key)
         }
         for id in installed {
-            KeyboardActions.shared.remove(ownerID: Self.actionOwner, pluginID: id)
+            if !Features.shared.enabled("launcher") { paletteScopes[id]?.removeValue(forKey:"launcher") }
+            let retained = paletteScopes[id]?.values.flatMap { $0 } ?? []
+            KeyboardActions.shared.register(retained,pluginID:id,ownerID:Self.actionOwner) { _,_ in }
             guard let manifest = PluginEngine.shared.manifests[id] else { continue }
             if Features.shared.enabled("launcher"), let rows = manifest.contributes["launcherItems"], !rows.isEmpty { attempt(id) { try self.registerItems(id, rows) } }
             if Features.shared.enabled("smartAnswers") {
@@ -78,6 +84,9 @@ final class PluginContributions: NSObject {
     func reconcile(active: Set<String>) { for id in installed.subtracting(active) { remove(id) } }
     func remove(_ id: String) {
         installed.remove(id)
+        paletteScopes.removeValue(forKey:id)
+        hotkeyDefinitions.removeValue(forKey:id)
+        PluginGestureHotkeys.shared.remove(id)
         PluginSearch.remove(id)
         for key in Array(hotkeys.keys) where key.hasPrefix(id + "/") { unregisterHotkey(key) }
         for key in Array(menus.keys) where key.hasPrefix(id + "/") { if let item = menus.removeValue(forKey: key) { NSStatusBar.system.removeStatusItem(item) } }
@@ -89,8 +98,28 @@ final class PluginContributions: NSObject {
 
     func call(id: String, method: String, params p: [String: Any]) throws {
         switch method {
-        case "hotkeys.register": try registerHotkey(id, p)
-        case "hotkeys.unregister": unregisterHotkey(id + "/" + (p["id"] as? String ?? ""))
+        case "hotkeys.replace":
+            let rows = p["items"] as? [[String:Any]] ?? []
+            guard rows.count <= 100 else { throw PluginEngineError("Too many hotkeys.") }
+            let previous = hotkeyDefinitions[id] ?? []
+            func clear() {
+                for key in Array(hotkeys.keys) where key.hasPrefix(id + "/") { unregisterHotkey(key) }
+                PluginGestureHotkeys.shared.remove(id)
+            }
+            func apply(_ rows: [[String:Any]]) throws {
+                for row in rows { if row["mode"] != nil { try PluginGestureHotkeys.shared.register(id,row) } else { try registerHotkey(id,row) } }
+            }
+            clear()
+            do { try apply(rows); hotkeyDefinitions[id] = rows }
+            catch { clear(); try? apply(previous); throw error }
+        case "hotkeys.register":
+            if p["mode"] != nil { try PluginGestureHotkeys.shared.register(id,p) } else { try registerHotkey(id,p) }
+            var rows = hotkeyDefinitions[id] ?? []; rows.removeAll { $0["id"] as? String == p["id"] as? String }; rows.append(p); hotkeyDefinitions[id] = rows
+        case "hotkeys.unregister":
+            let action = p["id"] as? String ?? ""
+            unregisterHotkey(id + "/" + action); PluginGestureHotkeys.shared.unregister(id,action:action)
+            hotkeyDefinitions[id]?.removeAll { $0["id"] as? String == action }
+        case "actions.register": try registerPalette(id, group:p["group"] as? String ?? "web", rows:p["items"] as? [[String:Any]] ?? [])
         case "launcher.items": try registerItems(id, p["items"] as? [[String: Any]] ?? [])
         case "launcher.answers": try registerAnswer(id, p)
         case "jobs.register": try registerJob(id, p)
@@ -99,11 +128,18 @@ final class PluginContributions: NSObject {
         }
     }
 
+    private func registerPalette(_ id: String, group: String, rows: [[String:Any]]) throws {
+        guard group.count <= 100, (paletteScopes[id]?.count ?? 0) < 16 || paletteScopes[id]?[group] != nil else { throw PluginEngineError("Too many action groups.") }
+        var groups = paletteScopes[id] ?? [:]; groups[group] = rows
+        let combined = groups.keys.sorted().flatMap { groups[$0] ?? [] }
+        var failure: String?
+        KeyboardActions.shared.register(combined,pluginID:id,ownerID:Self.actionOwner) { _,error in failure = error }
+        if let failure { throw PluginEngineError(failure) }
+        paletteScopes[id] = groups
+    }
     private func registerItems(_ id: String, _ rows: [[String: Any]]) throws {
         guard Features.shared.enabled("launcher") else { throw PluginEngineError("Enable the launcher to contribute items.") }
-        var error: String?
-        KeyboardActions.shared.register(rows, pluginID: id, ownerID: Self.actionOwner) { _, failure in error = failure }
-        if let error { throw PluginEngineError(error) }
+        try registerPalette(id,group:"launcher",rows:rows)
     }
     private func registerHotkey(_ id: String, _ row: [String: Any]) throws {
         guard let key = row["id"] as? String, !key.isEmpty, key.count <= 100,

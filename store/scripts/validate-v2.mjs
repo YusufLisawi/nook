@@ -1,5 +1,5 @@
 // Keep the manifest contract aligned with Nook/Core/PluginEngine/PluginManifestV2.swift.
-const permissions = new Set(['files', 'clipboard', 'accessibility', 'microphone', 'network', 'shell', 'ai', 'background', 'hotkeys', 'notifications', 'launcher', 'windows', 'secrets']);
+const permissions = new Set(['files', 'clipboard', 'accessibility', 'microphone', 'network', 'shell', 'ai', 'background', 'hotkeys', 'notifications', 'launcher', 'windows', 'secrets', 'audioCapture']);
 const sections = new Set(['hotkeys', 'launcherItems', 'answerProviders', 'searchProviders', 'settings', 'menuBar', 'notchActivity', 'urlHandlers', 'backgroundJobs']);
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const path = v => typeof v === 'string' && v.length > 0 && !/[\\:\0]/.test(v) && v.split('/').every(p => p && p !== '.' && p !== '..');
@@ -21,6 +21,7 @@ export function validateV2(manifest, files) {
     if (!object(n)) errors.push('native must be an object');
     else {
       checkPermissions(n.permissions);
+      if (n.warmup !== undefined && typeof n.warmup !== 'boolean') errors.push('native.warmup must be a boolean');
       if (n.background !== undefined && typeof n.background !== 'boolean') errors.push('native.background must be a boolean');
       if (n.background && !declared.has('background')) errors.push('A background helper must declare background permission');
       const run = n.run ?? n.command?.run;
@@ -42,6 +43,7 @@ export function validateV2(manifest, files) {
       for (const row of list) {
         const nonempty = key => typeof row[key] === 'string' && row[key].trim().length;
         if (section === 'hotkeys' && (!Number.isInteger(row.keyCode) || row.keyCode < 0 || row.keyCode > 127 || !Number.isSafeInteger(row.modifiers) || !(row.modifiers & 0x1C0000))) errors.push('Hotkeys need keyCode and Command/Control/Option CGEventFlags modifiers');
+        if (section === 'settings' && row.entry !== undefined && (!path(row.entry) || !files.some(f => f.path === row.entry))) errors.push('Settings entry must be an existing relative page');
         if (section === 'launcherItems' && !nonempty('title')) errors.push('Launcher items need a title');
         if (section === 'searchProviders' && (!nonempty('method') || !nonempty('actionMethod') || !manifest.native)) errors.push('Search providers need method, actionMethod and a native helper');
         if (section === 'answerProviders' && (!nonempty('prefix') || !nonempty('method') || !manifest.native)) errors.push('Answer providers need prefix, method and a native helper');

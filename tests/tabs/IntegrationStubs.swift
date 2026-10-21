@@ -112,3 +112,5 @@ final class Features: ObservableObject {
     func tabEnabled(_ id: String) -> Bool { !Prefs.disabledTabSet.contains(id) }
 }
 extension Notification.Name { static let nookFeaturesChanged = Notification.Name("nookFeaturesChanged") }
+
+enum PluginGestureHotkeys { static let shared = State(); struct State { var items: [SettingsShortcutItem] { [] } } }

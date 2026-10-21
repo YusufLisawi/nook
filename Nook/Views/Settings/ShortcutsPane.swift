@@ -29,32 +29,7 @@ struct ShortcutsPane: View {
             if !navigation.groups.isEmpty {
                 shortcutSection("Tab Groups", items: navigation.groups.filter { $0.members.contains(where: features.tabEnabled) }.map(SettingsShortcutItem.group))
             }
-            if features.enabled("commands") { shortcutSection("AI Commands", items: Services.shared.commands.commands.map(SettingsShortcutItem.command)) }
-            if features.enabled("dictation") {
-            Section {
-                ForEach([SettingsShortcutItem.dictation(hold: true), .dictation(hold: false)]) { item in
-                    LabeledContent(item.title) { SettingsShortcutRecorder(item: item) }
-                }
-                Button("Restore Dictation Defaults") {
-                    let keys: Set<String> = ["dictation:hold", "dictation:toggle"]
-                    if let error = SettingsShortcutItem.dictation(hold: true).rejection(for: .defaultHold, excluding: keys)
-                        ?? SettingsShortcutItem.dictation(hold: false).rejection(for: .defaultToggle, excluding: keys) {
-                        restoreError = error
-                        return
-                    }
-                    restoreError = nil
-                    DictationShortcut.save(DictationService.Keys.holdShortcut, .defaultHold)
-                    DictationShortcut.save(DictationService.Keys.toggleShortcut, .defaultToggle)
-                    Services.shared.dictation.reloadShortcuts()
-                    NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
-                }
-                if let restoreError { Text(restoreError).font(.caption).foregroundStyle(.orange) }
-            } header: {
-                Text("Dictation")
-            } footer: {
-                Text("Hold to Talk records while held. Toggle Recording starts on the first press and transcribes on the next. Modifier-only gestures are supported.")
-            }
-            }
+            if !PluginGestureHotkeys.shared.items.isEmpty { shortcutSection("Plugin gestures",items:PluginGestureHotkeys.shared.items) }
             let groups = Set(ShortcutRegistry.shortcuts.map(\.group)).sorted()
             ForEach(groups, id: \.self) { group in
                 shortcutSection(group, items: items.filter { $0.id.hasPrefix("extension:") && $0.group == group })

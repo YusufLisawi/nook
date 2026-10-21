@@ -69,9 +69,9 @@ struct SettingsView: View {
                     switch SettingsPane(rawValue: id) ?? .general {
                     case .general: GeneralPane(onScreensChanged: onScreensChanged)
                     case .tabs: TabsPane()
-                    case .commands: CommandsPane()
+                    case .commands: PluginSettingsDestination(pluginID: "commands")
                     case .ai: AIPane()
-                    case .dictation: DictationPane()
+                    case .dictation: PluginSettingsDestination(pluginID: "dictation")
                     case .shortcuts: ShortcutsPane()
                     case .updates: UpdatesPane()
                     case .tools: ToolsPane()

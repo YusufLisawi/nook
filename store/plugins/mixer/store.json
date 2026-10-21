@@ -1,0 +1,11 @@
+{
+  "description": "Audio devices and per-app volume with Nook-owned capture taps.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": true,
+  "tags": [
+    "mixer",
+    "native"
+  ],
+  "screenshots": []
+}

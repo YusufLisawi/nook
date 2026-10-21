@@ -43,10 +43,6 @@ final class NotchKeyboardState: ObservableObject {
             return Entry(id: group.id, title: group.name, subtitle: "Tab Group", symbol: group.symbol,
                          shortcut: index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil } ?? group.hotkey?.display ?? "", target: .group(group.id))
         }
-        entries += (Features.shared.enabled("commands") ? vm.services.commands.commands : []).filter(\.enabled).map {
-            Entry(id: "command:\($0.id)", title: $0.name, subtitle: "AI Command", symbol: "wand.and.stars",
-                  shortcut: $0.hotkey?.display ?? "", target: .command($0.id))
-        }
         entries += KeyboardActions.shared.actions.filter { action in
             (action.ownerID == vm.web.keyboardID || action.ownerID == PluginContributions.actionOwner) && vm.isEnabled(action.pluginID)
         }.map { action in
@@ -220,9 +216,10 @@ final class NotchKeyboardController {
             if alternate {
                 vm.close()
                 (NSApp.delegate as? AppDelegate)?.showSettings(pane: "commands")
-            } else { vm.services.commands.run(id, fromNotch: true) }
+            } else { PluginEvents.emit("beforeAction", ["context":String(describing:ObjectIdentifier(vm))], to:"commands"); PluginEvents.emit("action", id, to: "commands") }
         case let .action(action):
             if action.ownerID == PluginContributions.actionOwner {
+                PluginEvents.emit("beforeAction", ["context":String(describing:ObjectIdentifier(vm))], to:action.pluginID)
                 PluginEvents.emit(alternate ? "actionAlternate" : "action", action.id, to: action.pluginID)
                 return
             }
@@ -290,19 +287,13 @@ final class NotchKeyboardController {
             ($0.ownerID == vm.web.keyboardID || $0.ownerID == PluginContributions.actionOwner) && $0.pluginID == vm.tab && KeyboardActions.matches($0.shortcut, event: event)
         }) {
             if !event.isARepeat {
-                if action.ownerID == PluginContributions.actionOwner { PluginEvents.emit("action", action.id, to: action.pluginID) }
+                if action.ownerID == PluginContributions.actionOwner { PluginEvents.emit("beforeAction", ["context":String(describing:ObjectIdentifier(vm))], to:action.pluginID); PluginEvents.emit("action", action.id, to: action.pluginID) }
                 else { vm.web.emit("action", action.id, to: action.pluginID) }
             }
             return true
         }
         if !vm.keyboard.isPresented {
             let modifiers = CGEventFlags(rawValue: UInt64(flags.rawValue))
-            if Features.shared.enabled("commands"), let command = vm.services.commands.commands.first(where: {
-                $0.enabled && $0.hotkey?.keyCode == Int(event.keyCode) && $0.hotkey?.modifiers == modifiers.rawValue
-            }) {
-                if !event.isARepeat { vm.services.commands.run(command.id, fromNotch: true) }
-                return true
-            }
             if let group = NativeShortcutIntegration.group(key: Int64(event.keyCode), modifiers: modifiers) {
                 if !event.isARepeat { vm.toggleGroup(group.id); if vm.isOpen { focusContent() } }
                 return true

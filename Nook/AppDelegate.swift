@@ -19,7 +19,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 return true
             }
             if NSApp.keyWindow is NotchPanel { return false } // local notch shortcuts take precedence
-            if Features.shared.enabled("commands"), Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
             if let group = NativeShortcutIntegration.group(key: key, modifiers: mods) {
                 DispatchQueue.main.async { self?.notchUnderMouse()?.toggleGroupWithKeyboard(group.id) }
                 return true
@@ -164,6 +163,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Opens (or brings back) the Settings window, optionally on a pane ("commands", "ai", …).
     func showSettings(pane: String?) {
-        settingsController.show(pane: pane)
+        let resolved = (pane ?? SettingsRouter.shared.pane).flatMap { id -> String? in
+            if let contributed = PluginEngine.shared.manifests[id]?.contributes["settings"]?.first?["id"] as? String { return "plugin-" + id + "-" + contributed }
+            return id
+        }
+        settingsController.show(pane:resolved)
     }
 }

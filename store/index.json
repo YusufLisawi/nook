@@ -1,5 +1,23 @@
 [
   {
+    "id": "agents",
+    "name": "Agents",
+    "description": "Resumable Codex chats with tool cards and local session history.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "person.2.wave.2.fill",
+    "tags": [
+      "agents",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/agents",
+    "sha": "53b25ab4c550d8d4e4f1d36e2aa6d840f26cd718",
+    "sha256": "11733976069ce821274b12dbd24d456a7b483edd84f702d68933f0f7b2bda96f",
+    "default": true,
+    "updatedAt": "2026-10-21T22:26:29Z"
+  },
+  {
     "id": "clips",
     "name": "Clips",
     "description": "Private clipboard, screenshot and recording history with local OCR. Disabled until enabled.",
@@ -16,6 +34,42 @@
     "sha256": "604352bc28a3183a0eb4a27ff968b2944249125da6847436a475cec20f0b3009",
     "default": false,
     "updatedAt": "2026-10-21T21:28:35Z"
+  },
+  {
+    "id": "commands",
+    "name": "AI Commands",
+    "description": "Saved AI prompts for selections with your existing shortcuts and providers.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "wand.and.stars",
+    "tags": [
+      "commands",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/commands",
+    "sha": "4c08366713936c959f45dd4d76d2d1e3d1eccff9",
+    "sha256": "bd6e9b479509d4166a0b7324b598bd6bc787555c8f9b389b6308c3025882bec3",
+    "default": true,
+    "updatedAt": "2026-10-21T22:19:25Z"
+  },
+  {
+    "id": "dictation",
+    "name": "Dictation",
+    "description": "Hold or toggle voice capture with ChatGPT and Groq transcription.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "waveform",
+    "tags": [
+      "dictation",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/dictation",
+    "sha": "52f13f3de578c0ff483c0f6a20610d625089aeeb",
+    "sha256": "cd9f84f7e0f83fa50d1d47978f2c33ef20d093c403ae91ddd5b37eaf28fd7c35",
+    "default": true,
+    "updatedAt": "2026-10-21T22:26:29Z"
   },
   {
     "id": "file-search",
@@ -52,6 +106,24 @@
     "sha256": "66f8a46a50a08263d15dbe3decdb75836a33ef0327a62b54dac3827dbd079ff9",
     "default": false,
     "updatedAt": "2026-10-21T21:30:00Z"
+  },
+  {
+    "id": "mixer",
+    "name": "Mixer",
+    "description": "Audio devices and per-app volume with Nook-owned capture taps.",
+    "author": "YusufLisawi",
+    "version": "2.0.0",
+    "symbol": "slider.vertical.3",
+    "tags": [
+      "mixer",
+      "native"
+    ],
+    "screenshots": [],
+    "path": "plugins/mixer",
+    "sha": "73c5a43236a22619775c94341554272f0dee30e6",
+    "sha256": "20574a925baf7c49cb02c1e5ecfcfc74833d6443e56cfbeaebdddea6d3f349fc",
+    "default": true,
+    "updatedAt": "2026-10-21T22:19:25Z"
   },
   {
     "id": "mouse",

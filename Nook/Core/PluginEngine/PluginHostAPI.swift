@@ -9,6 +9,7 @@ final class PluginHostAPI {
     private var clipboardTimers: [String: Timer] = [:]
     private var shells: [String: [UUID: PluginShellCommand]] = [:]
     private var aiTasks: [String: [UUID: Task<Void, Never>]] = [:]
+    private var selectionTargets: [String: AICommandContext] = [:]
     private var selectionContexts: [ObjectIdentifier: AICommandContext] = [:]
     private let filesQueue = DispatchQueue(label: "nook.plugin.files", qos: .utility)
 
@@ -47,6 +48,10 @@ final class PluginHostAPI {
         return String(describing: ObjectIdentifier(vm))
     }
     func stop(_ id: String) {
+        PluginHotkeyRecorder.shared.stop(id)
+        selectionTargets.removeValue(forKey:id)
+        PluginActivities.remove(id)
+        PluginCaptureAPI.shared.stop(id)
         clipboardTimers.removeValue(forKey: id)?.invalidate()
         requests.removeValue(forKey: id)?.cancel()
         shells.removeValue(forKey: id)?.values.forEach { $0.cancel() }
@@ -80,6 +85,19 @@ final class PluginHostAPI {
         let str = { (key: String) in p[key] as? String ?? "" }
         let ok = { reply(NSNull(), nil) }
         switch method {
+        case "runtime.keepAlive": PluginEngine.shared.keepAlive(id, enabled:p["enabled"] as? Bool ?? false); ok()
+        case "microphone.devices", "microphone.start", "microphone.stop", "audioCapture.start", "audioCapture.state", "audioCapture.level", "audioCapture.update", "audioCapture.stop":
+            PluginCaptureAPI.shared.call(id,method,p,reply:reply)
+        case "selection.capture":
+            let value = p["context"] as? String
+            if let value, !value.isEmpty, !self.models.compactMap(\.value).contains(where:{ String(describing:ObjectIdentifier($0)) == value && self.selectionContexts[ObjectIdentifier($0)] != nil }) { reply(nil,"The original text target is no longer available."); return }
+            let captured = value.flatMap { value in self.models.compactMap(\.value).first { String(describing:ObjectIdentifier($0)) == value } }.flatMap { selectionContexts[ObjectIdentifier($0)] } ?? AICommandContext.capture()
+            selectionTargets[id] = captured
+            reply(["app":captured.application?.localizedName ?? "","clipboard":captured.clipboard],nil)
+        case "settings.chooseDirectory":
+            let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true
+            reply(panel.runModal() == .OK ? panel.url?.path as Any? ?? NSNull() : NSNull(),nil)
+        case "hotkeys.record": PluginHotkeyRecorder.shared.record(owner:id,action:p["id"] as? String ?? "",modifierOnly:p["modifierOnly"] as? Bool ?? false,reply:reply)
         case "files.scopes": reply(PluginPermissions.shared.grants[id]?.fileScopes ?? [], nil)
         case "launcher.open": PluginSearch.open(model(vm)); ok()
         case "features.list": reply(Features.shared.payload, nil)
@@ -92,7 +110,9 @@ final class PluginHostAPI {
         case "settings.set":
             guard let tab = Services.shared.plugins.tabs.first(where: { $0.id == id }), tab.settings.contains(where: { $0.key == str("key") }) else { return reply(nil, "Unknown setting.") }
             PluginSettingsStore.set(tab, str("key"), JSONValue(any: p["value"])); ok()
-        case "settings.open": model(vm)?.showingSettings = true; ok()
+        case "settings.open":
+            let pane = manifest.contributes["settings"]?.first?["id"] as? String
+            (NSApp.delegate as? AppDelegate)?.showSettings(pane:pane.map { "plugin-" + id + "-" + $0 } ?? "tabs"); ok()
         case "notch.open": model(vm)?.open(tab: id); ok()
         case "notch.close": model(vm)?.close(); ok()
         case "notch.pin": model(vm)?.pinned = p["enabled"] as? Bool ?? false; ok()
@@ -101,8 +121,8 @@ final class PluginHostAPI {
             guard let height = p["height"] as? Double, height.isFinite else { return reply(nil, "Expected a finite height.") }
             model(vm)?.heightOverrides[id] = CGFloat(min(400, max(80, height))); ok()
         case "notch.activity", "activity.set":
-            Services.shared.pluginActivity = PluginActivity(pluginID: id, text: String(str("text").prefix(24)), symbol: str("symbol").isEmpty ? "puzzlepiece.extension" : str("symbol"), color: str("color").isEmpty ? "#ff9f0a" : str("color")); ok()
-        case "activity.clear": if Services.shared.pluginActivity?.pluginID == id { Services.shared.pluginActivity = nil }; ok()
+            PluginActivities.set(PluginActivity(pluginID: id, text: String(str("text").prefix(24)), symbol: str("symbol").isEmpty ? "puzzlepiece.extension" : str("symbol"), color: str("color").isEmpty ? "#ff9f0a" : str("color"), startedAt:(p["startedAt"] as? Double).map { Date(timeIntervalSince1970:$0) }),priority:p["priority"] as? Int ?? 0); ok()
+        case "activity.clear": PluginActivities.remove(id); ok()
         case "clipboard.read": reply(NSPasteboard.general.string(forType: .string) ?? "", nil)
         case "clipboard.write": NSPasteboard.general.clearContents(); NSPasteboard.general.setString(str("text"), forType: .string); ok()
         case "clipboard.watch":
@@ -163,15 +183,20 @@ final class PluginHostAPI {
             let token = UUID()
             aiTasks[id, default: [:]][token] = Task { @MainActor in
                 defer { self.aiTasks[id]?.removeValue(forKey: token) }
-                do { reply(try await AIBrain.complete(provider: str("provider").isEmpty ? "codex" : str("provider"), model: str("model").isEmpty ? "gpt-6-luna" : str("model"), effort: str("effort").isEmpty ? "medium" : str("effort"), prompt: str("prompt"), onDelta: { _ in }), nil) }
+                do { reply(try await AIBrain.complete(provider: str("provider").isEmpty ? "codex" : str("provider"), model: str("model").isEmpty ? "gpt-6-luna" : str("model"), effort: str("effort").isEmpty ? "medium" : str("effort"), prompt: str("prompt"), onDelta: { text in PluginEvents.emit("aiDelta", ["requestID":p["requestID"] ?? token.uuidString,"text":text],to:id) }), nil) }
                 catch { reply(nil, error.localizedDescription) }
             }
         case "selection.get", "selection.paste", "accessibility.perform":
             guard AXIsProcessTrusted() else { return reply(nil, "Allow Nook in System Settings → Privacy & Security → Accessibility.") }
             if method == "selection.get" || method == "selection.paste" {
                 let targetModel = model(vm)
-                let context = targetModel.flatMap { $0.isOpen ? selectionContexts[ObjectIdentifier($0)] : nil } ?? AICommandContext.capture()
-                if method == "selection.get", let selection = context.selection { reply(selection, nil); return }
+                let supplied = p["context"] as? String
+                let explicit = supplied.flatMap { value in self.models.compactMap(\.value).first { String(describing:ObjectIdentifier($0)) == value } }.flatMap { selectionContexts[ObjectIdentifier($0)] }
+                if let supplied, !supplied.isEmpty, explicit == nil { reply(nil,"The original text target is no longer available."); return }
+                let fallback = supplied == nil ? targetModel.flatMap { $0.isOpen ? selectionContexts[ObjectIdentifier($0)] : nil } : nil
+                let context = (method == "selection.paste" ? selectionTargets.removeValue(forKey:id) : nil) ?? explicit ?? fallback ?? AICommandContext.capture()
+                if method == "selection.get" { selectionTargets[id] = context }
+                if method == "selection.get", let selection = context.selection { reply(selection,nil); return }
                 targetModel?.close()
                 Task { @MainActor in
                     context.application?.activate()
@@ -179,7 +204,7 @@ final class PluginHostAPI {
                     guard PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id), AXIsProcessTrusted() else { return reply(nil, "Plugin access was revoked.") }
                     guard context.restoreTarget() else { return reply(nil, "The original text target changed or is unavailable. Focus it and reopen Nook.") }
                     if method == "selection.get" { reply(await SelectionGrabber.selectedText(), nil) }
-                    else { SelectionGrabber.paste(str("text"), keepOnClipboard: p["keepOnClipboard"] as? Bool ?? false); ok() }
+                    else { SelectionGrabber.paste(str("text"), after:p["after"] as? Bool ?? false, keepOnClipboard: p["keepOnClipboard"] as? Bool ?? false); ok() }
                 }
             }
             else {
@@ -213,10 +238,15 @@ final class PluginHostAPI {
             }
             reply(info, nil)
         case "secrets.get", "secrets.set", "secrets.remove":
+            if PluginDailyMigration.sharedAccount(id,key:str("key")) {
+                if method == "secrets.get" { reply(Secrets.get(str("key")) ?? NSNull() as Any,nil) }
+                else { Secrets.set(str("key"),method == "secrets.remove" ? nil : str("value")); ok() }
+                return
+            }
             do { reply(try PluginKeychain.call(id: id, method: method, key: str("key"), value: str("value")), nil) }
             catch { reply(nil, error.localizedDescription) }
-        case "actions.register", "hotkeys.register", "hotkeys.unregister", "launcher.items", "launcher.answers", "jobs.register", "jobs.unregister":
-            do { try PluginContributions.shared.call(id: id, method: method == "actions.register" ? "launcher.items" : method, params: p); ok() }
+        case "actions.register", "hotkeys.register", "hotkeys.replace", "hotkeys.unregister", "launcher.items", "launcher.answers", "jobs.register", "jobs.unregister":
+            do { try PluginContributions.shared.call(id: id, method: method, params: p); ok() }
             catch { reply(nil, error.localizedDescription) }
         case "log": PluginLog.write(id, level: str("level"), message: str("message")); ok()
         case "keyboard.focus": model(vm)?.web.emit("focus", [:], to: id); ok()

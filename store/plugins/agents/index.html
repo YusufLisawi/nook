@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <title>Agents</title>
+</head>
+<body>
+  <main class="nk-root workspace">
+    <aside class="rail nk-col" aria-label="Agents and recent chats">
+      <div class="nk-row-flex rail-actions">
+        <button id="switch" class="nk-btn nk-ghost nk-fill" title="Quick switch (⌘K)">Switch <kbd>⌘K</kbd></button>
+        <button id="add" class="nk-icon-btn" aria-label="Create agent" title="Create agent">+</button>
+      </div>
+      <nav id="rail" class="nk-list nk-scroll nk-fill" aria-label="Chats"></nav>
+      <button id="settings" class="nk-btn nk-ghost">Manage agents…</button>
+    </aside>
+    <section class="chat nk-col nk-fill" aria-label="Conversation">
+      <header class="nk-row-flex chat-header">
+        <div class="nk-fill nk-ellipsis"><b id="agent-name">Choose an agent</b><div id="context" class="nk-small nk-muted nk-ellipsis">Your Codex sessions, here.</div></div>
+        <button id="new" class="nk-icon-btn" aria-label="New chat (⌘N)" title="New chat (⌘N)">＋</button>
+        <button id="leave" class="nk-icon-btn" aria-label="Close chat" title="Leave chat and unpin">×</button>
+      </header>
+      <div id="error" class="nk-error" role="alert" hidden></div>
+      <div id="loading" class="nk-empty"><span class="nk-spinner"></span><span>Loading your agents…</span></div>
+      <div id="transcript" class="transcript nk-scroll nk-fill" role="log" aria-label="Chat transcript" aria-live="polite" aria-relevant="additions"></div>
+      <div id="run-state" class="nk-row-flex nk-small nk-muted" role="status" hidden><span class="nk-spinner"></span><span id="run-label">Working…</span></div>
+      <form id="composer" class="composer nk-card nk-tight nk-col">
+        <label for="message" class="sr-only">Message your agent</label>
+        <textarea id="message" class="nk-textarea" rows="2" placeholder="Message your agent…" spellcheck="false"></textarea>
+        <div class="nk-row-flex"><span id="composer-hint" class="nk-small nk-muted nk-fill">Enter to send · ⇧Enter for a new line</span><button id="stop" type="button" class="nk-btn" hidden>Stop <kbd>⌘.</kbd></button><button id="send" class="nk-btn nk-primary" type="submit">Send ↑</button></div>
+      </form>
+    </section>
+    <section id="switcher" class="overlay nk-card nk-col" role="dialog" aria-modal="true" aria-label="Quick switch" hidden>
+      <label for="search" class="nk-label">Switch agent or chat</label>
+      <input id="search" class="nk-input" type="search" placeholder="Search agents and chats…" autocomplete="off" aria-controls="choices">
+      <div id="choices" class="nk-list nk-scroll nk-fill"></div>
+      <span class="nk-small nk-muted">↑ ↓ to choose · Enter to open · Esc to dismiss</span>
+    </section>
+    <section id="create" class="overlay nk-card nk-col" role="dialog" aria-modal="true" aria-label="Create agent" hidden>
+      <form id="create-form" class="nk-col nk-fill">
+        <b class="nk-title">New agent</b>
+        <label class="nk-col nk-small">Name<input id="create-name" class="nk-input" required maxlength="100" placeholder="e.g. Code reviewer"></label>
+        <label class="nk-col nk-small">Instructions<textarea id="create-instructions" class="nk-textarea" rows="3" placeholder="What should this agent do?"></textarea></label>
+        <label class="nk-col nk-small">Working folder<input id="create-directory" class="nk-input" value="~" placeholder="~/Developer/my-project"></label>
+        <label class="nk-small"><input id="create-access" type="checkbox" checked> Full access</label>
+        <span id="access-warning" class="nk-small nk-muted">Can run commands, change any files and use the network without approval.</span>
+        <div id="create-error" class="nk-error" role="alert" hidden></div>
+        <footer class="nk-row-flex"><span class="nk-small nk-muted nk-fill">GPT-6.1 Sol · Ultra<br>More options in Settings → Agents</span><button id="create-cancel" class="nk-btn nk-ghost" type="button">Cancel</button><button id="create-save" class="nk-btn nk-primary" type="submit">Create</button></footer>
+      </form>
+    </section>
+  </main>
+  <script src="sdk.js"></script>
+<script src="core.js"></script>
+  <script src="markdown.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

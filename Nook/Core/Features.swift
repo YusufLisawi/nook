@@ -40,11 +40,7 @@ final class Features: ObservableObject, @unchecked Sendable { // mutable state i
         add("scratch", "Scratch", "Native scratch pad.", "No background service.", tabs: ["scratch"])
         add("notes", "Notes", "Persistent notes in the notch.", "Web content exists only while visible.", tabs: ["notes"])
         add("proxy", "Proxy", "Manage and connect system proxies.", tabs: ["proxy"], start: { s.proxy.restoreOnLaunch() }, stop: { s.release("proxy") { ($0 as? ProxyService)?.shutdown() } })
-        add("dictation", "Dictation", "Hold or toggle to transcribe speech.", tabs: ["dictation"], start: { s.dictation.start() }, stop: { s.release("dictation") { ($0 as? DictationService)?.stop() } })
-        add("mixer", "Mixer", "Device controls and per-app volume.", tabs: ["mixer"], start: { s.audio.start() }, stop: { s.release("audio") { ($0 as? AudioMixer)?.shutdown() } })
         add("links", "Link Catcher", "Save copied links to Links.", "Checks clipboard changes every 2 seconds when on.", tabs: ["links"], start: { s.links.start() }, stop: { s.release("links") { ($0 as? LinkCatcher)?.stop() } })
-        add("commands", "AI Commands", "Run saved prompts on selections and clipboard text.", tabs: ["commands"], start: { _ = s.commands }, stop: { s.release("commands") { ($0 as? AICommands)?.stop() } })
-        add("agents", "Agents", "Codex chats and background tasks.", tabs: ["agents"], start: { AgentService.register() }, stop: { AgentService.disable(); Self.unregister("agents", panes: ["agents"]) })
         add("monitor", "Monitor", "CPU, memory, network and battery stats.", "Samples only while the tab is visible.", tabs: ["monitor"], stop: { s.release("system") })
         add("teleprompter", "Teleprompter", "Scrolling script display.", "No background service.", tabs: ["teleprompter"])
         add("cleaner", "Cleaner", "Review and trash disposable files.", "Runs only on request.", tabs: ["cleaner"], start: { CleanerBridge.register() }, stop: { CleanerBridge.stop() })
@@ -102,8 +98,7 @@ final class Features: ObservableObject, @unchecked Sendable { // mutable state i
         let s = Services.shared
         let tabs = TabHotkeys.all().keys.contains { id in tabEnabled(id) && s.plugins.tabs.contains { $0.id == id } }
         let groups = TabNavigationStore.shared.groups.contains { $0.hotkey != nil && $0.members.contains(where: tabEnabled) }
-        let needed = (enabled("keyboard") && OpenNookShortcut.current != nil) || (enabled("dictation") && (s.hotkeys.hold != nil || s.hotkeys.toggle != nil)) ||
-            (enabled("commands") && s.commands.commands.contains { $0.enabled && $0.hotkey != nil }) ||
+        let needed = (enabled("keyboard") && OpenNookShortcut.current != nil) || PluginGestureHotkeys.shared.needed ||
             tabs || groups
         if needed { s.hotkeys.start() } else { s.hotkeys.stop() }
     }
@@ -116,11 +111,12 @@ final class Features: ObservableObject, @unchecked Sendable { // mutable state i
     func allowsBridge(_ fn: String) -> Bool {
         let ns = String(fn.split(separator: ".").first ?? "")
         let owners = ["files": "files", "windows": "windows", "agents": "agents", "commands": "commands", "dictation": "dictation", "audio": "mixer", "proxy": "proxy", "timer": "timers", "mouse": "mouse", "system": "monitor", "cleaner": "cleaner", "actions": "keyboard"]
-        if ["clips", "files", "windows"].contains(ns) { return false }
+        if ["clips", "files", "windows", "commands", "agents", "dictation", "audio"].contains(ns) { return false }
         return owners[ns].map(enabled) ?? true
     }
     func paneEnabled(_ id: String) -> Bool {
-        let owners = ["commands": "commands", "dictation": "dictation", "agents": "agents", "plugin-store": "pluginStore"]
+        if ["commands", "dictation"].contains(id) { return false }
+        let owners = ["plugin-store": "pluginStore"]
         return owners[id].map(enabled) ?? true
     }
 }

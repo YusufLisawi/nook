@@ -1,0 +1,11 @@
+{
+  "description": "Resumable Codex chats with tool cards and local session history.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": true,
+  "tags": [
+    "agents",
+    "native"
+  ],
+  "screenshots": []
+}

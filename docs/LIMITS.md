@@ -118,14 +118,40 @@ they are not encrypted separately from the user's account.
 
 ## Native File Search
 
-`nook.files.*` provides live Spotlight filename search, scope/kind filters, ranked results, bounded text previews,
-QuickLookThumbnailing PNG previews, a native Quick Look panel, Finder reveal, open/open-with, and path/file copy.
-Settings → File Search controls the default scope, excluded folders, and hidden files. No helper or extra dependency
-is required. Queries only see indexed, accessible files; Spotlight Privacy exclusions remain in effect. There is no
-fallback filesystem crawl. Broad searches cap candidate enumeration at 20,000, and return `truncated: true`.
-Warm cached candidates return immediately; cold index latency depends on Spotlight and mounted volumes, so a universal
-sub-100 ms guarantee is not possible. Live queries stop on plugin close, replacement, or inactivity expiry.
-See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract and lifecycle.
+Files uses a native SwiftUI tab and its own packed, in-memory name index, shared with `nook.files.*` and the
+launcher (`file:` / `f ` prefixes). It searches names, not file contents. Newest added/modified files appear
+in Recent even if never opened; name-match tiers dominate recency/frecency on nonempty queries. Date Added
+uses the filesystem's added-to-directory date, falling back to creation; filesystems/providers may omit it.
+
+Home is indexed by default, excluding Library, hidden files, dependencies/caches/builds and common app/package
+contents. Native Settings configures additional folders, exclusions and inclusion switches. Common package and
+kind recognition uses extension heuristics; custom package extensions can be explicitly excluded. Explicit root
+aliases are resolved to physical paths; descendant symlinks are never traversed. Unreadable/TCC-protected locations
+are skipped with a status notice; grant Files & Folders access and rebuild to add previously inaccessible content.
+Spotlight Privacy does not exclude files from the own index: use File Search's exclusions. Cloud placeholders
+can be indexed by name; preview/open still requires availability, and Nook does not request bulk downloads.
+
+The private binary catalog under `~/Library/Caches/com.yusuf.nook/FileIndex` stores names/paths, sizes, dates,
+Nook-opened counts/dates and an FSEvents watermark, without contents or query history. It loads at launch and
+replays events missed while quit. Changed scope/journal identity, corrupt cache, root changes or lost FSEvents
+history cause a background rebuild. Updates normally settle within FSEvents' 150 ms batch interval plus disk
+work. Large directory moves, rebuilds and cache compaction can take longer; merging a very large subtree briefly
+shares the search lock. Checkpoints are throttled to five seconds, with a normal-quit flush. Force quitting loses
+at most uncheckpointed Nook-opened history; filesystem changes replay from the older watermark.
+
+The own index searches all candidates and returns up to 100 rows. A character mask, C/NEON matching, bounded
+ranking heap and complete-candidate incremental narrowing avoid Spotlight latency. Benchmarks cover this Mac's
+home folder and one million synthetic names (see root REPORT.md); they measure the engine, not rendered-frame
+latency. Larger catalogs/complex OR queries, busy disks, network volumes or permission prompts can exceed one
+frame. Paths are bounded to 4,095 bytes and traversal to 256 levels; the string table uses 32-bit offsets.
+During the first build/rebuild, Spotlight provides partial candidates capped at 20,000; filters are applied with
+the same query compiler, but some subsequence/OR matches wait for the own catalog to finish.
+
+Native actions include bounded text/Quick Look thumbnail previews, Quick Look panel, open/reveal, path/name
+copy, file drag-out and explicitly confirmed Move to Trash. `nook.files.trash(path, {confirm:true})` requires
+caller confirmation and uses `FileManager.trashItem`; configured roots cannot be trashed. The plugin bridge
+retains open-with and file-URL copy. The native Files tab can still be overridden by a user web plugin.
+See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for syntax, lifecycle, settings and keyboard controls.
 
 - **Keyboard:** the global Open Nook shortcut uses the existing Accessibility event tap. Plugins' action
   shortcuts only work inside their selected tab. macOS symbolic shortcuts are checked for the default;

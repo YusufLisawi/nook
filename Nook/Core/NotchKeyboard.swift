@@ -237,6 +237,8 @@ final class NotchKeyboardController {
         guard let vm else { return false }
         vm.keyboard.engaged = true
         if vm.launcherPresented { return vm.launcherKeyHandler?(event) ?? false }
+        if vm.tab == "files", vm.currentTab?.isWeb == false, !vm.keyboard.isPresented,
+           FileSearchTabState.handle(event, owner: vm.web.keyboardID) { return true }
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 { escape(); return true }

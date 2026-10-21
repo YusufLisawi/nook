@@ -215,6 +215,7 @@ struct ExpandedView: View {
             case "shelf": ShelfTab(shelf: s.shelf, isTargeted: vm.isDropTargeted)
             case "scratch": ScratchTab()
             case "timers": TimersTab(timers: s.timers)
+            case "files": FileSearchTab(vm: vm)
             default: EmptyState(symbol: "puzzlepiece.extension", title: "Missing plugin", detail: vm.tab)
             }
         }

@@ -27,6 +27,7 @@ struct NotchGeometry {
 struct TabItem: Equatable, Identifiable {
     let id: String
     let name: String
+    var isWeb: Bool { true }
     let symbol = "square"
     let height: CGFloat
 }
@@ -94,3 +95,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate { func showSettings(pan
 final class NotchPanel: NSPanel {}
 enum PluginEvents { static func emit(_ event: String, _ payload: Any) {} }
 extension Notification.Name { static let nookKeyboardFocus = Notification.Name("nookKeyboardFocus") }
+
+// Native Files owns its local shortcuts only while its view is present.
+enum FileSearchTabState { static func handle(_ event: NSEvent, owner: String) -> Bool { false } }

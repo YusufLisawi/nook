@@ -59,7 +59,9 @@ struct NativeTests {
         precondition(ranked.map(\.path) == [prefix.path, word.path, contains.path], "usage must not cross name tiers")
         let frequent = result("report-b.txt"), recent = result("report-a.txt", lastUsed: now - 29 * 86400)
         precondition(FileSearchPolicy.ranked([recent, frequent], query: "report", preferences: preferences, usage: [frequent.path:10], now: now).first?.path == frequent.path)
-        precondition(FileSearchPolicy.ranked([frequent, result("report-c.txt", lastUsed: now)], query: "report", preferences: preferences, usage: [:], now: now).first?.name == "report-c.txt")
+        var added = result("report-c.txt")
+        added.added = now + 1
+        precondition(FileSearchPolicy.ranked([frequent, added], query: "report", preferences: preferences, usage: [:], now: now).first?.name == "report-c.txt")
         precondition(result("Search.ts").category == "code")
         precondition(result("settings.yaml").category == "code")
         var invisible = result("report-hidden.txt", lastUsed: now)
@@ -67,7 +69,7 @@ struct NativeTests {
         precondition(FileSearchPolicy.ranked([invisible], query: "report", preferences: preferences, usage: [:]).isEmpty)
         print("PASS: match tiers, accents, literal queries, hidden/excluded folders, path boundaries, bounded text, binary detection, missing paths")
 
-        precondition(FileSearchPolicy.ranked([prefix], query: "", preferences: preferences, usage: [:]).isEmpty, "recent cache must exclude never-used files")
+        precondition(!FileSearchPolicy.ranked([prefix], query: "", preferences: preferences, usage: [:]).isEmpty, "Recent includes newly modified, never-opened files")
         // NSMetadataQuery throws Objective-C exceptions for unsupported predicate shapes.
         // Exercise translation, especially the default empty/recent query, even without --benchmark.
         for (text, kind) in [("", "all"), ("literal ' * [x]", "all"), ("swift", "code")] {
@@ -100,6 +102,25 @@ struct NativeTests {
         let imagePayload = loadPreview(image)
         precondition((imagePayload["thumbnail"] as? String)?.hasPrefix("data:image/png;base64,") == true, "QuickLookThumbnailing did not return a PNG")
         print("PASS: real bounded text/metadata preview and QuickLookThumbnailing PNG, without displaying a window")
+        let localIndex = FileNameIndex(cacheDirectory: root.appendingPathComponent(".index"), home: root.path)
+        localIndex.start(defaults: defaults)
+        let indexDeadline = Date().addingTimeInterval(4)
+        while !localIndex.ready && Date() < indexDeadline { _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01)) }
+        precondition(localIndex.ready)
+        let localBridge = FileSearchService(defaults: defaults, index: localIndex)
+        var cancelled = false, secondReply: [String: Any]?
+        localBridge.handle("search", args: ["preview", ["scope": "all", "clientID": "race", "requestID": "1"]]) { value, error in
+            precondition(error == nil); cancelled = (value as? [String: Any])?["cancelled"] as? Bool == true
+        }
+        localBridge.handle("search", args: ["binary", ["scope": "all", "clientID": "race", "requestID": "2"]]) { value, error in
+            precondition(error == nil); secondReply = value as? [String: Any]
+        }
+        precondition(cancelled, "replacement must resolve the superseded bridge promise")
+        let replyDeadline = Date().addingTimeInterval(4)
+        while secondReply == nil && Date() < replyDeadline { _ = RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01)) }
+        precondition((secondReply?["results"] as? [[String: Any]])?.first?["name"] as? String == "binary.txt")
+        localBridge.cancel("native.files:race"); localIndex.shutdown()
+        print("PASS: real own-index bridge requests resolve cancelled promises and return only current results, with isolated /tmp index/cache")
         let filters = CommandLine.arguments.contains("--filters")
         guard filters || CommandLine.arguments.contains("--benchmark") else { return }
         let service = FileSearchService(defaults: defaults)

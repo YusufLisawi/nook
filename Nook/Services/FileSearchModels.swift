@@ -1,13 +1,13 @@
 import Foundation
 
-/// Shared, deterministic search policy; Spotlight supplies candidates, never a filesystem crawl.
+/// Bridge models and fallback policy; the packed index is in Services/Files.
 enum FileSearchPreferences {
     static let scopeKey = "files.defaultScope"
     static let hiddenKey = "files.showHidden"
     static let excludedKey = "files.excludedFolders"
     static let usageKey = "files.usage"
     static let scopes = ["home", "Developer", "Downloads", "all"]
-    static let kinds = ["all", "folder", "app", "document", "image", "pdf", "code"]
+    static let kinds = ["all", "folder", "app", "document", "image", "pdf", "code", "video", "audio", "archive"]
 
     struct Snapshot: Equatable {
         let scope: String
@@ -70,12 +70,13 @@ enum FileSearchPolicy {
     static func ranked(_ results: [FileSearchResult], query: String, preferences: FileSearchPreferences.Snapshot,
                        usage: [String: Int], now: Double = Date().timeIntervalSince1970) -> [FileSearchResult] {
         func boost(_ item: FileSearchResult) -> Double {
-            let recent = item.lastUsed > 0 ? min(30, max(0, 30 - (now - item.lastUsed) / 86400)) : 0
-            return recent + min(20, log2(Double((usage[item.path] ?? 0) + 1)) * 4)
+            let recent = max(item.added, item.modified)
+            guard !query.isEmpty else { return recent }
+            let days = max(0, now - item.lastUsed) / 86400
+            return max(recent, item.lastUsed) + min(7 * 86400, log2(Double((usage[item.path] ?? 0) + 1)) * 86400) / (1 + days / 7)
         }
         return results.compactMap { item -> (item: FileSearchResult, tier: Int, boost: Double)? in
             guard preferences.allows(item.path), preferences.showHidden || !item.hidden else { return nil }
-            guard !query.isEmpty || item.lastUsed > 0 else { return nil }
             let tier = matchTier(name: item.name, query: query)
             return tier < 0 ? nil : (item, tier, boost(item))
         }.sorted {
@@ -89,7 +90,7 @@ enum FileSearchPolicy {
     static func predicate(query: String, kind: String) -> NSPredicate {
         // Format arguments keep quotes, wildcards and predicate operators literal.
         let name = query.isEmpty
-            ? NSPredicate(format: "kMDItemLastUsedDate > %@", Date(timeIntervalSince1970: 0) as NSDate)
+            ? NSPredicate(format: "kMDItemFSContentChangeDate > %@", Date(timeIntervalSince1970: 0) as NSDate)
             : NSPredicate(format: "kMDItemFSName CONTAINS[cd] %@", query)
         let tree: (String) -> NSPredicate = { NSPredicate(format: "kMDItemContentTypeTree == %@", $0) }
         let code = NSCompoundPredicate(orPredicateWithSubpredicates: [tree("public.source-code")] +
@@ -118,6 +119,7 @@ struct FileSearchResult {
     let lastUsed: Double
     let contentTypes: [String]
     var hidden = false
+    var added: Double = 0
 
     var category: String {
         if contentTypes.contains("com.apple.application-bundle") { return "app" }
@@ -125,12 +127,15 @@ struct FileSearchResult {
         if contentTypes.contains("public.image") { return "image" }
         if contentTypes.contains("com.adobe.pdf") { return "pdf" }
         if contentTypes.contains("public.source-code") || FileSearchPolicy.codeExtensions.contains(URL(fileURLWithPath: path).pathExtension.lowercased()) { return "code" }
+        if contentTypes.contains("public.movie") { return "video" }
+        if contentTypes.contains("public.audio") { return "audio" }
+        if contentTypes.contains("public.archive") { return "archive" }
         return "document"
     }
 
     var json: [String: Any] {
         ["path": path, "name": name, "kind": kind, "size": size, "modified": modified, "lastUsed": lastUsed,
-         "category": category]
+         "category": category, "added": added]
     }
 }
 
@@ -138,7 +143,7 @@ extension FileSearchResult {
     init?(item: NSMetadataItem, knownPath: String? = nil) {
         // One metadata round trip instead of a separate IPC for each displayed attribute.
         let values = item.values(forAttributes: ["kMDItemPath", "kMDItemFSName", "kMDItemKind", "kMDItemFSSize",
-                                                "kMDItemFSContentChangeDate", "kMDItemLastUsedDate", "kMDItemContentTypeTree", "kMDItemFSInvisible"]) ?? [:]
+                                                "kMDItemFSContentChangeDate", "kMDItemLastUsedDate", "kMDItemDateAdded", "kMDItemFSCreationDate", "kMDItemContentTypeTree", "kMDItemFSInvisible"]) ?? [:]
         guard let path = knownPath ?? values["kMDItemPath"] as? String else { return nil }
         self.path = path
         name = values["kMDItemFSName"] as? String ?? URL(fileURLWithPath: path).lastPathComponent
@@ -148,6 +153,7 @@ extension FileSearchResult {
         lastUsed = (values["kMDItemLastUsedDate"] as? Date)?.timeIntervalSince1970 ?? 0
         contentTypes = values["kMDItemContentTypeTree"] as? [String] ?? []
         hidden = (values["kMDItemFSInvisible"] as? NSNumber)?.boolValue ?? false
+        added = (values["kMDItemDateAdded"] as? Date ?? values["kMDItemFSCreationDate"] as? Date)?.timeIntervalSince1970 ?? 0
     }
 
 }

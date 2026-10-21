@@ -241,49 +241,77 @@ Screenshots stay in their original folder. History and the OCR index are local i
 
 ## File Search (`nook.files`)
 
-Native Spotlight search with incremental, live results; no shell or filesystem crawl.
+Native, in-memory filename search, shared by the Files tab and launcher. No shell or network dependency.
 
 ```js
 const options = { clientID: 'my-view', requestID: '1', scope: 'home', kind: 'all', limit: 60 };
-const initial = await nook.files.search('report', options);
+const initial = await nook.files.search('report added:week !draft', options);
 nook.on('files', update => {
-  // Keep only your clientID and latest requestID (events go to every screen of this plugin).
-  // Same shape as initial: { clientID, requestID, query, scope, kind, results,
-  //   gathering, truncated, elapsedMs, error? }
+  // Accept only your clientID and latest requestID; events reach every screen of this plugin.
+  // { clientID, requestID, query, scope, kind, results, gathering, indexing,
+  //   source: 'index'|'spotlight', total?, truncated, elapsedMs, notice?, error? }
 });
-await nook.files.cancel('my-view');             // stop this client's live query on close
-await nook.files.keepAlive('my-view');          // every 30 s while visible → true if live; false means rerun search
+await nook.files.cancel('my-view');             // on close; frees this client's search cursor
+await nook.files.keepAlive('my-view');          // every 30 s while visible; false means rerun
 const preview = await nook.files.preview('/absolute/path');
-// → { path, name, kind, size, modified, text?, truncated?, thumbnail?, notice? }
-// thumbnail is a PNG data URL; text reads at most 20 KB; timestamps are Unix seconds.
+// { path, name, kind, size, modified, text?, truncated?, thumbnail?, notice? }
+// PNG data URL thumbnails; text reads at most 20 KB; timestamps are Unix seconds.
 await nook.files.open(path);
-await nook.files.reveal(path);                 // select in Finder
-await nook.files.quickLook(path);              // native Quick Look; same file toggles it
-await nook.files.copyPath(path);               // clipboard string
-await nook.files.copyFile(path);               // clipboard file URL, pasteable in Finder
-const apps = await nook.files.openWith(path);  // [{ name, path }] available applications
+await nook.files.reveal(path);
+await nook.files.quickLook(path);              // same file toggles native Quick Look
+await nook.files.copyPath(path);
+await nook.files.copyName(path);
+await nook.files.copyFile(path);               // file URL, pasteable in Finder
+const apps = await nook.files.openWith(path);
 await nook.files.openWith(path, apps[0].path);
+await nook.files.trash(path, { confirm: true }); // caller MUST show explicit confirmation first
+const status = await nook.files.status();      // { ready, count, notice }
+await nook.files.rebuild();                    // background rebuild using current native Settings
 ```
 
-`scope`: `home`, `Developer` (~/Developer), `Downloads` (~/Downloads), or `all` (all indexed local locations).
-Omit it to follow Settings → File Search. `kind`: `all`, `folder`, `app`, `document`, `image`, `pdf`, or `code`.
-`limit`: 1–100 (default 60). Each result is `{ path, name, kind, category, size, modified, lastUsed }`.
-An empty query shows recently used files. Name ranking is prefix, then word start, then substring, with recent/frequent
-use breaking ties within each tier. Queries debounce for 25 ms and replace the same client's previous query.
-Use a unique `clientID` per web view and a new `requestID` per search; the defaults are `default` and an empty string.
-The first reply may contain cached candidates; subsequent `files` events replace that list.
-`gathering: false` means the current gather is complete; live updates can still follow.
-Broad searches examine up to 20,000 indexed candidates and set `truncated` if more exist.
+`scope`: `home`, `Developer`, `Downloads`, or `all` (all folders configured in Settings → File Search).
+Omit it to use the default scope. `kind`: `all`, `folder`, `app`, `document`, `image`, `pdf`, `code`, `video`,
+`audio`, `archive`. `limit`: 1–100, default 60. A result is
+`{ path, name, kind, category, size, modified, added, lastUsed }` (`added` falls back to filesystem creation).
+Results rank exact basename, prefix, word start (including ASCII camel case), substring, then subsequence;
+newly added/modified files and Nook-opened frecency order each tier. Empty searches show newest added/modified
+files, including never-opened Downloads and screenshots. With `kind: 'all'`, Recent omits folders; choose the
+Folder filter to see recent folders. Match tiers always dominate usage. Native results update each keystroke;
+the bridge has no debounce. Queries retain all matching candidate IDs for safe incremental narrowing.
 
-`filesSettings` fires when native preferences change; rerun active searches. `node_modules`, `.git`, and Library
-caches/logs/developer data are always excluded. Hidden paths and user-excluded folders follow the native Settings pane.
-The Code filter also recognizes common source/config extensions when Spotlight has no source-code type label.
-Spotlight indexing, Privacy exclusions, filesystem permissions, and file availability still apply.
-Previews are cached in memory only; cloud-only iCloud items show a download hint without requesting a download.
-Queries without a heartbeat expire after 120 seconds; the bundled tab restarts expired queries after sleep.
+Query syntax (AND binds tighter than OR):
 
-The bundled tab uses ↑↓, Enter, ⌘Enter, Space, ⌘C, ⌘⇧C, and ⌘K. Shift-Space inserts a space into a filename query;
-Tab moves through the scope/kind filters and controls. Space/Esc dismiss native Quick Look.
+- `annual report` (AND), `report | invoice` (OR), `!draft` (exclude), `"annual report"` (phrase).
+- `*.png` / `?` wildcards; `~/Desktop/ report` or a quoted absolute folder path for path scope.
+- `ext:pdf;docx`; `kind:image|folder|app|doc|video|audio|code|archive` (any listed kind).
+- `file:` / `folder:` (optionally followed by a name, such as `folder:Projects`).
+- `size:>10mb` / `size:<1gb` (binary KB/MB/GB/TB); `dm:today`, `dm:week`, `dm:2026-10-21`;
+  `added:today` / `added:week` / a calendar date. Today uses local midnight; week means the last seven days;
+  a calendar date matches that local day. `!dm:today` and `!added:week` are supported; negated calendar dates
+  produce an inline syntax error. Queries are limited to 2,048 UTF-8 bytes, 64 atoms and 32 extensions per filter.
+
+The first reply is asynchronous; further `files` events replace it after index updates. Requests replace the
+same client's previous search. Use a unique `clientID` per web view and new `requestID` per keystroke. A request
+superseded before its first reply receives `cancelled: true`, so every bridge promise settles. Clients without
+heartbeats expire after 120 seconds when refreshed; explicit cancellation releases them immediately.
+`total` counts all matching names in the own index; `truncated` means more matches exist than displayed rows.
+There is no 20,000-candidate cap in the own index. While the first catalog builds, bounded Spotlight candidates
+provide temporary, correctly filtered results (`indexing: true`, `source: 'spotlight'`); their coverage is partial.
+`gathering: false` means the current result calculation completed, while later file changes can still emit updates.
+
+`filesSettings` fires when scope/hidden/exclusions change. Home is scanned in the background, excluding Library,
+cache/dependency/build folders, hidden files and common app/package internals by default. Settings adds roots,
+exclusions and inclusion switches. The packed catalog, dates, sizes and Nook-opened usage are saved with private
+permissions in `~/Library/Caches/com.yusuf.nook/FileIndex`; file contents and queries are not saved. FSEvents
+replays changes after restart; dropped history or changed journal/scope triggers a rebuild. Descendant symlinks
+are indexed as references and never traversed. Previews remain bounded and in memory; cloud-only items show a
+Finder download hint. Trash uses `FileManager.trashItem` and refuses configured index roots.
+
+The bundled Files tab is native SwiftUI; a user `files` web plugin can still override it and use this bridge.
+Native shortcuts: ↑↓ select, Return opens, ⌘Return reveals, Space toggles Quick Look (Shift-Space types a space),
+⌘C copies path, ⌥⌘C copies name, ⌘⌫ requests Trash confirmation, Tab/Shift-Tab cycles kinds, ⌘K opens local
+Actions, layered Escape cancels/clears/closes. Rows drag files to other apps. The launcher includes file results
+after its other sources; `file:` or `f ` limits it to this shared index. Toggle Files in Launcher Settings.
 
 ## Keyboard and command palette
 

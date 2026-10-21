@@ -81,7 +81,7 @@ enum LauncherSystemCommand: String, CaseIterable {
 }
 
 struct LauncherEntry: Identifiable {
-    enum Target { case application(LauncherApplication), nook(NotchKeyboardState.Entry), system(LauncherSystemCommand), askAI }
+    enum Target { case application(LauncherApplication), nook(NotchKeyboardState.Entry), system(LauncherSystemCommand), file(String), askAI }
     let id: String
     let title: String
     let subtitle: String
@@ -99,6 +99,7 @@ struct LauncherEntry: Identifiable {
     var primaryTitle: String {
         switch target {
         case .application: return "Open Application"
+        case .file: return "Open File"
         case .nook(let entry):
             switch entry.target { case .command: return "Run AI Command"; case .action: return "Run Action"; default: return "Open Tab" }
         case .system: return "Run Command"
@@ -108,6 +109,7 @@ struct LauncherEntry: Identifiable {
     var secondaryTitle: String? {
         switch target {
         case .application: return "Reveal in Finder"
+        case .file: return "Reveal in Finder"
         case .nook: return "Open Tab Without Running"
         default: return nil
         }
@@ -133,6 +135,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     private var bag = Set<AnyCancellable>()
     private var chatTask: Task<Void, Never>?
     private var operation = 0
+    private var fileRequest = 0
 
     init(vm: NotchViewModel) {
         self.vm = vm
@@ -148,6 +151,8 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
                 DispatchQueue.main.async { self?.rebuildIfPresented() }
             }.store(in: &bag)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: RunLoop.main).sink { [weak self] _ in self?.rebuildIfPresented() }.store(in: &bag)
+        NotificationCenter.default.publisher(for: FileNameIndex.changed)
             .receive(on: RunLoop.main).sink { [weak self] _ in self?.rebuildIfPresented() }.store(in: &bag)
         vm.launcherKeyHandler = { [weak self] in self?.handle($0) ?? false }
         vm.launcherEscape = { [weak self] in self?.escape() }
@@ -255,6 +260,21 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         results = rows
         selectedIndex = 0
         resize()
+        fileRequest += 1
+        let request = fileRequest
+        if LauncherPreferences.sources.contains(.files), parsed.source == nil || parsed.source == .files {
+            LauncherFileSource.search(parsed.text, client: "launcher:\(ObjectIdentifier(self))") { [weak self] result in
+                guard let self, self.fileRequest == request, self.vm?.launcherPresented == true else { return }
+                switch result {
+                case .success(let files):
+                    var rows = self.results.filter { $0.source != .files }
+                    rows.insert(contentsOf: files, at: rows.firstIndex(where: { $0.source == .askAI }) ?? rows.endIndex)
+                    self.results = rows; self.resize()
+                case .failure(let error):
+                    if parsed.source == .files { self.error = error.localizedDescription; self.resize() }
+                }
+            }
+        }
     }
 
     private var pendingHeight: CGFloat?
@@ -328,6 +348,11 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         guard let vm, !performing, !thinking else { return }
         actionsPresented = false
         switch entry.target {
+        case .file(let path):
+            FileSearchService.shared.handle(alternate ? "reveal" : "open", args: [path]) { [weak self] _, error in
+                if let error { self?.error = error; self?.resize() }
+                else { LauncherFeature.shared.record(entry.id); self?.dismiss() }
+            }
         case .application(let app):
             dismiss()
             let url = URL(fileURLWithPath: app.path)

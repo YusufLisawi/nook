@@ -170,8 +170,14 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
             vm.web.emit("close", vm.tab)
         }
         query = ""
-        vm.launcherPresented = true
         rebuild()
+        // Opening (from the header button or the shortcut) is the one animated change: the tab's content fades into the
+        // launcher while the shape springs to the launcher's size, together.
+        let height = targetHeight
+        withAnimation(NotchViewModel.spring) {
+            vm.launcherHeight = height
+            vm.launcherPresented = true
+        }
     }
 
     func closed() {
@@ -255,9 +261,13 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
 
     /// Coalesced and applied on the next run-loop turn: setting the height re-enters `resize()` through SwiftUI updates,
     /// and a nested animated change inside the first one left the black shape stuck at the old (taller) size.
+    private var targetHeight: CGFloat {
+        chatQuery == nil ? 62 + 24 + CGFloat(max(1, min(8, results.count))) * 44 + 42 + (error == nil ? 0 : 26) : 470
+    }
+
     func resize() {
         guard vm != nil else { return }
-        let height: CGFloat = chatQuery == nil ? 62 + 24 + CGFloat(max(1, min(8, results.count))) * 44 + 42 + (error == nil ? 0 : 26) : 470
+        let height = targetHeight
         let scheduled = pendingHeight != nil
         pendingHeight = height
         guard !scheduled else { return }
@@ -266,7 +276,10 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
             self.pendingHeight = nil
             guard vm.launcherHeight != target else { return }
             vm.holdRect = vm.liveRect.union(vm.holdRect ?? .null)
-            withAnimation(NotchViewModel.spring) { vm.launcherHeight = target }
+            // Typing/deleting snaps to the new size, like Raycast — no bouncing while you type.
+            var instant = Transaction()
+            instant.disablesAnimations = true
+            withTransaction(instant) { vm.launcherHeight = target }
         }
     }
 

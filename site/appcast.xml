@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.9.1</title>
+  <pubDate>Wed, 21 Oct 2026 19:10:44 GMT</pubDate>
+  <sparkle:version>26</sparkle:version>
+  <sparkle:shortVersionString>1.9.1</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Fixed a crash while typing in the launcher (e.g. &#x27;time in germany&#x27;)</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.9.1/Nook.dmg" type="application/octet-stream" sparkle:edSignature="rAwW2egzsjeAhTvT/7NrHQfpIHt+8+iUrcK0faTvtbtX3lxjC2k3KmxC9iMwukcrkiGAnG00dYZO9ezv7ngADg==" length="11369414"/>
+</item>
+<item>
   <title>Nook 1.9.0</title>
   <pubDate>Wed, 21 Oct 2026 19:03:34 GMT</pubDate>
   <sparkle:version>25</sparkle:version>

@@ -2,7 +2,6 @@ import Foundation
 
 /// Metadata-only fallback and protected-folder overlay. Never opens result URLs.
 final class FileSpotlightFallback {
-    private static let metadataWorker = DispatchQueue(label: "com.yusuf.nook.files.metadata", qos: .userInitiated, attributes: .concurrent)
     let created = Date()
     private let queryText: String
     private let scope: String
@@ -109,17 +108,14 @@ final class FileSpotlightFallback {
         guard !stopped else { return }
         let end = min(index + (index == 0 ? 20 : 100), count)
         let items = (index..<end).compactMap { query.result(at: $0) as? NSMetadataItem }
-        let preferences = preferences
-        let allowsPath = allowsPath
-        // Metadata can require IPC or disk access. Keep the frozen query on main, and read
-        // only its independent item references here so typing and cancellation stay responsive.
-        Self.metadataWorker.async { [weak self] in
-            let results = items.compactMap { item -> FileSearchResult? in
-                guard let path = item.value(forAttribute: "kMDItemPath") as? String, preferences.allows(path), allowsPath?(path) ?? true else { return nil }
-                return FileSearchResult(item: item, knownPath: path)
-            }
-            DispatchQueue.main.async { self?.scanned(results, first: index == 0, end: end, count: count) }
+        // NSMetadataItem reads go through its NSMetadataQuery, which is main-thread only and may be stopped and freed by
+        // the next keystroke — reading items on a background queue crashed (EXC_BAD_ACCESS in _sortingAttributes).
+        // Read this small chunk here on main while the query is frozen, then yield before the next chunk.
+        let results = items.compactMap { item -> FileSearchResult? in
+            guard let path = item.value(forAttribute: "kMDItemPath") as? String, preferences.allows(path), allowsPath?(path) ?? true else { return nil }
+            return FileSearchResult(item: item, knownPath: path)
         }
+        DispatchQueue.main.async { [weak self] in self?.scanned(results, first: index == 0, end: end, count: count) }
     }
 
     private func scanned(_ results: [FileSearchResult], first: Bool, end: Int, count: Int) {

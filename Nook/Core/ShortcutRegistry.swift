@@ -6,17 +6,20 @@ struct ShortcutRegistration: Identifiable {
     let id: String
     let title: String
     let group: String
+    let defaultShortcut: TabHotkey?
+    let editable: Bool
     let get: () -> TabHotkey?
     let set: (TabHotkey?) -> Void
 }
 
 enum ShortcutRegistry {
     private(set) static var shortcuts: [ShortcutRegistration] = []
+    static var externalConflicts: (TabHotkey) -> [String] = { _ in [] }
 
-    static func register(id: String, title: String, group: String = "Extensions",
+    static func register(id: String, title: String, group: String = "Extensions", defaultShortcut: TabHotkey? = nil, editable: Bool = true,
                          get: @escaping () -> TabHotkey?, set: @escaping (TabHotkey?) -> Void) {
         shortcuts.removeAll { $0.id == id }
-        shortcuts.append(ShortcutRegistration(id: id, title: title, group: group, get: get, set: set))
+        shortcuts.append(ShortcutRegistration(id: id, title: title, group: group, defaultShortcut: defaultShortcut, editable: editable, get: get, set: set))
         shortcuts.sort { ($0.group, $0.title, $0.id) < ($1.group, $1.title, $1.id) }
         NotificationCenter.default.post(name: .nookShortcutsChanged, object: nil)
     }

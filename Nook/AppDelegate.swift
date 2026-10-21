@@ -21,6 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if NSApp.keyWindow is NotchPanel { return false } // local notch shortcuts take precedence
             if Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
             if WindowManager.shared.handleShortcut(key: key, modifiers: mods) { return true }
+            if let group = NativeShortcutIntegration.group(key: key, modifiers: mods) {
+                DispatchQueue.main.async { self?.notchUnderMouse()?.toggleGroupWithKeyboard(group.id) }
+                return true
+            }
             guard let self, let tab = TabHotkeys.tab(forKey: key, modifiers: mods) else { return false }
             DispatchQueue.main.async { self.notchUnderMouse()?.toggleWithKeyboard(tab: tab) }
             return true

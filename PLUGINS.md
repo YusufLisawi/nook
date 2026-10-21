@@ -269,7 +269,7 @@ Open Nook from anywhere with **⌥⇧⌘Space** (General → Open Nook changes o
 if the default conflicts with an enabled macOS symbolic shortcut, it tries ⌃⇧⌘Space, then ⌃⌥⇧⌘Space.
 The notch under the pointer becomes key, focuses the current tab, and stays open during keyboard use.
 Esc closes the palette first, then in-notch settings, then the notch, returning focus to the previous app.
-**⌘1…⌘9** select tabs in dock order; **⌃Tab / ⌃⇧Tab** and **⌘] / ⌘[** cycle tabs. **⌘K** searches
+**⌘1…⌘9** select dock items (a group counts once); **⌃Tab / ⌃⇧Tab** and **⌘] / ⌘[** cycle dock items. **⌥⌘← / ⌥⌘→** cycle deck members. **⌘K** searches
 tabs, enabled AI Commands and actions registered by loaded plugins on this display. ↑↓ select; Enter runs;
 ⌘Enter opens tab settings, edits AI Commands in Settings, or sends a plugin's alternate action.
 
@@ -349,7 +349,7 @@ The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/Plugin
 ## Native Settings and shortcuts
 
 Settings → **Tabs & Plugins** shows each tab’s height, shortcut, manifest options, and Edit Code / Revert controls inline.
-Drag rows to reorder the notch dock; the row menu also offers Move Up / Move Down. **Keyboard Shortcuts** collects
+Drag dock items or expanded group members to reorder them; row menus also offer Move Up / Move Down. **Keyboard Shortcuts** collects
 tab, AI command, dictation, and native extension assignments and identifies duplicate key combinations.
 
 Native features can add searchable panes and expose existing shortcut storage without editing Settings switches:
@@ -396,3 +396,30 @@ skipped candidate and stays intact. The bundled Cleaner displays partial results
 Trash size is unknown; confirmed emptying uses Finder AppleScript via `nook.shell` and may request Automation
 permission to control Finder. Finder empties all Trash, including mounted volumes. Homebrew keeps its own
 confirmed `brew cleanup -s` operation. Neither action is part of this bridge API.
+
+## Dock visibility and tab groups
+
+Settings → **Tabs & Plugins** separates **Enable plugin** from **Hide from dock**. Hidden plugins remain enabled:
+existing `nook://open/<id>` / `toggle`, tab hotkeys, AI/agent opens, and ⌘K still use the same plugin ID. Hiding
+only removes a plugin from the dock and numbered/cycling destinations; it does not stop an already-loaded web view.
+
+**New Group…** creates a named SF Symbol deck with at least two plugins and an optional global shortcut. A plugin
+belongs to one group. The group occupies one dock position; member shortcuts open that member in its deck. The group
+shortcut toggles the deck on its last enabled member. A small pill row selects members; **⌥⌘← / ⌥⌘→** and horizontal
+swipes move inside the deck. **⌘1…9**, **⌃Tab / ⌃⇧Tab**, and **⌘[ / ⌘]** address dock items, counting a group once.
+Hidden/disabled members are skipped by dock/deck cycling; directly opening a hidden member still shows its selected
+pill. Numbered/dock entry falls back to a visible member if the remembered member is hidden. An all-hidden group has
+no dock icon. Deleting a group returns its members with their existing enabled/hidden preferences.
+
+Drag dock items in Settings or the notch, expand a group to reorder members, or use each row's Move Up / Move Down
+menu. Right-click a dock icon for Hide from Dock, Add to Group, and Settings. Existing plugin APIs and active plugin
+IDs are unchanged; there is no new JavaScript namespace. Presentation preferences are `hiddenTabs` (string array),
+`tabGroups` (JSON Data containing stable IDs, name, symbol, ordered members, optional `TabHotkey`, and last member),
+and `dockItemOrder` (string array of plugin IDs and `group:<UUID>` IDs). `disabledTabs` remains independent.
+
+Keyboard Shortcuts now includes Open Nook, all Window Management actions, tab groups, and the fixed navigation
+bindings alongside tabs, AI Commands, and dictation. General and Window Management use the same conflict-aware
+recorder. `ShortcutRegistry.register` also accepts optional `defaultShortcut: TabHotkey?` and `editable: Bool`
+(default true); fixed navigation entries are read-only and participate in conflict checks. Known macOS symbolic
+shortcuts are checked; other apps' private shortcuts remain undiscoverable. Window shortcuts invoked inside the
+notch use that display's captured external window.

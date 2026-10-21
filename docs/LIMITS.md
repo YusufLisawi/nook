@@ -136,11 +136,11 @@ See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract an
 ## Native Settings
 
 - Settings has searchable native panes, including panes registered through `SettingsRegistry` with optional keywords.
-- Tabs & Plugins uses a master–detail editor for height, hotkey, manifest options, and code customization. Reordering
-  writes `PluginRegistry.customOrder`, the same order used by the notch dock. Reverting a plugin uses the Trash.
+- Tabs & Plugins uses a master–detail editor for height, hotkey, manifest options, and code customization. Dock/member reordering
+  shares the `TabNavigationStore` presentation preferences with the notch dock; existing `tabOrder` remains the base order. Reverting a plugin uses the Trash.
 - Keyboard Shortcuts lists tab shortcuts, AI command hotkeys, dictation gestures, and shortcuts exposed by native
   features through `ShortcutRegistry`. Recorders detect duplicate Nook assignments, including existing conflicts.
-  macOS and other apps’ shortcut assignments are not inspectable here; Accessibility is still required globally.
+  Known macOS symbolic shortcuts are checked; other apps’ private assignments cannot be inspected. Accessibility is still required globally.
 - About shows the app version/build, project links, MIT license, and the shared Sparkle update action.
 - The last pane and window frame persist in preferences. The Settings hosting controller pre-warms in a hidden window
   shortly after launch, without activating the app or opening a second instance.
@@ -169,3 +169,20 @@ One inline hint links to Full Disk Access; granting it may expose more candidate
 permissions. Protected skips are expected partial results. Other I/O failures remain errors. Homebrew is delegated
 to `brew cleanup -s`, which permanently removes its own obsolete files and may report its own failures; its scan
 estimate covers the standard `~/Library/Caches/Homebrew` root, not a custom `HOMEBREW_CACHE` location.
+
+## Dock customization and decks
+
+- Hide from Dock is independent of disabling. Hidden plugins remain available through their global shortcut,
+  command palette, URL scheme, and native AI/agent opens. Already-loaded web views keep running normally.
+- Groups contain at least two configured plugins and appear as one dock item. Members retain their plugin IDs,
+  individual shortcuts, settings, and heights. Each deck remembers its last member and can have its own shortcut.
+- The deck's pill row adds 34 points of native chrome above the active member's unchanged content height.
+  ⌥⌘←/→ and horizontal swipes cycle visible enabled members; ⌃Tab and ⌘[/⌘] cycle dock items. ⌘1…9 counts
+  groups once. Hidden members are never cycling/numbered destinations, but direct opens remain supported.
+- A plugin belongs to one group. Moving it to another group dissolves a former group with fewer than two members.
+  Missing/disabled members stay in saved groups, are skipped at runtime, and return when available/enabled. Groups
+  with no visible enabled members leave the dock. Deleting groups preserves member visibility and enable preferences.
+- Settings supports group creation/editing, SF Symbol choices, per-group shortcuts, dock/member drag ordering, and
+  keyboard-accessible row menus. Corrupt saved group JSON is left intact and reported until explicitly reset.
+- All native shortcut assignments share conflict detection, including Open Nook, Window Management, groups, and
+  read-only navigation reservations. This does not enumerate private shortcuts in other applications.

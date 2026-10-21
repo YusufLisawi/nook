@@ -82,10 +82,11 @@ final class WindowManager {
         """
     }
 
-    func handleShortcut(key: Int64, modifiers: CGEventFlags) -> Bool {
+    func handleShortcut(key: Int64, modifiers: CGEventFlags, from notch: NotchViewModel? = nil) -> Bool {
         guard let action = WindowShortcuts.shared.action(key: key, modifiers: modifiers) else { return false }
+        let context = notch.map(Self.context)
         Task { @MainActor in
-            do { try await self.apply(action, fromNotch: false) }
+            do { try await self.apply(action, fromNotch: context != nil, context: context) }
             catch { self.showFailure(error.localizedDescription) }
         }
         return true

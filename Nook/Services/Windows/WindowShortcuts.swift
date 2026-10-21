@@ -38,18 +38,10 @@ final class WindowShortcuts: ObservableObject {
 
     /// Hard conflicts are never run or newly saved. Existing conflicts remain visible so users can fix them.
     func conflicts(_ hotkey: TabHotkey, for action: WindowAction) -> [String] {
-        func matches(_ other: TabHotkey?) -> Bool {
-            other?.keyCode == hotkey.keyCode && other?.modifiers == hotkey.modifiers
-        }
-        var conflicts = WindowAction.allCases.filter { $0 != action && matches(get($0)) }.map(\.title)
-        conflicts += TabHotkeys.all().filter { matches($0.value) }.map { "\($0.key) tab" }.sorted()
-        conflicts += Services.shared.commands.commands.filter { $0.enabled && matches($0.hotkey) }.map { "AI Command: \($0.name)" }
-        let monitor = Services.shared.dictation.hotkeys
-        for (name, shortcut) in [("Dictation hold", monitor.hold), ("Dictation toggle", monitor.toggle)] {
-            if let shortcut, shortcut.keyCode == hotkey.keyCode, shortcut.modifiers == hotkey.modifiers { conflicts.append(name) }
-        }
-        conflicts += Self.systemConflicts(hotkey)
-        return conflicts
+        let item = SettingsShortcutItem.all.first { $0.id == "extension:windows.\(action.rawValue)" }
+        let shortcut = DictationShortcut(keyCode: hotkey.keyCode, modifiers: hotkey.modifiers, display: hotkey.display)
+        return (item?.conflicts(with: shortcut).map { "\($0.title) (\($0.group))" } ?? [])
+            + Self.systemConflicts(hotkey)
     }
 
     static func systemConflicts(_ hotkey: TabHotkey) -> [String] {
@@ -74,6 +66,7 @@ final class WindowShortcuts: ObservableObject {
         // macOS omits uncustomized entries from the plist. Cover the usual defaults as well.
         let defaults: [(String, Int, CGEventFlags, String)] = [
             ("64", 49, .maskCommand, "Spotlight"), ("60", 49, .maskControl, "Input Source"),
+            ("65", 49, [.maskAlternate, .maskCommand], "Finder Search"),
             ("79", 123, .maskControl, "Previous Space"), ("81", 124, .maskControl, "Next Space"),
             ("32", 126, .maskControl, "Mission Control"), ("33", 125, .maskControl, "Application Windows")
         ]

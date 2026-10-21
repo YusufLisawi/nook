@@ -27,6 +27,7 @@ final class NotchViewModel: ObservableObject {
         }
         didSet {
             guard tab != oldValue else { return }
+            TabNavigationStore.shared.remember(tab)
             showingSettings = false
             web.emit("show", tab)
         }
@@ -66,9 +67,20 @@ final class NotchViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] activity in withAnimation(Self.spring) { self?.activity = activity } }
             .store(in: &bag)
-        s.plugins.$tabs.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        s.plugins.$tabs.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            DispatchQueue.main.async { self?.reconcileTabNavigation() }
+        }.store(in: &bag)
         s.plugins.$customOrder.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         s.plugins.$userHeights.sink { [weak self] _ in withAnimation(Self.spring) { self?.objectWillChange.send() } }.store(in: &bag)
+        TabNavigationStore.shared.objectWillChange.sink { [weak self] in
+            // Preserve the old hit area even when a deck is created/deleted while open.
+            guard let self else { return }
+            if self.isOpen { self.holdRect = self.liveRect.union(self.holdRect ?? .null) }
+            DispatchQueue.main.async { self.reconcileTabNavigation() }
+        }.store(in: &bag)
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: RunLoop.main).sink { [weak self] _ in self?.reconcileTabNavigation() }.store(in: &bag)
         s.timers.onFinish = { [weak self] in self?.open(tab: "timers") }
     }
 
@@ -93,7 +105,7 @@ final class NotchViewModel: ObservableObject {
         let notch = geometry.notch.size
         switch state {
         case .open:
-            return CGSize(width: max(Self.openWidth, notch.width + 300), height: notch.height + 8 + contentHeight + 8 + Self.dockHeight + 10)
+            return CGSize(width: max(Self.openWidth, notch.width + 300), height: notch.height + 8 + contentHeight + 8 + Self.dockHeight + 10 + (currentGroup == nil ? 0 : 34))
         case .closed:
             if let activity { return CGSize(width: notch.width + 2 * sideWidth(for: activity), height: notch.height) }
             guard isHovering else { return notch }
@@ -147,18 +159,18 @@ final class NotchViewModel: ObservableObject {
 
     /// Switch tab with a slide that matches the tab's position.
     func select(_ id: String) {
-        let ids = enabledTabs.map(\.id)
-        guard id != tab, let from = ids.firstIndex(of: tab), let to = ids.firstIndex(of: id) else { tab = id; return }
+        guard id != tab, let (from, to) = navigationIndices(to: id) else { tab = id; return }
         slideEdge = to > from ? .trailing : .leading
         withAnimation(.snappy(duration: 0.28)) { tab = id }
     }
 
     /// Trackpad swipe: +1 next tab, -1 previous (wraps).
     func step(_ delta: Int) {
-        let ids = enabledTabs.map(\.id)
-        guard !ids.isEmpty, let i = ids.firstIndex(of: tab) else { return }
+        let items = dockItems
+        guard let id = DockLayout.step(from: currentDockID, by: delta, ids: items.map(\.id)),
+              let item = items.first(where: { $0.id == id }) else { return }
         slideEdge = delta > 0 ? .trailing : .leading
-        withAnimation(.snappy(duration: 0.28)) { tab = ids[(i + delta + ids.count) % ids.count] }
+        withAnimation(.snappy(duration: 0.28)) { selectDockItem(item) }
         if Prefs.bool(Prefs.haptics) { NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
     }
 

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Owns the panel and polls the mouse at 30 Hz to drive hover, click-through and drag-to-shelf.
 final class NotchController {
-    static let panelSize = CGSize(width: 880, height: 520)
+    static let panelSize = CGSize(width: 880, height: 560)
 
     let viewModel: NotchViewModel
     private var panel: NotchPanel?
@@ -88,6 +88,11 @@ final class NotchController {
         else { viewModel.open(tab: tab); openWithKeyboard() }
     }
 
+    func toggleGroupWithKeyboard(_ id: String) {
+        viewModel.toggleGroup(id)
+        if viewModel.isOpen { openWithKeyboard() }
+    }
+
     private func tick() {
         guard let panel else { return }
         ticks += 1
@@ -142,7 +147,7 @@ final class NotchController {
             switch swipeAxis {
             case .horizontal where vm.isOpen && abs(swipe.x) > 50:
                 swipeFired = true
-                vm.step(swipe.x < 0 ? 1 : -1) // fingers left → next tab, like flipping pages
+                vm.swipeTabs(swipe.x < 0 ? 1 : -1) // Within a group, flip through its deck.
             case .vertical where !vm.isOpen && swipe.y > 25:
                 swipeFired = true
                 vm.open()

@@ -136,7 +136,7 @@ struct ExpandedView: View {
         let notch = vm.geometry.notch
         VStack(spacing: 8) {
             HStack(spacing: 0) {
-                Text(vm.currentTab?.name ?? "")
+                Text(vm.currentGroup?.name ?? vm.currentTab?.name ?? "")
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 6)
                 Color.clear.frame(width: notch.width)
@@ -157,6 +157,8 @@ struct ExpandedView: View {
                 .frame(maxWidth: .infinity)
             }
             .frame(height: notch.height)
+
+            if vm.currentGroup != nil { TabDeckSwitcher(vm: vm) }
 
             // The clip lives on this fixed container, so sliding tabs never spill past the content area.
             ZStack {
@@ -199,71 +201,6 @@ struct ExpandedView: View {
             default: EmptyState(symbol: "puzzlepiece.extension", title: "Missing plugin", detail: vm.tab)
             }
         }
-    }
-}
-
-/// Tab icons along the bottom of the open notch.
-struct TabDock: View {
-    @ObservedObject var vm: NotchViewModel
-    @State private var dragging: String?
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(vm.enabledTabs) { tab in
-                let selected = vm.tab == tab.id
-                Button { vm.select(tab.id) } label: { Image(systemName: tab.symbol)
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 34, height: 26)
-                    .background(Capsule().fill(Color.white.opacity(selected ? 0.16 : 0)))
-                    .foregroundStyle(selected ? .white : .secondary)
-                    .opacity(dragging == tab.id ? 0.35 : 1)
-                    .contentShape(Capsule())
-                }
-                    .buttonStyle(.plain)
-                    .keyboardFocusRing()
-                    .onKeyPress(.return) { vm.select(tab.id); return .handled }
-                    .accessibilityLabel(tab.name)
-                    .onDrag {
-                        dragging = tab.id
-                        return NSItemProvider(object: tab.id as NSString)
-                    }
-                    .onDrop(of: [.fileURL, .plainText], delegate: DockDropDelegate(target: tab.id, vm: vm, dragging: $dragging))
-                    .help(TabHotkeys.get(tab.id).map { "\(tab.name)  \($0.display)" } ?? tab.name)
-            }
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Capsule().fill(Color.white.opacity(0.05)))
-        .onDrop(of: [.plainText], isTargeted: nil) { _ in dragging = nil; return true } // dropped on the dock's padding
-    }
-}
-
-/// One drop target per dock icon:
-/// - dragging another tab icon over it → live reorder (saved for every notch)
-/// - dragging a file over it → spring-load: switch to that tab so the file can be dropped there
-private struct DockDropDelegate: DropDelegate {
-    let target: String
-    let vm: NotchViewModel
-    @Binding var dragging: String?
-
-    private func isFile(_ info: DropInfo) -> Bool { info.hasItemsConforming(to: [.fileURL]) }
-
-    func dropEntered(info: DropInfo) {
-        if isFile(info) {
-            if vm.tab != target { withAnimation(.snappy(duration: 0.2)) { vm.tab = target } }
-        } else if let dragging, dragging != target {
-            withAnimation(.snappy(duration: 0.22)) { vm.services.plugins.move(dragging, to: target) }
-        }
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: isFile(info) ? .copy : .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        let wasReorder = dragging != nil && !isFile(info)
-        dragging = nil
-        return wasReorder
     }
 }
 

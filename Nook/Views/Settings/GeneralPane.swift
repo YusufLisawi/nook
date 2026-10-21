@@ -54,7 +54,7 @@ struct GeneralPane: View {
             } header: {
                 Text("Interaction")
             } footer: {
-                Text("Swipe left or right to switch tabs, down on the closed notch to open it, or up on the top bar to close it.")
+                Text("Swipe left or right to switch tabs or deck members, down on the closed notch to open it, or up on the top bar to close it.")
             }
             Section("On the closed notch") {
                 Toggle("Show what's playing", isOn: $showMusic)

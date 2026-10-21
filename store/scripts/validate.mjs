@@ -95,7 +95,7 @@ export async function validatePlugin(root) {
     if (!Array.isArray(manifest.settings) || !manifest.settings.every(isObject)) error('settings must be an array of objects');
     else manifest.settings.forEach((s, i) => {
       if (!nonempty(s.key) || !nonempty(s.label)) error(`settings[${i}] needs key and label`);
-      if (!['toggle', 'text', 'secret', 'textarea', 'number', 'select', 'color'].includes(s.type)) error(`settings[${i}] has an invalid type`);
+      if (!['toggle', 'text', 'secret', 'textarea', 'number', 'select', 'color', 'shortcut'].includes(s.type)) error(`settings[${i}] has an invalid type`);
       if (s.type === 'select' && (!Array.isArray(s.options) || !s.options.length)) error(`settings[${i}] select needs options`);
       if (s.options != null && (!Array.isArray(s.options) || !s.options.every((v) => typeof v === 'string') || new Set(s.options).size !== s.options.length)) error(`settings[${i}] options must be unique strings`);
       if (s.help != null && typeof s.help !== 'string') error(`settings[${i}] help must be text`);

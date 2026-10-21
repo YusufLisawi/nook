@@ -9,18 +9,18 @@ struct IntegrationTests {
             checks += 1
         }
         NativeShortcutIntegration.register()
-        NativeShortcutIntegration.registerWindows()
+        var assigned: TabHotkey?
+        ShortcutRegistry.register(id: "plugin.windows/center", title: "Center", group: "Plugins", get: { assigned }, set: { assigned = $0 })
         let all = SettingsShortcutItem.all
         check(all.contains { $0.id == "extension:keyboard.openNook" && $0.get() != nil }, "Open Nook is registered with its default")
-        check(all.filter { $0.group == "Window Management" }.count == WindowAction.allCases.count, "Every window action is registered, including unassigned ones")
+        check(all.contains { $0.id == "extension:plugin.windows/center" }, "Plugin shortcut participates in native recorder conflicts")
         check(all.first { $0.id == "extension:keyboard.openNook" }?.defaultShortcut != nil, "Open Nook retains Restore Default")
         check(all.filter { $0.group == "Navigation" }.count == 17, "All fixed navigation bindings are listed")
         check(all.filter { $0.group == "Navigation" }.allSatisfy { !$0.editable }, "Fixed bindings are read-only")
         let open = all.first { $0.id == "extension:keyboard.openNook" }!
-        let window = all.first { $0.id == "extension:windows.center" }!
+        let window = all.first { $0.id == "extension:plugin.windows/center" }!
         let tab = all.first { $0.id == "tab:notes" }!
         check(window.conflicts(with: open.get()!).contains { $0.id == open.id }, "Windows detect Open Nook")
-        check(WindowShortcuts.shared.conflicts(OpenNookShortcut.current!, for: .center).contains { $0.contains("Open Nook") }, "Window execution refuses Open Nook collision")
         let chord = DictationShortcut(keyCode: 3, modifiers: CGEventFlags([.maskAlternate, .maskShift, .maskCommand]).rawValue, display: "⌥⇧⌘F")
         window.set(chord)
         check(tab.rejection(for: chord)?.contains("Center") == true, "Tabs reject window collisions")
@@ -32,7 +32,6 @@ struct IntegrationTests {
         window.set(nil)
         groupShortcut.set(chord)
         check(window.rejection(for: chord)?.contains("Work") == true, "Windows reject group collisions")
-        check(WindowShortcuts.shared.conflicts(TabHotkey(keyCode: chord.keyCode!, modifiers: chord.modifiers, display: chord.display), for: .center).contains { $0.contains("Work") }, "Window execution checks group shortcuts")
         check(NativeShortcutIntegration.group(key: 3, modifiers: CGEventFlags(rawValue: chord.modifiers))?.id == group.id, "Group hotkey routes by hardware key")
         let deck = DictationShortcut(keyCode: 123, modifiers: CGEventFlags([.maskAlternate, .maskCommand]).rawValue, display: "⌥⌘←")
         check(tab.rejection(for: deck)?.contains("Deck") == true, "Fixed deck navigation is reserved across recorders")

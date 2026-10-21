@@ -179,150 +179,53 @@ The bundled plugin pins after sending and unpins when leaving, changing chats/ta
 in the background and show the agent name with `sparkles` on the closed notch. Shortcuts: **⌘K** switch, **⌘N** new chat,
 **Enter/⌘Enter** send, **Shift+Enter** newline, **Esc/⌘.** stop; Esc closes when idle. Tool cards support Tab and Enter/Space.
 
-## Window management
+## File Search, Clips and Windows — Store helpers
+
+Install `file-search`, `clips`, `windows` or `launcher` in Settings → Plugin Store, then explicitly enable it in
+Tabs & Plugins and approve its declared permissions. All four have `default: false` in the catalog and start
+disabled. There are no built-in feature services or `nook.files.search`, `nook.clips.*`, `nook.windows.apply` bridges.
+The v2 host still exposes scoped `nook.files.read/write/open/reveal/trash` and `nook.windows.frontmost`.
+
+A package's web UI calls its own helper, using the existing transport:
 
 ```js
-await nook.windows.state();       // {trusted, target: appName|null, busy, message, lastError,
-                                  //  actions: [{id, title, group, shortcut, conflict}]}
-await nook.windows.apply('nextDisplay'); // → updated state; rejects with a useful reason on failure
-await nook.windows.openPrivacy(); // opens macOS Accessibility settings
-await nook.windows.openSettings();// opens Nook Settings → Window Management
+await nook.native.call('files.search', {args: ['report added:week !draft',
+  {clientID: 'view-1', requestID: '1', scope: 'home', kind: 'all', limit: 60}]}); // file-search only
+nook.native.on('files', update => { /* accept only this client and its latest request */ });
+await nook.native.call('clips.historyPage', {args: ['text:invoice', {offset: 0}]}); // {items,next}
+await nook.native.call('windows.apply', {args: ['leftHalf']}); // uses this notch's captured window
 ```
 
-`apply` targets the exact focused window captured **before the notch opened**, even after the plugin gains keyboard
-focus. Each notch keeps its own target, including pinned notches on separate displays. Opening that notch again captures
-a new target; `state` never changes it. Accessibility permission is required.
-Global shortcuts instead use the currently focused window, and are configured per action in native Settings (none assigned by default).
+These are **package-local RPC methods**, not shared host APIs or calls to another plugin. Each package is
+self-contained; disable/revoke stops its supervised helper and removes shortcuts/providers. See package tests.
 
-Action IDs: `previousDisplay`, `nextDisplay`, `previousDesktop`, `nextDesktop`; `leftHalf`, `rightHalf`, `topHalf`,
-`bottomHalf`; `topLeftQuarter`, `topRightQuarter`, `bottomLeftQuarter`, `bottomRightQuarter`; `firstThird`, `centerThird`,
-`lastThird`, `firstTwoThirds`, `lastTwoThirds`; `maximize`, `almostMaximize`, `maximizeHeight`, `maximizeWidth`, `center`, `restore`.
-Display order is left-to-right, then top-to-bottom, and wraps. Relative size/position scale to the destination's usable area.
-Almost Maximize defaults to 90% on each axis; native Settings adjusts it. Restore keeps the frame from before a series of
-Nook layouts; a manual move starts a new series. History is in memory, bounded to 64 windows.
+- **File Search:** packed C matcher, Swift index/FSEvents, Spotlight fallback, previews/Quick Look and all actions
+  run in `file-search`. Scope/kind filters, AND/OR, `!exclude`, phrases, wildcards, `ext:`, `kind:`, `size:`,
+  `dm:` and `added:` remain supported. Stable `clientID`/`requestID` reject stale or other-display updates.
+  `files.cancel/keepAlive/status/rebuild/preview/open/reveal/quickLook/copyPath/copyName/copyFile/openWith/trash`
+  keep their former argument shapes inside `native.call(...,{args:[...]})`. Trash needs `{confirm:true}`.
+  Settings uses the generic plugin form. Choose protected folder roots in Permissions & Trust; old app grants
+  do not silently authorize a new helper. Startup gates protected/cloud/media/mounted paths before traversal.
+  The optional search-mode file provider shares this same index; no duplicate index exists in Launcher or core.
+- **Clips:** privacy markers/ignored apps, 2-second clipboard polling, private images, retention, screenshot-folder
+  watcher and local Vision OCR run in `clips`. `historyPage/screenshotsPage` return `{items,next}` with an integer
+  cursor or null; pages stay below the 1 MiB RPC limit. UI snippets are bounded (16,000 characters, 32 file paths);
+  full text/path lists stay in saved history and native Copy/Paste. `history/screenshots/status/thumbnail/copy/paste/
+  open/reveal/delete/pin/unpin/clear/quickLook` remain helper methods. Confirm deletes: file-reference and capture
+  deletion trashes originals; retention/clear only trash owned image copies. `nook.native.on('clips', refresh)`
+  invalidates results. Approve the screenshot folder before indexing it. This indexes existing captures, not screen
+  recording. Rich paste needs Accessibility and restores/refuses the remembered external app.
+- **Windows:** AX geometry/history and desktop/display moves run in `windows`. The host sends approved
+  Accessibility+Windows helpers a `beforeOpen` event with `{context,pid?,windowNumber?}` before taking focus.
+  Native RPC automatically carries a reserved `__context` for the originating notch. The helper resolves the
+  exact captured window; absent/closed/unsupported targets refuse to move. It never retargets on a state request.
+  Layout/desktop shortcuts use host v2 `hotkeys.register`, including native conflict checking and disable cleanup.
+  Each is a native shortcut recorder in the plugin's grouped Settings pane. Graceful termination releases a held
+  desktop drag before exiting. macOS/app Space and Accessibility limitations still apply.
 
-Desktop actions close all notches and follow the window to the adjacent desktop on its display. They require an accessible
-title bar and enabled macOS Mission Control left/right Space shortcuts (custom key combinations are respected).
-No desktop wrap, full-screen/Split View destinations, or All Desktops windows. See `docs/LIMITS.md` for compatibility limits.
-`nook.on('windows', () => …)` signals shortcut edits and busy-state changes; call `state()` to reload your notch's state.
-`nook.on('windowsError', message => …)` reports failures.
-`lastError` retains the last failure until a successful action, including when a desktop move closed the panel.
-
-## Clipboard and screen captures — `nook.clips`
-
-```js
-await nook.clips.history('text:invoice date:today'); // clipboard entries, pinned first, newest first
-await nook.clips.screenshots('name:"Screen Shot"'); // screenshots AND recordings in the capture folder
-await nook.clips.copy(id);                         // text, native image data, or file URLs
-await nook.clips.paste(id);                        // close notches, activate previous app, send ⌘V (Accessibility required)
-await nook.clips.open(id);                         // open a file or link
-await nook.clips.reveal(id);                       // Finder, files only
-await nook.clips.quickLook(id);                    // native Quick Look, files only
-await nook.clips.delete(id);                       // move associated files to Trash, then remove the entry
-await nook.clips.pin(id); await nook.clips.unpin(id);
-await nook.clips.clear();                          // all clipboard entries, including pins; original files stay in place
-await nook.clips.thumbnail(id);                    // small JPEG data URL, or null (Quick Look; load lazily)
-await nook.clips.status();                         // enabled, ocr, indexing, folder, clipboardLoading,
-                                                  // screenshotsLoading, clipboardError, screenshotsError
-```
-
-Filters are optional strings. Bare terms search name, plain/OCR text, source app, and paths. `name:`, `text:`,
-and `date:` clauses are combined with AND; quote values with spaces. Dates accept `today`, `yesterday`,
-or `YYYY-MM-DD` in the local time zone. Invalid dates match nothing.
-
-Entries contain `{id, kind, name, text, paths, date, modifiedAt, source, pinned, hasFile, ocrText}`.
-Dates are Unix milliseconds (`modifiedAt` is 0 when unavailable). Kinds: `text`, `link`, `image`, `files`,
-`color`, `screenshot`, `recording`. Rich text is stored as plain text; native colors become hex strings.
-Images/screenshots copy as TIFF image data; recordings copy as file URLs. Listen for `nook.on('clips', refresh)`
-(invalidation event, empty object payload, sent to the bundled `clips` plugin). All calls return Promises and can reject.
-
-Settings → Clipboard controls capture, age/capacity, ignored app names/bundle IDs (one per line), capture folder,
-OCR, and clearing. Pins are exempt from clipboard retention/capacity. `delete` on a file-reference entry trashes
-the **original referenced files**; confirm this in your UI. Retention and `clear` only trash Nook-owned image copies.
-Screenshots stay in their original folder. History and the OCR index are local in `~/Library/Application Support/Nook/Clips/`.
-
-## File Search (`nook.files`)
-
-Native, in-memory filename search, shared by the Files tab and launcher. No shell or network dependency.
-
-```js
-const options = { clientID: 'my-view', requestID: '1', scope: 'home', kind: 'all', limit: 60 };
-const initial = await nook.files.search('report added:week !draft', options);
-nook.on('files', update => {
-  // Accept only your clientID and latest requestID; events reach every screen of this plugin.
-  // { clientID, requestID, query, scope, kind, results, gathering, indexing,
-  //   source: 'index'|'spotlight', total?, truncated, elapsedMs, notice?, error? }
-});
-await nook.files.cancel('my-view');             // on close; frees this client's search cursor
-await nook.files.keepAlive('my-view');          // every 30 s while visible; false means rerun
-const preview = await nook.files.preview('/absolute/path');
-// { path, name, kind, size, modified, text?, truncated?, thumbnail?, notice? }
-// PNG data URL thumbnails; text reads at most 20 KB; timestamps are Unix seconds.
-await nook.files.open(path);
-await nook.files.reveal(path);
-await nook.files.quickLook(path);              // same file toggles native Quick Look
-await nook.files.copyPath(path);
-await nook.files.copyName(path);
-await nook.files.copyFile(path);               // file URL, pasteable in Finder
-const apps = await nook.files.openWith(path);
-await nook.files.openWith(path, apps[0].path);
-await nook.files.trash(path, { confirm: true }); // caller MUST show explicit confirmation first
-const status = await nook.files.status();      // { ready, count, notice }
-await nook.files.rebuild();                    // background rebuild using current native Settings
-```
-
-`scope`: `home`, `Developer`, `Downloads`, or `all` (all folders configured in Settings → File Search).
-Omit it to use the default scope. `kind`: `all`, `folder`, `app`, `document`, `image`, `pdf`, `code`, `video`,
-`audio`, `archive`. `limit`: 1–100, default 60. A result is
-`{ path, name, kind, category, size, modified, added, lastUsed }` (`added` falls back to filesystem creation).
-Results rank exact basename, prefix, word start (including ASCII camel case), substring, then subsequence;
-newly added/modified files and Nook-opened frecency order each tier. Empty searches show newest added/modified
-files, including never-opened Downloads and screenshots when folder access permits. With `kind: 'all'`, Recent omits folders; choose the
-Folder filter to see recent folders. Match tiers always dominate usage. Native results update each keystroke;
-the bridge has no debounce. Queries retain all matching candidate IDs for safe incremental narrowing.
-
-Query syntax (AND binds tighter than OR):
-
-- `annual report` (AND), `report | invoice` (OR), `!draft` (exclude), `"annual report"` (phrase).
-- `*.png` / `?` wildcards; `~/Desktop/ report` or a quoted absolute folder path for path scope.
-- `ext:pdf;docx`; `kind:image|folder|app|doc|video|audio|code|archive` (any listed kind).
-- `file:` / `folder:` (optionally followed by a name, such as `folder:Projects`).
-- `size:>10mb` / `size:<1gb` (binary KB/MB/GB/TB); `dm:today`, `dm:week`, `dm:2026-10-21`;
-  `added:today` / `added:week` / a calendar date. Today uses local midnight; week means the last seven days;
-  a calendar date matches that local day. `!dm:today` and `!added:week` are supported; negated calendar dates
-  produce an inline syntax error. Queries are limited to 2,048 UTF-8 bytes, 64 atoms and 32 extensions per filter.
-
-The first reply is asynchronous; further `files` events replace it after index updates. Requests replace the
-same client's previous search. Use a unique `clientID` per web view and new `requestID` per keystroke. A request
-superseded before its first reply receives `cancelled: true`, so every bridge promise settles. Clients without
-heartbeats expire after 120 seconds when refreshed; explicit cancellation releases them immediately.
-`total` counts all matching names in the own index; `truncated` means more matches exist than displayed rows.
-There is no 20,000-candidate cap in the own index. Bounded Spotlight candidates provide partial metadata
-results during builds and for folders without direct access (`source: 'index+spotlight'` when merged).
-Both sources use the same query compiler/ranking. macOS may withhold protected metadata until access is granted.
-`gathering: false` means the current result calculation completed, while later file changes can still emit updates.
-
-`filesSettings` fires when scope/hidden/exclusions change. Home is scanned in the background, excluding Library,
-cache/dependency/build folders, hidden files and common app/package internals by default. Settings adds roots,
-exclusions and inclusion switches. The packed catalog, dates, sizes and Nook-opened usage are saved with private
-permissions in `~/Library/Caches/com.yusuf.nook/FileIndex`; file contents and queries are not saved. FSEvents
-replays changes after restart; dropped history or changed journal/scope triggers a rebuild. Descendant symlinks
-are indexed as references and never traversed. Previews remain bounded and in memory; cloud-only items show a
-Finder download hint. Trash uses `FileManager.trashItem` and refuses configured index roots.
-
-Startup never requests folder permission. Desktop/Documents/Downloads, media folders, Library (including cloud
-storage), and removable/network volumes are gated before filesystem access. The native **Allow access** row
-(⇧⌘A) and Settings → File Search request Desktop/Documents/Downloads only after a click; successful grants are
-remembered. Other protected locations require Full Disk Access, detected by a silent FDA-only sentinel open.
-Automatic previews in gated folders show metadata only. Spotlight always uses its symbolic home scope, with
-lexical result filtering: explicit protected-folder scopes were found to prompt on macOS. If macOS withholds
-those results too, Allow access is required. Additional root symlinks are rejected without following them.
-
-The bundled Files tab is native SwiftUI; a user `files` web plugin can still override it and use this bridge.
-Native shortcuts: ↑↓ select, Return opens, ⌘Return reveals, Space toggles Quick Look (Shift-Space types a space),
-⌘C copies path, ⌥⌘C copies name, ⌘⌫ requests Trash confirmation, Tab/Shift-Tab cycles kinds, ⌘K opens local
-Actions, layered Escape cancels/clears/closes. Rows drag files to other apps. The launcher includes file results
-after its other sources; `file:` or `f ` limits it to this shared index. Toggle Files in Launcher Settings.
+First enable copies old clip history/images, index caches, window shortcuts and launcher history/preferences
+into `NOOK_DATA_DIR`; old files/defaults are read-only. Repeated migration preserves subsequent plugin edits.
+File cache scope/fingerprint changes intentionally force a safe rebuild. Never remove legacy user data with unlink.
 
 ## Keyboard and command palette
 
@@ -486,89 +389,47 @@ recorder. `ShortcutRegistry.register` also accepts optional `defaultShortcut: Ta
 shortcuts are checked; other apps' private shortcuts remain undiscoverable. Window shortcuts invoked inside the
 notch use that display's captured external window.
 
-## Native Launcher
+## Native search mode and Store Launcher
 
-**⌥Space** toggles a native borderless launcher inside the notch when available; an occupied default falls back to **⌃⌥Space**.
-Dictation already owns ⌥Space by default, so ⌃⌥Space is the usual initial assignment. If both are occupied, record an available shortcut in Settings.
-Change or disable it in Settings → Keyboard Shortcuts → Toggle Launcher, or Settings → Launcher. The latter also
-controls sources and clears local launch history. The launcher has no dock item and adds no JavaScript bridge API.
-It reuses `nook.actions.register`, the ⌘K fuzzy matcher, AI Commands, and enabled tab/group identities.
+The small native SwiftUI search surface stays in core to own notch geometry, text focus, keyboard routing and
+presentation of value-only results. The `launcher` Store helper owns app discovery, ranking/frecency/history,
+system commands, Quick AI orchestration and every smart-answer provider. `file-search` independently contributes
+files from its existing helper. No app index, answer math/unit/currency/time/color/base/percent implementation or
+`places.tsv` is compiled/bundled in Nook. Additional answer providers remain one new Swift file subclassing
+`LauncherAnswerModule` + conforming to `LauncherAnswerProvider` in `store/plugins/launcher/native/`; Objective-C
+class discovery registers them without editing a switch. Build the helper with `bash .../build.sh`.
 
-Search applications, AI Commands, plugins (including hidden dock items), tab groups, loaded plugin actions, and
-Lock Screen / Sleep / Empty Trash / Toggle Dark Mode / Quit Nook. Rows show the app icon, title, subtitle, and kind;
-running apps show **Running**. Empty queries show recent items ranked by local launch count and last-used time.
-Optional prefixes narrow search: `app:`, `ai:`, `plugin:`, `action:`, `command:`. Prefix matches outrank word starts,
-then subsequences, then subtitle-only matches; history breaks ties within each match class.
+### Generic search contributions (API v2, `launcher` permission)
 
-↑↓ / ⌃N / ⌃P select; Return runs; ⌘Return reveals an app in Finder or opens the target tab without running;
-⌘1–9 picks results; ⌘K opens the selected row's actions. Tab or the final **Ask AI** row sends the query to the first
-saved agent in Agents. With no available agent/Agents tab, a native Quick AI chat uses the existing Codex login.
-The bundled Agents plugin provides a native handoff handler that waits for loading and opens a new chat; no plugin
-API was added. Escape dismisses actions/confirmation, backs out of Quick AI, clears search text, then closes.
-Clicking outside or toggling again closes; keyboard use holds the notch open without pinning it.
-
-AI Command entry snapshots the external app, clipboard and accessible selection **before** the panel takes focus.
-Commands use the normal AI Command execution/output pipeline with that context. Text providers without AX selection
-support use the existing selection fallback after the captured external app is restored. Clipboard/query text from
-the launcher is never used as the selection. See docs/LIMITS.md for focus and indexing limitations.
-
-### Smart answers (native)
-
-The launcher recognizes local math, units, currency, dates/time zones, colors, integer bases and percentage change.
-A confident answer appears above the regular results and is selected first. ↑↓ moves between the card and results;
-Return copies its value and closes, ⌘Return pastes into the captured external app, and ⌘K offers **Copy result**,
-**Copy expression**, **Copy with units**, plus provider actions. Existing ⌘1–9 shortcuts still address regular results.
-The card adds 156 pt; regular results retain scrolling with five visible rows while it is shown. Typing resizes instantly.
-
-Examples: `150 + 20%`, `sqrt(81)`, `5 plus 3 times 2`, `10 km in miles`, `5'11" in cm`, `100f to c`,
-`3 cups to ml`, `1.5 GB in MB`, `1000$`, `100 eur to mad`, `time in spain`, `5pm london in new york`,
-`2 hours from now in spain`, `now + 90 min`, `in 3 days`, `days until christmas`,
-`days between 2026-01-01 and 2026-03-15`, `unix 1792600000`, `now in unix`, `#f90 to rgb`,
-`hsl(120,100%,50%)`, `255 in hex`, `0xff in binary`, `from 80 to 100`.
-
-Currency defaults to the current locale's currency (MAD for a Moroccan locale). Only the fixed USD-base rate endpoint
-is requested; query text, amounts and currency choices stay on the Mac. Rates are cached under
-`~/Library/Caches/com.yusuf.nook/Launcher/answers-currency.json`, with at most one attempt per hour, including failures.
-Cached rates work offline and show their source timestamp. First use needs a connection; missing rates show a loading
-or unavailable card with copying disabled. The free source updates daily. Currency actions include the attribution link,
-[Rates by ExchangeRate-API](https://www.exchangerate-api.com/docs/free). No new JavaScript bridge API is added.
-
-### How to add an answer provider
-
-Add **one Swift file** under `Nook/Services/Launcher/Answers/`, then regenerate the Xcode project. Give the class a unique
-Objective-C name, subclass `LauncherAnswerModule`, and conform to `LauncherAnswerProvider`:
-
-```swift
-import Foundation
-
-@objc(NookDemoAnswerProvider)
-final class DemoAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
-    let id = "demo"
-    func answer(for query: String, context: LauncherAnswerContext) -> LauncherAnswer? {
-        guard context.hasTime, query.lowercased() == "answer demo" else { return nil }
-        return LauncherAnswer(expression: query, leftBadge: "Demo", result: "42",
-                              rightBadge: "The answer", copyValue: "42", copyWithUnits: "42 things")
-    }
-}
+```json
+{"contributes":{"searchProviders":[{"id":"search","method":"search.query","actionMethod":"search.activate"}]}}
 ```
 
-Startup discovers module subclasses automatically, including in optimized builds. **No launcher-view, startup-list,
-or other-provider edit is required.** `LauncherAnswers.shared.register(provider)` also supports explicit registration;
-registering the same ID replaces it. IDs sort deterministically; the first non-nil answer wins, so grammars should be
-specific and return nil for ordinary app/file searches. `LauncherAnswer` owns expression/result text, badges, optional
-note/swatch, copy payload, and secondary copy/URL actions. Operators and connector words are dimmed by the generic card.
+Requires a native helper and declared/approved `launcher`. The host queries up to 16 enabled providers with
+`{query,items}`; `items` is the bounded existing Nook action/tab catalog, which a provider may rank alongside its
+own items. Reply `{items:[{id,title,subtitle?,symbol?,kind?,confirm?,keyEquivalent?}],answer?}`. IDs are local to that provider.
+`keyEquivalent:"tab"` opts one result into Tab activation while searching.
+Results are generation-checked, capped at 100/provider; only one in-flight request plus the newest replacement
+exists per provider/display. Closing/disable discards queued work. Provider order is stable; arrival is asynchronous.
 
-Providers run on their own serial background queues, with a **2 ms deadline per provider**. The registry waits no longer
-than that deadline, discards late answers, skips a still-busy provider, and bounds retries to the latest waiting query.
-Check `context.hasTime` during bounded computation. Do no disk/network work in `answer`; prewarm expensive formatters in
-module initialization and read cached values. Results are cancellable and checked against the current query/presentation
-before publishing. Context supplies a fixed clock, locale and time zone for deterministic tests.
+`answer` is a plain value: `{section,expression,leftBadge,result,rightBadge,copyValue,isAvailable?,note?,
+copyWithUnits?,swatch?:{red,green,blue}}`. Existing prefix `answerProviders` still use their bounded async cache.
+`nook.native.on('searchChanged',...)` / helper notification `searchChanged` invalidates a visible search.
+The host listens to those notifications directly; a background helper needs no web page for search.
 
-For optional asynchronous work, also conform to `LauncherAnswerRefining` and implement
-`refine(for:context:completion:)`. Return a cached answer (or `isAvailable: false` placeholder) synchronously, do the work
-outside the answer budget, then call completion to re-evaluate the current query. Protect shared caches and throttle I/O;
-callbacks from superseded searches cannot change the card. Test fixtures belong in `tests/answers/`, including positives,
-ordinary searches that must return nil, malformed inputs, and warmed timing checks. Run `bash tests/answers/run.sh`.
+Activation calls `actionMethod` with `{id,alternate,confirmed}`. `confirm:true` requests a second explicit activation.
+The helper may reply `{answer}` (e.g. Quick AI) or `{hostItemID}` to run an item from the supplied Nook catalog;
+the host checks that the ID is still present. Copy/Paste go through that provider's clipboard/Accessibility grants.
+`host.launcher.open {}` opens native search mode on the relevant display. The Launcher plugin's Open shortcut
+uses this API through the host's hotkey registration. Search mode is unavailable until Launcher is installed/enabled.
+System Empty Trash and Sleep require confirmation; Empty Trash keeps Finder's explicit destructive semantics.
+
+### Native shortcut settings
+
+A v2 setting can use `"type":"shortcut"`, `"default":""` for unassigned, or a JSON-encoded
+`{keyCode,modifiers,display}` string. Declare `hotkeys` permission. Nook renders the standard native recorder;
+users never edit JSON. Use keys `shortcut.<hotkey-id>` so the recorder and host registration share conflict identity.
+The helper receives the string through settings and registers/unregisters it with `host.hotkeys.*`.
 
 ## API v2
 
@@ -693,7 +554,7 @@ disable/revoke/uninstall. Declarative hotkeys/items/jobs match the parameter sha
 uses `{id,prefix,method}`; the native launcher reads a bounded cache, asks the helper asynchronously, shows a
 loading/error result, and never blocks its 2 ms native answer budget. Prefixes should be specific. Entries and
 answers require Launcher enabled, and answers also require Smart Answers. Keyboard & Open Nook may be off.
-Phase 1 integrates with the existing native launcher pending its migration.
+The generic native search renderer consumes these prefix providers alongside Store searchProviders.
 `settings` entries `{id,title?}` add grouped native Settings panes using the plugin's top-level `settings` schema.
 `menuBar` entries `{id,title?,symbol?}` create an SF Symbol status item and emit `menuBar: {id}` on activation.
 `urlHandlers` entries `{id}` accept `nook://plugin/<plugin-id>/<handler-id>?...`, emitting `{handler,url}`.
@@ -778,3 +639,9 @@ Native feature IDs include `launcher`, `smartAnswers`, `launcherFiles`, `files`,
 `plugin:<id>`, including `plugin:mouse` for the migrated Mouse plugin. Features and Tabs & Plugins share
 one enable state; revocation turns that same state off. Clipboard and screenshot history share the Clips tab; either can run independently. `system` calls require
 Monitor and a visible calling tab. Home checks capabilities before invoking stats/timer APIs.
+
+### Scoped folder metadata
+
+`host.files.scopes {}` / `nook.host.call('files.scopes')` returns the plugin's approved folder paths (`files`
+permission). Helpers can consult this before starting watchers or traversing protected paths. It does not add a
+grant, request TCC, or sandbox native code. Change approval through Settings → Tabs & Plugins → Permissions & Trust.

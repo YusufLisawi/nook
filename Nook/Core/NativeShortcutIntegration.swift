@@ -9,13 +9,6 @@ enum NativeShortcutIntegration {
         registerNavigation()
     }
 
-    static func registerWindows() {
-        for action in WindowAction.allCases {
-            ShortcutRegistry.register(id: "windows.\(action.rawValue)", title: action.title, group: "Window Management",
-                                      get: { WindowShortcuts.shared.get(action) }, set: { WindowShortcuts.shared.set(action, $0) })
-        }
-    }
-
     private static func registerNavigation() {
         let command = CGEventFlags.maskCommand
         let control = CGEventFlags.maskControl
@@ -37,7 +30,7 @@ enum NativeShortcutIntegration {
             ShortcutRegistry.register(id: "navigation.\(id)", title: title, group: "Navigation", editable: false,
                                       get: { shortcut }, set: { _ in })
         }
-        ShortcutRegistry.externalConflicts = WindowShortcuts.systemConflicts
+        ShortcutRegistry.externalConflicts = SystemShortcutConflicts.systemConflicts
     }
 
     static func group(key: Int64, modifiers: CGEventFlags) -> TabGroup? {

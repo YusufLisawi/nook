@@ -168,6 +168,8 @@ struct PluginSettingsForm: View {
     private func control(for s: PluginSetting) -> some View {
         let value = binding(s)
         switch s.type {
+        case .shortcut:
+            PluginShortcutSetting(pluginID: tab.id, key: s.key, title: s.label, value: Binding(get: { value.wrappedValue.string }, set: { value.wrappedValue = .string($0) }))
         case .toggle:
             Toggle(s.label, isOn: Binding(get: { value.wrappedValue.bool }, set: { value.wrappedValue = .bool($0) }))
         case .select:

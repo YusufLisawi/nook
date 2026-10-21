@@ -1,0 +1,11 @@
+{
+  "description": "Application search, local smart answers and system commands for native notch search mode. Disabled until enabled.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": false,
+  "tags": [
+    "launcher",
+    "native"
+  ],
+  "screenshots": []
+}

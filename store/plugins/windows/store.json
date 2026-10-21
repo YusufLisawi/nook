@@ -1,0 +1,11 @@
+{
+  "description": "Window layouts, displays and desktop moves with Accessibility. Disabled until enabled.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": false,
+  "tags": [
+    "windows",
+    "native"
+  ],
+  "screenshots": []
+}

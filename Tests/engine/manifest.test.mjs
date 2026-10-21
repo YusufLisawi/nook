@@ -21,3 +21,10 @@ test('v2 rejects malformed/unsafe helper declarations and missing permissions', 
 test('contribution capabilities and background declared explicitly', () => {
   assert.deepEqual(validateV2({ ...base, native: { command: 'bin/helper', background: true, permissions: ['background', 'hotkeys'] }, contributes: { hotkeys: [{ id: 'toggle', keyCode: 49, modifiers: 0x80000 }], backgroundJobs: [{ id: 'refresh', interval: 60 }] } }, files), []);
 });
+test('search contributions and native shortcut settings require their capabilities', () => {
+  const provider = { native: {command:'bin/helper'}, contributes: {searchProviders:[{id:'search',method:'query',actionMethod:'activate'}]} };
+  assert.ok(validateV2({...base,...provider},files).length);
+  assert.deepEqual(validateV2({...base,...provider,permissions:['launcher']},files),[]);
+  assert.ok(validateV2({...base,settings:[{key:'shortcut.open',label:'Open',type:'shortcut'}]},files).length);
+  assert.deepEqual(validateV2({...base,permissions:['hotkeys'],settings:[{key:'shortcut.open',label:'Open',type:'shortcut'}]},files),[]);
+});

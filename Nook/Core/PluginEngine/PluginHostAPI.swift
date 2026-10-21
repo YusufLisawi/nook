@@ -14,12 +14,37 @@ final class PluginHostAPI {
 
     func register(_ vm: NotchViewModel) { models.removeAll { $0.value == nil }; models.append(WeakModel(vm)) }
     func captureBeforeOpen(_ vm: NotchViewModel) {
-        guard PluginEngine.shared.manifests.values.contains(where: { $0.requested.contains("accessibility") && PluginPermissions.shared.approved($0) && Features.shared.tabEnabled($0.id) }) else { return }
+        let approved = PluginEngine.shared.manifests.values.filter { $0.requested.contains("accessibility") && PluginPermissions.shared.approved($0) && Features.shared.tabEnabled($0.id) }
+        guard !approved.isEmpty else { return }
         if selectionContexts.count >= 16 { selectionContexts.removeAll() }
         selectionContexts[ObjectIdentifier(vm)] = AICommandContext.capture()
+        let windowConsumers = approved.filter { $0.requested.contains("windows") }
+        guard !windowConsumers.isEmpty else { return }
+        // Opaque process/window identity only. AX manipulation and Space policy belong to helpers.
+        var snapshot: [String: Any] = ["context": String(describing: ObjectIdentifier(vm))]
+        if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+            snapshot["pid"] = app.processIdentifier
+            if AXIsProcessTrusted() {
+                let ax = AXUIElementCreateApplication(app.processIdentifier)
+                AXUIElementSetMessagingTimeout(ax, 0.015)
+                var value: CFTypeRef?
+                if AXUIElementCopyAttributeValue(ax, kAXFocusedWindowAttribute as CFString, &value) == .success,
+                   let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+                    let window = unsafeBitCast(value, to: AXUIElement.self)
+                    AXUIElementSetMessagingTimeout(window, 0.015)
+                    snapshot["windowNumber"] = PluginWindowIdentity.number(window)
+                }
+            }
+        }
+        for manifest in windowConsumers { PluginEvents.emit("beforeOpen", snapshot, to: manifest.id) }
     }
     private func model(_ vm: NotchViewModel?) -> NotchViewModel? {
         vm ?? models.compactMap(\.value).first { $0.geometry.screen.frame.contains(NSEvent.mouseLocation) } ?? models.compactMap(\.value).first
+    }
+    var shortcutContext: String? {
+        guard let panel = NSApp.keyWindow as? NotchPanel, let screen = panel.screen,
+              let vm = models.compactMap(\.value).first(where: { $0.isOpen && $0.geometry.screen.frame == screen.frame }) else { return nil }
+        return String(describing: ObjectIdentifier(vm))
     }
     func stop(_ id: String) {
         clipboardTimers.removeValue(forKey: id)?.invalidate()
@@ -55,6 +80,8 @@ final class PluginHostAPI {
         let str = { (key: String) in p[key] as? String ?? "" }
         let ok = { reply(NSNull(), nil) }
         switch method {
+        case "files.scopes": reply(PluginPermissions.shared.grants[id]?.fileScopes ?? [], nil)
+        case "launcher.open": PluginSearch.open(model(vm)); ok()
         case "features.list": reply(Features.shared.payload, nil)
         case "storage.get": reply(PluginStorage(id).get(str("key")) ?? NSNull(), nil)
         case "storage.set": PluginStorage(id).set(str("key"), p["value"]); ok()

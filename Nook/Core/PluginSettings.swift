@@ -55,7 +55,7 @@ enum JSONValue: Codable, Equatable, Sendable {
 
 /// One option a plugin declares in plugin.json → `"settings": [...]`. Nook renders the form; the plugin reads values.
 struct PluginSetting: Decodable, Identifiable, Equatable {
-    enum Kind: String, Decodable { case toggle, text, secret, textarea, number, select, color }
+    enum Kind: String, Decodable { case toggle, text, secret, textarea, number, select, color, shortcut }
 
     var key: String
     var label: String

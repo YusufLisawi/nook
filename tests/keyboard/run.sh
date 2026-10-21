@@ -8,7 +8,7 @@ swiftc -swift-version 5 -warnings-as-errors -target "$(uname -m)-apple-macos14.2
   Nook/Core/TabNavigationStore.swift Nook/Core/TabNavigationViewModel.swift \
   Nook/Core/NativeShortcutIntegration.swift Nook/Core/NotchKeyboard.swift Nook/Core/KeyboardActions.swift Nook/Core/SyntheticInput.swift \
   Nook/NotchViewModel.swift Nook/Services/Dictation/DictationShortcut.swift \
-  Nook/Services/Windows/WindowActions.swift Nook/Services/Windows/WindowShortcuts.swift \
+  Nook/Core/SystemShortcutConflicts.swift \
   Nook/Views/Settings/SettingsShortcutRecorder.swift \
   tests/tabs/IntegrationStubs.swift tests/keyboard/NativeTests.swift -o "$keyboard_test_dir/native"
 "$keyboard_test_dir/native"

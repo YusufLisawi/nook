@@ -1,6 +1,6 @@
 // Keep the manifest contract aligned with Nook/Core/PluginEngine/PluginManifestV2.swift.
 const permissions = new Set(['files', 'clipboard', 'accessibility', 'microphone', 'network', 'shell', 'ai', 'background', 'hotkeys', 'notifications', 'launcher', 'windows', 'secrets']);
-const sections = new Set(['hotkeys', 'launcherItems', 'answerProviders', 'settings', 'menuBar', 'notchActivity', 'urlHandlers', 'backgroundJobs']);
+const sections = new Set(['hotkeys', 'launcherItems', 'answerProviders', 'searchProviders', 'settings', 'menuBar', 'notchActivity', 'urlHandlers', 'backgroundJobs']);
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const path = v => typeof v === 'string' && v.length > 0 && !/[\\:\0]/.test(v) && v.split('/').every(p => p && p !== '.' && p !== '..');
 
@@ -33,6 +33,7 @@ export function validateV2(manifest, files) {
       } else if (!Array.isArray(run) || run.length < 2 || run.length > 64 || !run.every(s => typeof s === 'string' && s.length && !s.includes('\0')) || !['node', 'python3', 'ruby', 'swift', 'bash', 'sh'].includes(run[0]) || !path(run[1]) || run[1].startsWith('-') || !files.some(f => f.path === run[1])) errors.push('native.run must name an interpreter and an existing relative script');
     }
   }
+  if (Array.isArray(manifest.settings) && manifest.settings.some(s => s.type === 'shortcut') && !declared.has('hotkeys')) errors.push('Shortcut settings require hotkeys permission');
   if (manifest.contributes !== undefined) {
     if (!object(manifest.contributes)) errors.push('contributes must be an object');
     else for (const [section, list] of Object.entries(manifest.contributes)) {
@@ -42,10 +43,11 @@ export function validateV2(manifest, files) {
         const nonempty = key => typeof row[key] === 'string' && row[key].trim().length;
         if (section === 'hotkeys' && (!Number.isInteger(row.keyCode) || row.keyCode < 0 || row.keyCode > 127 || !Number.isSafeInteger(row.modifiers) || !(row.modifiers & 0x1C0000))) errors.push('Hotkeys need keyCode and Command/Control/Option CGEventFlags modifiers');
         if (section === 'launcherItems' && !nonempty('title')) errors.push('Launcher items need a title');
+        if (section === 'searchProviders' && (!nonempty('method') || !nonempty('actionMethod') || !manifest.native)) errors.push('Search providers need method, actionMethod and a native helper');
         if (section === 'answerProviders' && (!nonempty('prefix') || !nonempty('method') || !manifest.native)) errors.push('Answer providers need prefix, method and a native helper');
         if (section === 'backgroundJobs' && (typeof row.interval !== 'number' || !Number.isFinite(row.interval) || row.interval < 1 || row.interval > 86400)) errors.push('Background jobs need interval (1–86400 seconds)');
       }
-      const permission = { hotkeys: 'hotkeys', launcherItems: 'launcher', answerProviders: 'launcher', backgroundJobs: 'background' }[section];
+      const permission = { hotkeys: 'hotkeys', launcherItems: 'launcher', answerProviders: 'launcher', searchProviders: 'launcher', backgroundJobs: 'background' }[section];
       if (list.length && permission && !declared.has(permission)) errors.push(`${section} requires ${permission} permission`);
     }
   }

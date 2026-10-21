@@ -1,0 +1,11 @@
+{
+  "description": "Fast local filename search, live index and Spotlight fallback in an isolated native helper. Disabled until enabled.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": false,
+  "tags": [
+    "file-search",
+    "native"
+  ],
+  "screenshots": []
+}

@@ -153,7 +153,7 @@ struct ExpandedView: View {
                     Spacer()
                     if Features.shared.enabled("launcher") {
                     IconButton("magnifyingglass", size: 12) { (NSApp.delegate as? AppDelegate)?.openLauncher(in: vm) }
-                        .help("Search apps, AI commands and plugins (\(LauncherShortcut.current?.display ?? "⌃⌥Space"))")
+                        .help("Search enabled plugin providers")
                     }
                     if vm.currentTab != nil {
                         IconButton(vm.showingSettings ? "slider.horizontal.3" : "slider.horizontal.3", size: 12) {
@@ -211,7 +211,6 @@ struct ExpandedView: View {
             case "shelf": ShelfTab(shelf: s.shelf, isTargeted: vm.isDropTargeted)
             case "scratch": ScratchTab()
             case "timers": TimersTab(timers: s.timers)
-            case "files": FileSearchTab(vm: vm)
             default: EmptyState(symbol: "puzzlepiece.extension", title: "Missing plugin", detail: vm.tab)
             }
         }

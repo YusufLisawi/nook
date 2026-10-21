@@ -96,7 +96,8 @@ test('generator produces a complete, stable catalog without an existing Git repo
     execFileSync(process.execPath, [join(temporary, 'scripts/generate-index.mjs')]);
     const first = await readFile(join(temporary, 'index.json'), 'utf8');
     const index = JSON.parse(first);
-    assert.equal(index.length, 2);
+    assert.deepEqual(index.map(row => row.id).sort(), ['clips', 'file-search', 'launcher', 'mouse', 'windows', 'word-count']);
+    for (const id of ['clips', 'file-search', 'launcher', 'windows']) assert.equal(index.find(row => row.id === id).default, false);
     index.sort((a, b) => a.id === 'word-count' ? -1 : 1);
     assert.equal(index[0].path, 'plugins/word-count');
     assert.equal(index[0].sha, await treeSHA(join(temporary, 'plugins/word-count')));

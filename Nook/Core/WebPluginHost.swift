@@ -44,7 +44,7 @@ final class WebPluginHost: NSObject {
         let content = config.userContentController
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
         let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + WindowManager.shared.bridgeContext(for: vm), injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let view = DropWebView(frame: .zero, configuration: config)
         view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")

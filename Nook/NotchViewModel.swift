@@ -125,6 +125,7 @@ final class NotchViewModel: ObservableObject {
     }
 
     func open(tab: String? = nil) {
+        if !isOpen { WindowManager.shared.captureBeforeNotchOpen(self) }
         if let tab { self.tab = tab }
         if !isEnabled(self.tab) { self.tab = enabledTabs.first?.id ?? "home" }
         guard !isOpen else { return }

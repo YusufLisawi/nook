@@ -15,11 +15,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildNotches()
         Services.shared.dictation.hotkeys.onShortcut = { [weak self] key, mods in
             if Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
+            if WindowManager.shared.handleShortcut(key: key, modifiers: mods) { return true }
             guard let self, let tab = TabHotkeys.tab(forKey: key, modifiers: mods) else { return false }
             DispatchQueue.main.async { self.notchUnderMouse()?.viewModel.toggle(tab: tab) }
             return true
         }
         Services.shared.commands.closeNotches = { [weak self] in self?.controllers.forEach { $0.viewModel.close() } }
+        WindowManager.shared.closeNotches = { [weak self] in self?.controllers.forEach { $0.viewModel.close() } }
         Services.shared.commands.openTab = { [weak self] tab in self?.notchUnderMouse()?.viewModel.open(tab: tab) }
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             self?.rebuildNotches()

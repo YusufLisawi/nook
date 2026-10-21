@@ -1,0 +1,14 @@
+html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: var(--fg); }
+header { min-height: 28px; }
+#actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 3px 8px; }
+.group { grid-column: 1 / -1; padding: 7px 8px 3px; }
+.group:first-child { padding-top: 2px; }
+.action { appearance: none; border: 0; color: var(--fg); font: inherit; text-align: left; background: transparent; width: 100%; min-height: 32px; }
+.action:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.action:disabled { opacity: .45; }
+.action kbd { font: inherit; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.action .conflict { color: var(--accent); }
+#error { flex: none; }
+#emptyMessage { max-width: 480px; }
+footer { min-height: 15px; }

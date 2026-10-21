@@ -93,6 +93,7 @@ final class HotkeyMonitor {
             toggleArmed = false
             let key = event.getIntegerValueField(.keyboardEventKeycode)
             let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            if isRepeat, swallowedKey == key { return nil }
             if let toggle, toggle.keyCode.map(Int64.init) == key, keyMods == toggle.flags {
                 if !isRepeat { onToggle() }
                 swallowedKey = key
@@ -108,6 +109,7 @@ final class HotkeyMonitor {
                 return nil
             }
             if !keyMods.intersection([.maskControl, .maskAlternate, .maskCommand]).isEmpty, !isRepeat, onShortcut(key, keyMods) {
+                swallowedKey = key
                 if holding, !holdByKey { holding = false; onHoldCancel() }
                 return nil
             }

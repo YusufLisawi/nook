@@ -9,9 +9,9 @@ const CATEGORIES = [
   { id: 'packages', name: 'Package caches', icon: 'package', description: 'Downloaded packages · keeps the cache folders' },
   { id: 'brew', name: 'Homebrew', icon: 'brew', description: 'Cache estimate · cleans old versions and downloads' },
   { id: 'downloads', name: 'Old downloads', icon: 'download', description: '' },
-  { id: 'trash', name: 'Trash', icon: 'trash', description: 'Permanently empty existing Trash · confirmation required' },
+  { id: 'trash', name: 'Trash', icon: 'trash', description: 'Empty all Trash with Finder · confirmation required' },
 ];
-const records = new Map(CATEGORIES.map(({ id }) => [id, { bytes: null, count: 0, parts: [], available: true, status: 'idle', error: '' }]));
+const records = new Map(CATEGORIES.map(({ id }) => [id, { bytes: null, count: 0, parts: [], available: true, skipped: 0, protectedCount: 0, unknown: false, status: 'idle', error: '' }]));
 const selected = new Set(['caches', 'logs', 'derived', 'devices', 'simulators', 'packages', 'brew']);
 const errors = new Map();
 let settings = { ...DEFAULTS };
@@ -68,8 +68,9 @@ function fingerprint(value = settings) {
 function chosen() {
   return CATEGORIES.filter(({ id }) => {
     const record = records.get(id);
-    return selected.has(id) && enabled(id) && record.available && !record.error && Number.isFinite(record.bytes)
-      && (record.bytes > 0 || record.count > 0 || id === 'brew');
+    return selected.has(id) && enabled(id) && record.available && !record.error
+      && ((id === 'trash' && record.unknown) || (Number.isFinite(record.bytes)
+        && (record.bytes > 0 || record.count > 0 || id === 'brew')));
   });
 }
 
@@ -117,6 +118,7 @@ function categoryRow(category) {
   if (id === 'downloads') description = `${record.bytes === null ? 'Files' : `${record.count} file${record.count === 1 ? '' : 's'}`} unchanged for ${settings.downloadsDays} days · files only`;
   if (!active) description = 'Enable in this plugin’s settings';
   if (!record.available) description = record.note || 'Not available';
+  if (active && record.skipped) description = skippedMessage(record.skipped, record.protectedCount);
   main.append(title, element('span', 'category-description nk-small nk-muted nk-ellipsis', description));
 
   const amount = element('span', 'category-size nk-small nk-num');
@@ -125,7 +127,7 @@ function categoryRow(category) {
     spinner.setAttribute('aria-label', record.status === 'measuring' ? 'Measuring' : record.status === 'queued' ? 'Queued' : 'Cleaning');
     amount.append(spinner);
   } else if (record.status === 'done') amount.append(icon('check', 'done'));
-  amount.append(element('span', '', !active || !record.available ? '—' : record.status === 'cleaning' ? 'Cleaning…' : size(record.bytes)));
+  amount.append(element('span', '', !active || !record.available ? '—' : record.status === 'cleaning' ? 'Cleaning…' : record.unknown ? 'Size unknown' : size(record.bytes)));
   row.append(check, icon(category.icon, 'category-icon'), main, amount);
 
   if (id === 'packages' && record.parts.length && active) {
@@ -147,13 +149,16 @@ function categoryRow(category) {
 
 function renderFooter() {
   const items = chosen();
-  const total = items.reduce((sum, { id }) => sum + records.get(id).bytes, 0);
-  $('clean-label').textContent = busy === 'cleaning' ? 'Cleaning…' : `Clean ${size(total)}`;
+  const total = items.reduce((sum, { id }) => sum + (records.get(id).bytes || 0), 0);
+  const unknownTrash = items.some(({ id }) => id === 'trash' && records.get(id).unknown);
+  $('clean-label').textContent = busy === 'cleaning' ? 'Cleaning…'
+    : unknownTrash && items.length === 1 ? 'Empty Trash' : `Clean ${size(total)}${unknownTrash ? ' + Trash' : ''}`;
   $('clean').disabled = Boolean(busy) || !settingsLoaded || items.length === 0;
   $('scan').disabled = Boolean(busy);
   $('scan').textContent = busy === 'scanning' ? 'Scanning…' : 'Scan';
+  const selectionSize = unknownTrash ? (items.length === 1 ? 'Trash size unknown' : `${size(total)} + Trash size unknown`) : `${size(total)} selected`;
   $('selected').textContent = busy === 'cleaning' ? 'Moving items safely…'
-    : `${size(total)} selected · ${items.length} categor${items.length === 1 ? 'y' : 'ies'}`;
+    : `${selectionSize} · ${items.length} categor${items.length === 1 ? 'y' : 'ies'}`;
   $('scanned').textContent = busy === 'scanning' ? 'Measuring folders…' : lastScanned ? ago(lastScanned) : 'Not scanned yet';
   $('footer').hidden = Boolean(confirmation);
   $('confirmation').hidden = !confirmation;
@@ -173,13 +178,25 @@ function render() {
   $('loading').hidden = busy !== 'loading';
   list.hidden = busy === 'loading' || Boolean(allEmpty);
   $('empty').hidden = !allEmpty;
+  $('privacy-hint').hidden = !Array.from(records).some(([id, record]) => enabled(id) && record.protectedCount > 0) && !outcome?.protectedCount;
   renderFooter();
+}
+
+function skippedMessage(count, protectedCount) {
+  return `${count} item${count === 1 ? '' : 's'} skipped${protectedCount === count ? ' — protected by macOS'
+    : protectedCount ? ` · ${protectedCount} protected by macOS` : ' — kept in place for safety'}`;
 }
 
 async function shell(command, id, context) {
   try {
     const response = await nook.shell(command, { timeout: 120 });
-    if (!response || response.code !== 0) throw new Error(response?.stderr?.trim() || `${context} failed or timed out. Try Scan again.`);
+    if (!response || response.code !== 0) {
+      const message = response?.stderr?.trim() || `${context} failed or timed out. Try Scan again.`;
+      if (id === 'trash' && /(-1743|not authorized|not permitted to send Apple events)/i.test(message)) {
+        throw new Error('Allow Nook to control Finder in System Settings → Privacy & Security → Automation, then retry.');
+      }
+      throw new Error(message);
+    }
     if (id) records.get(id).error = '';
     return response;
   } catch (error) {
@@ -207,16 +224,21 @@ async function refreshDisk() {
 
 function parseMeasurement(stdout) {
   const lines = stdout.trim().split('\n').map((line) => line.split('\t'));
-  const unavailable = lines.find(([kind]) => kind === 'UNAVAILABLE');
-  if (unavailable) return { bytes: 0, count: 0, parts: [], available: false, note: unavailable[1] };
-  const total = lines.find(([kind]) => kind === 'TOTAL');
   const integer = (value) => /^\d+$/.test(value || '') && Number.isSafeInteger(Number(value));
-  if (!total || !integer(total[1]) || !integer(total[2])) throw new Error('Could not read the scan result. Try Scan again.');
+  const base = { bytes: 0, count: 0, parts: [], available: true, unknown: false, skipped: 0, protectedCount: 0 };
+  const unavailable = lines.find(([kind]) => kind === 'UNAVAILABLE');
+  if (unavailable) return { ...base, available: false, note: unavailable[1] };
+  if (lines.some(([kind]) => kind === 'UNKNOWN')) return { ...base, bytes: null, unknown: true };
+  const total = lines.find(([kind]) => kind === 'TOTAL');
+  const skipped = lines.find(([kind]) => kind === 'SKIPPED');
+  if (!total || !integer(total[1]) || !integer(total[2]) || !skipped || !integer(skipped[1]) || !integer(skipped[2])
+      || Number(skipped[2]) > Number(skipped[1])) throw new Error('Could not read the scan result. Try Scan again.');
   const parts = lines.filter(([kind]) => kind === 'PART').map(([, name, bytes, count]) => {
     if (!integer(bytes) || !integer(count)) throw new Error('Incomplete package scan. Try Scan again.');
     return { name, bytes: Number(bytes), count: Number(count) };
   });
-  return { bytes: Number(total[1]), count: Number(total[2]), parts, available: true };
+  return { ...base, bytes: Number(total[1]), count: Number(total[2]), parts,
+    skipped: Number(skipped[1]), protectedCount: Number(skipped[2]) };
 }
 
 async function measure(id, scanSettings) {
@@ -254,10 +276,10 @@ async function scan() {
   if (revision === settingsRevision) {
     try {
       await nook.storage.set('scan', {
-        version: 1, at: lastScanned, settings: fingerprint(scanSettings),
+        version: 2, at: lastScanned, settings: fingerprint(scanSettings),
         categories: Object.fromEntries(Array.from(records, ([id, record]) => [id, {
           bytes: record.bytes, count: record.count, parts: record.parts, available: record.available,
-          note: record.note || '', error: record.error,
+          note: record.note || '', error: record.error, skipped: record.skipped, protectedCount: record.protectedCount, unknown: record.unknown,
         }])),
       });
       showError('cache', null);
@@ -277,7 +299,7 @@ function askToClean() {
   const ids = items.map(({ id }) => id);
   const moving = ids.some((id) => id !== 'trash' && id !== 'brew');
   const messages = [];
-  if (ids.includes('trash')) messages.push('Permanently empty the existing Trash first?');
+  if (ids.includes('trash')) messages.push('Permanently empty all existing Trash with Finder first?');
   if (moving) messages.push('Move the selected files to Trash?');
   if (ids.includes('brew')) messages.push('Homebrew will delete old versions and downloads.');
   confirmation = { ids, revision: settingsRevision, downloadsDays: settings.downloadsDays };
@@ -297,6 +319,7 @@ function showOutcome() {
   $('result-title').textContent = messages.join(' · ') || (outcome.failed ? 'Cleaning incomplete — check Trash' : 'No files moved');
   $('result-detail').textContent = outcome.failed
     ? 'Some items could not be cleaned. Check the rows; any moved files are in Trash.'
+    : outcome.skipped ? `${skippedMessage(outcome.skipped, outcome.protectedCount)}. ${outcome.movedCount ? 'Moved files remain in Trash.' : 'Accessible folders are up to date.'}`
     : outcome.movedCount ? 'Space is freed when you empty the Trash.' : 'Folder sizes are up to date.';
   $('result').hidden = false;
 }
@@ -306,7 +329,7 @@ async function clean() {
   const plan = confirmation;
   confirmation = null;
   busy = 'cleaning';
-  outcome = { movedBytes: 0, movedCount: 0, failed: 0, emptied: false, brew: false };
+  outcome = { movedBytes: 0, movedCount: 0, failed: 0, skipped: 0, protectedCount: 0, emptied: false, brew: false };
   // Empty old Trash first. Newly moved items remain recoverable after this run.
   const ids = [...plan.ids].sort((a, b) => (a === 'trash' ? -1 : b === 'trash' ? 1 : 0));
   for (const id of ids) { records.get(id).status = 'queued'; records.get(id).error = ''; }
@@ -320,22 +343,24 @@ async function clean() {
     record.status = 'cleaning';
     render();
     try {
-      const response = await shell(CleanerShell.clean(id, plan.downloadsDays), id, 'Couldn’t finish cleaning');
-      if (id === 'trash') {
-        if (!response.stdout.split('\n').includes('EMPTIED')) throw new Error('Trash result is unavailable. Check Trash before trying again.');
-        outcome.emptied = true;
-      } else if (id === 'brew') {
-        if (!response.stdout.split('\n').includes('BREW_DONE')) throw new Error('Homebrew did not finish. Try Scan again.');
-        outcome.brew = true;
+      if (id === 'trash' || id === 'brew') {
+        const response = await shell(CleanerShell.clean(id), id, 'Couldn’t finish cleaning');
+        const marker = id === 'trash' ? 'EMPTIED' : 'BREW_DONE';
+        if (!response.stdout.split('\n').includes(marker)) throw new Error('Cleanup result is unavailable. Check Trash, then scan again.');
+        if (id === 'trash') outcome.emptied = true; else outcome.brew = true;
       } else {
-        const result = response.stdout.split('\n').find((line) => /^MOVED\t/.test(line))?.split('\t');
-        if (!result || result.length !== 4 || result.slice(1).some((part) => !/^\d+$/.test(part) || !Number.isSafeInteger(Number(part)))) {
-          throw new Error('Couldn’t verify all moves. Check Trash, then scan again.');
+        if (!nook.cleaner?.clean) throw new Error('Update Nook to clean files safely, then retry.');
+        const result = await nook.cleaner.clean(id, plan.downloadsDays);
+        if (!result || ['bytes', 'moved', 'skipped', 'protectedCount', 'failed'].some((key) => !Number.isSafeInteger(result[key]) || result[key] < 0)
+            || result.protectedCount > result.skipped) throw new Error('Couldn’t verify all moves. Check Trash, then scan again.');
+        outcome.movedBytes += result.bytes;
+        outcome.movedCount += result.moved;
+        outcome.skipped += result.skipped;
+        outcome.protectedCount += result.protectedCount;
+        if (result.failed) {
+          outcome.failed += result.failed - 1; // Catch below counts this category's first failure.
+          throw new Error(`${result.failed} item(s) could not be moved. They were left in place; scan to retry.`);
         }
-        outcome.movedBytes += Number(result[1]);
-        outcome.movedCount += Number(result[2]);
-        outcome.failed += Number(result[3]);
-        if (Number(result[3])) throw new Error(`${result[3]} item(s) could not be moved. ${response.stderr?.trim() || 'They were left in place; scan to retry.'}`);
       }
       record.status = 'done';
     } catch (error) {
@@ -369,6 +394,32 @@ async function openTrash() {
     await nook.open(`${home}/.Trash`);
     showError('open', null);
   } catch (error) { showError('open', `Couldn’t open Trash: ${errorMessage(error)}`); }
+}
+
+async function openPrivacy() {
+  try {
+    await nook.open('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
+    showError('privacy', null);
+  } catch (error) { showError('privacy', `Couldn’t open Full Disk Access: ${errorMessage(error)}`); }
+}
+
+function handleKey(event) {
+  if (event.key === 'Escape' && confirmation) {
+    event.preventDefault(); cancelConfirmation(); $('clean').focus(); return;
+  }
+  if (event.key === 'Enter' && event.metaKey) {
+    event.preventDefault();
+    if (confirmation) void clean(); else askToClean();
+    return;
+  }
+  if (confirmation || !['ArrowDown', 'ArrowUp'].includes(event.key) || event.metaKey || event.altKey || event.ctrlKey) return;
+  const checks = CATEGORIES.map(({ id }) => $(`select-${id}`)).filter((check) => check && !check.disabled);
+  if (!checks.length) return;
+  const index = checks.indexOf(document.activeElement);
+  event.preventDefault();
+  const next = index < 0 ? (event.key === 'ArrowDown' ? 0 : checks.length - 1)
+    : (index + (event.key === 'ArrowDown' ? 1 : -1) + checks.length) % checks.length;
+  checks[next].focus();
 }
 
 function applySettings(value = {}) {
@@ -426,6 +477,8 @@ async function start() {
   $('confirm-clean').addEventListener('click', () => { void clean(); });
   $('cancel-clean').addEventListener('click', cancelConfirmation);
   $('open-trash').addEventListener('click', () => { void openTrash(); });
+  $('open-privacy').addEventListener('click', () => { void openPrivacy(); });
+  document.addEventListener('keydown', handleKey);
   for (const [event, callback] of [
     ['settings', (value) => { settingsEvents++; applySettings(value); }],
     ['show', shown], ['open', shown], ['close', () => { visible = false; }],
@@ -436,13 +489,15 @@ async function start() {
   await readSettings();
   try {
     const cache = await nook.storage.get('scan');
-    if (cache?.version === 1 && cache.settings === fingerprint() && Number.isFinite(cache.at) && cache.at > 0) {
+    if (cache?.version === 2 && cache.settings === fingerprint() && Number.isFinite(cache.at) && cache.at > 0) {
       lastScanned = cache.at;
       for (const { id } of CATEGORIES) {
         const cached = cache.categories?.[id];
-        if (cached && Number.isSafeInteger(cached.bytes) && cached.bytes >= 0 && Number.isSafeInteger(cached.count) && cached.count >= 0) {
+        if (cached && ((Number.isSafeInteger(cached.bytes) && cached.bytes >= 0) || (id === 'trash' && cached.bytes === null && cached.unknown === true)) && Number.isSafeInteger(cached.count) && cached.count >= 0) {
           Object.assign(records.get(id), {
-            bytes: cached.bytes, count: cached.count, available: cached.available !== false,
+            bytes: cached.bytes, count: cached.count, unknown: id === 'trash' && cached.unknown === true,
+            skipped: Number.isSafeInteger(cached.skipped) && cached.skipped >= 0 ? cached.skipped : 0,
+            protectedCount: Number.isSafeInteger(cached.protectedCount) && cached.protectedCount >= 0 && cached.protectedCount <= cached.skipped ? cached.protectedCount : 0, available: cached.available !== false,
             note: typeof cached.note === 'string' ? cached.note : '',
             parts: Array.isArray(cached.parts) ? cached.parts.filter((part) => typeof part.name === 'string' && Number.isSafeInteger(part.bytes) && part.bytes >= 0) : [],
             error: typeof cached.error === 'string' ? cached.error : '', status: 'ready',

@@ -21,6 +21,7 @@
 		2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44481D567E5664A614F2BDF9 /* MicRecorder.swift */; };
 		318B74F1E9235C7639940FC7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E3F23227270422F28E8EA8 /* SettingsView.swift */; };
 		31C2915681CE1780B2E4A3F3 /* Groq.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD88336361791E70385D715 /* Groq.swift */; };
+		3398231BDE93A499FBCF0816 /* CleanerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C141074731F0E83AB891F9C5 /* CleanerEngine.swift */; };
 		3493A661FBB0DBA502384425 /* Plugins in Resources */ = {isa = PBXBuildFile; fileRef = 511F04655A88E65837A89A02 /* Plugins */; };
 		36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56729F3514AAE0833BA5B921 /* AppDelegate.swift */; };
 		369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C7A346371B85AEE3A606DDF /* AudioMixer.swift */; };
@@ -61,6 +62,7 @@
 		BB786E698B2BB609FA914BED /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5F69FD803186572DBBE5C69 /* NotchRootView.swift */; };
 		BB93B6D1497268A142B2BC2E /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3191DFB4F249526FABFB03 /* WindowManager.swift */; };
 		BDAFB897FCB7818B5EF0830C /* AICommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24A1E3AF6C9284DE85E0A58 /* AICommands.swift */; };
+		BDD29991D7AD3BBB2397C519 /* CleanerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951FFB2D5814EF1BC91ED10F /* CleanerBridge.swift */; };
 		C0E7576DF5224D2452C29BCE /* WebPluginHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */; };
 		C2D7C19284DB95D1CAD02FBD /* WindowTargets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFF222D7F6F9E8D43487CF8B /* WindowTargets.swift */; };
 		C3328EACD94AB4C16FF52AFA /* nook-cli in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = A765987708E7C7A6BDC686EE /* nook-cli */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -157,6 +159,7 @@
 		88FE341CD71E95E7E4C20ED3 /* PluginStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStore.swift; sourceTree = "<group>"; };
 		89203DE659F34852BE937CB1 /* ClipsBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipsBridge.swift; sourceTree = "<group>"; };
 		93135239226DC986B1C2CBF5 /* PluginStorePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStorePublisher.swift; sourceTree = "<group>"; };
+		951FFB2D5814EF1BC91ED10F /* CleanerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanerBridge.swift; sourceTree = "<group>"; };
 		9CD7B656088A250C15F7E0EB /* AgentProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProcess.swift; sourceTree = "<group>"; };
 		9F2B0D0FA83D2B3CBDBE1179 /* NotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchShape.swift; sourceTree = "<group>"; };
 		A0BCD964DE4A53759BEC282B /* ClipboardHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistory.swift; sourceTree = "<group>"; };
@@ -168,6 +171,7 @@
 		B01026A830E58009F4086E3B /* FileSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchService.swift; sourceTree = "<group>"; };
 		B0E3F23227270422F28E8EA8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BA2AF2311DD93745C6FFAE35 /* OpenAITranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITranscriber.swift; sourceTree = "<group>"; };
+		C141074731F0E83AB891F9C5 /* CleanerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanerEngine.swift; sourceTree = "<group>"; };
 		C19D7C791BE6ADDFBA3AEB61 /* WebPluginHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPluginHost.swift; sourceTree = "<group>"; };
 		C1A1BD9CB7BF5C32DC1280CA /* PLUGINS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLUGINS.md; sourceTree = "<group>"; };
 		C28711F85CADC23250C7502C /* PluginStoreCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStoreCommands.swift; sourceTree = "<group>"; };
@@ -201,6 +205,8 @@
 			isa = PBXGroup;
 			children = (
 				5C7A346371B85AEE3A606DDF /* AudioMixer.swift */,
+				951FFB2D5814EF1BC91ED10F /* CleanerBridge.swift */,
+				C141074731F0E83AB891F9C5 /* CleanerEngine.swift */,
 				4012A6A6C8E8E5B1AA510D59 /* FileSearchModels.swift */,
 				23965ADD45E92309A3E756CD /* FileSearchPreview.swift */,
 				A85DECE852A8C5BFFC2D83E9 /* FileSearchQuickLook.swift */,
@@ -482,6 +488,8 @@
 				CA78B061E8B1DCEE10EBA1C0 /* AgentsPane.swift in Sources */,
 				36450E15E3D1113F40BA6E6B /* AppDelegate.swift in Sources */,
 				369E240255EED42A1C037DE2 /* AudioMixer.swift in Sources */,
+				BDD29991D7AD3BBB2397C519 /* CleanerBridge.swift in Sources */,
+				3398231BDE93A499FBCF0816 /* CleanerEngine.swift in Sources */,
 				9007398995E444128D4D967D /* ClipModels.swift in Sources */,
 				5BF1B0308EDE757A6876B93A /* ClipboardHistory.swift in Sources */,
 				69CC67F387657DCC411EE215 /* ClipboardSettingsPane.swift in Sources */,

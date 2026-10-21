@@ -297,3 +297,21 @@ The public repository's complete initial contents live in this source tree's `st
 
 The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow only regular non-executable files (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
 
+
+## Cleaner — `nook.cleaner`
+
+```js
+await nook.cleaner.clean('caches', 60); // → { bytes, moved, skipped, protectedCount, failed }
+```
+
+Moves eligible immediate children to the system Trash with `FileManager.trashItem`, without listing `~/.Trash`.
+Categories are fixed: `caches`, `logs`, `derived`, `devices`, `simulators`, `packages`, `downloads`.
+The optional days argument (default 60, clamped to 7–365) applies only to Downloads: regular files older than
+that modification age, never folders. No arbitrary paths; symlink roots/components and immediate symlink items
+are skipped. Apple and package caches are excluded from `caches`. Calls run serially off the main thread.
+`bytes` estimates allocated bytes moved. Protected/unreadable candidates stay in place and increment `skipped`
+and `protectedCount`; other move failures increment `failed`. A directory with an unreadable descendant is one
+skipped candidate and stays intact. The bundled Cleaner displays partial results and a single Full Disk Access hint.
+Trash size is unknown; confirmed emptying uses Finder AppleScript via `nook.shell` and may request Automation
+permission to control Finder. Finder empties all Trash, including mounted volumes. Homebrew keeps its own
+confirmed `brew cleanup -s` operation. Neither action is part of this bridge API.

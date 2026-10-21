@@ -122,3 +122,23 @@ fallback filesystem crawl. Broad searches cap candidate enumeration at 20,000, a
 Warm cached candidates return immediately; cold index latency depends on Spotlight and mounted volumes, so a universal
 sub-100 ms guarantee is not possible. Live queries stop on plugin close, replacement, or inactivity expiry.
 See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract and lifecycle.
+
+## Cleaner permissions and safety
+
+Cleaner scans fixed home-folder cache/log/developer/package roots and optional old Downloads. Unreadable items
+are counted and left in place while readable siblings remain measurable and cleanable. An unreadable descendant
+keeps its entire immediate candidate directory intact; counts refer to candidates (or an inaccessible root), not
+every nested file. Symlink roots/components and immediate symlink candidates are skipped without following them.
+Sizes are allocated-byte estimates, can change while apps run, and cover only fully readable candidates.
+
+Normal cleanup uses `FileManager.trashItem` through `nook.cleaner.clean`, so it does not need to read/list
+`~/.Trash`. Trash size is shown as unknown. Explicitly confirmed **Empty Trash** uses Finder via AppleScript,
+which may require allowing Nook in Privacy & Security → Automation → Finder, but does not require Full Disk
+Access just to list Trash. It empties all Trash, including mounted volumes, before newly cleaned files are moved.
+If Finder fails or times out, further cleanup stops to keep new items out of a potentially ongoing empty operation.
+
+macOS TCC/SIP, locked files, and ownership can still prevent particular items from being measured or moved.
+One inline hint links to Full Disk Access; granting it may expose more candidates and never overrides SIP or Unix
+permissions. Protected skips are expected partial results. Other I/O failures remain errors. Homebrew is delegated
+to `brew cleanup -s`, which permanently removes its own obsolete files and may report its own failures; its scan
+estimate covers the standard `~/Library/Caches/Homebrew` root, not a custom `HOMEBREW_CACHE` location.

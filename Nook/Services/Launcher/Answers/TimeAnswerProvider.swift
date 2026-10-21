@@ -4,8 +4,20 @@ import Foundation
 final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
     let id = "time"
     /// Countries with several zones use their capital/mainland zone. Explicit IANA IDs are always accepted.
+    /// ~90K world places (GeoNames, CC BY 4.0) → zone + country, from Nook/Resources/places.tsv (scripts/gen-places.py).
+    private static let places: [String: (zone: String, country: String)] = {
+        guard let url = Bundle.main.url(forResource: "places", withExtension: "tsv"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
+        var map: [String: (zone: String, country: String)] = [:]
+        map.reserveCapacity(95_000)
+        for line in text.split(separator: "\n") where !line.hasPrefix("#") {
+            let parts = line.split(separator: "\t", maxSplits: 2)
+            if parts.count == 3 { map[String(parts[0])] = (String(parts[1]), String(parts[2])) }
+        }
+        return map
+    }()
     private static let zones: [String: String] = {
-        var aliases: [String: String] = [:]
+        var aliases: [String: String] = places.mapValues(\.zone)
         for identifier in TimeZone.knownTimeZoneIdentifiers {
             aliases[identifier.lowercased()] = identifier
             let city = identifier.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: "_", with: " ").lowercased() ?? ""
@@ -36,7 +48,16 @@ final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
         aliases.merge(countries) { _, explicit in explicit }
         return aliases
     }()
-    required init() { super.init(); _ = Self.zones }
+    required init() {
+        super.init()
+        DispatchQueue.global(qos: .utility).async { _ = Self.zones } // ~3 MB table; load before the first "time in …"
+    }
+    /// "Germany" for "frankfurt", like Raycast; falls back to the typed name.
+    private func badge(_ text: String) -> String {
+        let key = text.lowercased().trimmingCharacters(in: .whitespaces)
+        if let place = Self.places[key], place.country.lowercased() != key { return place.country }
+        return text.capitalized
+    }
     private func zone(_ text: String, context: LauncherAnswerContext) -> TimeZone? {
         if ["here", "local"].contains(text) { return context.timeZone }
         return Self.zones[text].flatMap(TimeZone.init(identifier:))
@@ -75,7 +96,7 @@ final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
             return LauncherAnswer(expression: query, leftBadge: "Unix seconds", result: value, rightBadge: context.timeZone.identifier, copyValue: value)
         }
         if let match = AnswerText.match(#"time in (.+)"#, text), let zone = zone(match[0], context: context) {
-            return timeAnswer(query, at: context.now, zone: zone, badge: match[0].capitalized, context: context)
+            return timeAnswer(query, at: context.now, zone: zone, badge: badge(match[0]), context: context)
         }
         if let match = AnswerText.match(#"days between (\d{4}-\d{2}-\d{2}) and (\d{4}-\d{2}-\d{2})"#, text),
            let start = isoDate(match[0], calendar: cal), let end = isoDate(match[1], calendar: cal),
@@ -100,7 +121,7 @@ final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
             let sourceCal = calendar(source)
             guard let date = sourceCal.date(bySettingHour: hour, minute: minute, second: 0, of: context.now, matchingPolicy: .strict, repeatedTimePolicy: .first),
                   sourceCal.isDate(date, inSameDayAs: context.now), sourceCal.component(.hour, from: date) == hour else { return nil }
-            return timeAnswer(query, at: date, zone: target, badge: match[3].capitalized, dateBadge: true, context: context)
+            return timeAnswer(query, at: date, zone: target, badge: badge(match[3]), dateBadge: true, context: context)
         }
         let relative = AnswerText.match(#"("# + AnswerText.quantity + #")\s+(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?) from now(?: in (.+))?"#, text)
             ?? AnswerText.match(#"now\s*\+\s*("# + AnswerText.quantity + #")\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?)(?: in (.+))?"#, text)

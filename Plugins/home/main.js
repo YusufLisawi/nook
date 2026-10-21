@@ -24,9 +24,25 @@
   const save = () => nook.storage.set('todos', todos).then(() => showError('save', null))
     .catch(error => showError('save', `Couldn't save to-dos: ${error.message || error}`));
 
+  // Manual order: open items follow `order` (drag or ⌥↑/⌥↓), new ones go on top; done items sink below.
+  const rank = (t) => (typeof t.order === 'number' ? t.order : -t.created);
+  const byOrder = (a, b) => Number(a.done) - Number(b.done) || rank(a) - rank(b);
+  function move(id, toIndex) {
+    const open = todos.filter((t) => !t.done).sort(byOrder);
+    const from = open.findIndex((t) => t.id === id);
+    if (from < 0) return;
+    const [item] = open.splice(from, 1);
+    open.splice(Math.max(0, Math.min(open.length, toIndex)), 0, item);
+    const order = new Map(open.map((t, i) => [t.id, i]));
+    todos = todos.map((t) => (order.has(t.id) ? { ...t, order: order.get(t.id) } : t));
+    save();
+    render();
+    [...ui.list.children].find((row) => row.dataset.nkItem === id)?.focus();
+  }
+  let dragging = null;
+
   function render() {
-    // Open items first (newest on top), done items after.
-    const sorted = [...todos].filter((t) => !(settings?.hideDone && t.done)).sort((a, b) => Number(a.done) - Number(b.done) || b.created - a.created);
+    const sorted = [...todos].filter((t) => !(settings?.hideDone && t.done)).sort(byOrder);
     ui.list.replaceChildren(...sorted.map((t) => {
       const li = document.createElement('li');
       li.className = `item${t.done ? ' done' : ''}`;
@@ -34,6 +50,41 @@
       li.setAttribute('aria-label', `${t.text}, ${t.done ? 'done' : 'to do'}`);
       li.onclick = (event) => { if (event.target === li) li.querySelector('.box').click(); };
       li.addEventListener('nk:alt', () => li.querySelector('.text').ondblclick());
+      if (!t.done) {
+        // Pointer-based drag (not HTML5 drag-and-drop: that goes through the system drag pasteboard, which the notch
+        // treats as files dropped on it). Press, move 4px, and the row follows; release to drop.
+        li.onpointerdown = (e) => {
+          if (e.button !== 0 || e.target.closest('button,[contenteditable="plaintext-only"]')) return;
+          const startY = e.clientY;
+          let started = false;
+          const rows = () => [...ui.list.querySelectorAll('.item:not(.done)')];
+          const onMove = (m) => {
+            if (!started && Math.abs(m.clientY - startY) < 4) return;
+            if (!started) { started = true; dragging = t.id; li.classList.add('dragging'); li.setPointerCapture(e.pointerId); }
+            li.style.transform = `translateY(${m.clientY - startY}px)`;
+            rows().forEach((r) => r.classList.remove('drop-before', 'drop-after'));
+            const over = rows().find((r) => r !== li && m.clientY >= r.getBoundingClientRect().top && m.clientY <= r.getBoundingClientRect().bottom);
+            if (over) over.classList.add(m.clientY > over.getBoundingClientRect().top + over.offsetHeight / 2 ? 'drop-after' : 'drop-before');
+          };
+          const onUp = () => {
+            li.removeEventListener('pointermove', onMove); li.removeEventListener('pointerup', onUp); li.removeEventListener('pointercancel', onUp);
+            if (!started) return;
+            const target = rows().find((r) => r.classList.contains('drop-before') || r.classList.contains('drop-after'));
+            li.style.transform = ''; li.classList.remove('dragging'); dragging = null;
+            if (!target) { render(); return; }
+            const open = todos.filter((x) => !x.done).sort(byOrder).map((x) => x.id).filter((x) => x !== t.id);
+            move(t.id, open.indexOf(target.dataset.nkItem) + (target.classList.contains('drop-after') ? 1 : 0));
+          };
+          li.addEventListener('pointermove', onMove); li.addEventListener('pointerup', onUp); li.addEventListener('pointercancel', onUp);
+        };
+        li.onclick = (event) => { if (dragging) return; if (event.target === li) li.querySelector('.box').click(); };
+        li.addEventListener('keydown', (e) => {
+          if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || e.target !== li) return;
+          e.preventDefault(); e.stopPropagation();
+          const open = todos.filter((x) => !x.done).sort(byOrder);
+          move(t.id, open.findIndex((x) => x.id === t.id) + (e.key === 'ArrowUp' ? -1 : 1));
+        });
+      }
       li.innerHTML = '<button class="box" type="button"><svg class="icon"><use href="#i-check"/></svg></button><span class="text"></span><button class="del" type="button" title="Delete"><svg class="icon"><use href="#i-x"/></svg></button>';
       const text = li.querySelector('.text');
       text.textContent = t.text;
@@ -83,7 +134,8 @@
     e.preventDefault();
     const text = ui.input.value.trim();
     if (!text || !loaded) return;
-    todos.push({ id: crypto.randomUUID(), text, done: false, created: Date.now() });
+    const top = Math.min(0, ...todos.filter((t) => !t.done).map(rank));
+    todos.push({ id: crypto.randomUUID(), text, done: false, created: Date.now(), order: top - 1 });
     ui.input.value = '';
     save();
     render();

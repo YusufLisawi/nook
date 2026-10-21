@@ -58,3 +58,5 @@ button:active{opacity:.72}
 
 .item:focus-within .del{opacity:1}
 .todos:has(#error:not([hidden])) .empty{display:none}
+
+.item:not(.done){cursor:grab;touch-action:none}.item.dragging{opacity:.75;position:relative;z-index:2;background:rgba(255,255,255,.06);cursor:grabbing}.item.drop-before{box-shadow:inset 0 2px 0 rgba(255,255,255,.35)}.item.drop-after{box-shadow:inset 0 -2px 0 rgba(255,255,255,.35)}

@@ -19,6 +19,9 @@ struct LauncherView: View {
             if let prompt = state.chatQuery { chat(prompt) }
             else {
                 search
+                if let answer = state.smartAnswer {
+                    LauncherAnswerCard(answer: answer, selected: state.smartAnswerSelected) { state.selectedIndex = -1; state.runSmartAnswer() }
+                }
                 HStack {
                     Text(LauncherQuery(state.query).characters.isEmpty ? "Suggestions" : "Results")
                         .font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
@@ -103,11 +106,13 @@ struct LauncherView: View {
                 }.padding(.horizontal, 8)
             }
             .scrollIndicators(.never)
-            .frame(height: CGFloat(max(1, min(8, state.results.count))) * 44)
+            .frame(height: CGFloat(state.visibleResultCount) * 44)
             .onChange(of: state.selected?.id) { _, id in if let id { proxy.scrollTo(id, anchor: .center) } }
         }
         .overlay(alignment: .bottomTrailing) {
-            if state.actionsPresented, let entry = state.selected {
+            if state.actionsPresented, state.smartAnswerSelected, let answer = state.smartAnswer {
+                LauncherAnswerActions(answer: answer, selectedIndex: state.actionIndex) { state.runSmartAnswer(action: $0) }
+            } else if state.actionsPresented, let entry = state.selected {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(entry.title).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1).padding(6)
                     action(entry.primaryTitle, shortcut: "↩", selected: state.actionIndex == 0) { state.run(entry) }
@@ -134,7 +139,16 @@ struct LauncherView: View {
                 Button("Cancel") { state.confirmation = nil }.buttonStyle(.plain).font(.system(size: 11))
             }
             Spacer(minLength: 0)
-            if let entry = state.selected {
+            if state.smartAnswerSelected, let answer = state.smartAnswer {
+                Button { state.runSmartAnswer() } label: {
+                    HStack(spacing: 8) { Text("Copy result"); keycap("↩") }
+                }.buttonStyle(.plain).font(.system(size: 11, weight: .medium)).disabled(!answer.isAvailable)
+                Text("Paste  ⌘↩").font(.system(size: 11)).foregroundStyle(.secondary)
+                Rectangle().fill(Color.white.opacity(0.1)).frame(width: 1, height: 14).padding(.horizontal, 3)
+                Button { state.actionsPresented.toggle(); state.actionIndex = 0 } label: {
+                    HStack(spacing: 6) { Text("Actions"); keycap("⌘K") }.foregroundStyle(.secondary)
+                }.buttonStyle(.plain).font(.system(size: 11))
+            } else if let entry = state.selected {
                 Button { state.run(entry) } label: {
                     HStack(spacing: 8) { Text(entry.primaryTitle); keycap("↩") }
                 }.buttonStyle(.plain).font(.system(size: 11, weight: .medium))

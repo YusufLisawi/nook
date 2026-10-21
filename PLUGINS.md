@@ -509,3 +509,61 @@ AI Command entry snapshots the external app, clipboard and accessible selection 
 Commands use the normal AI Command execution/output pipeline with that context. Text providers without AX selection
 support use the existing selection fallback after the captured external app is restored. Clipboard/query text from
 the launcher is never used as the selection. See docs/LIMITS.md for focus and indexing limitations.
+
+### Smart answers (native)
+
+The launcher recognizes local math, units, currency, dates/time zones, colors, integer bases and percentage change.
+A confident answer appears above the regular results and is selected first. ↑↓ moves between the card and results;
+Return copies its value and closes, ⌘Return pastes into the captured external app, and ⌘K offers **Copy result**,
+**Copy expression**, **Copy with units**, plus provider actions. Existing ⌘1–9 shortcuts still address regular results.
+The card adds 156 pt; regular results retain scrolling with five visible rows while it is shown. Typing resizes instantly.
+
+Examples: `150 + 20%`, `sqrt(81)`, `5 plus 3 times 2`, `10 km in miles`, `5'11" in cm`, `100f to c`,
+`3 cups to ml`, `1.5 GB in MB`, `1000$`, `100 eur to mad`, `time in spain`, `5pm london in new york`,
+`2 hours from now in spain`, `now + 90 min`, `in 3 days`, `days until christmas`,
+`days between 2026-01-01 and 2026-03-15`, `unix 1792600000`, `now in unix`, `#f90 to rgb`,
+`hsl(120,100%,50%)`, `255 in hex`, `0xff in binary`, `from 80 to 100`.
+
+Currency defaults to the current locale's currency (MAD for a Moroccan locale). Only the fixed USD-base rate endpoint
+is requested; query text, amounts and currency choices stay on the Mac. Rates are cached under
+`~/Library/Caches/com.yusuf.nook/Launcher/answers-currency.json`, with at most one attempt per hour, including failures.
+Cached rates work offline and show their source timestamp. First use needs a connection; missing rates show a loading
+or unavailable card with copying disabled. The free source updates daily. Currency actions include the attribution link,
+[Rates by ExchangeRate-API](https://www.exchangerate-api.com/docs/free). No new JavaScript bridge API is added.
+
+### How to add an answer provider
+
+Add **one Swift file** under `Nook/Services/Launcher/Answers/`, then regenerate the Xcode project. Give the class a unique
+Objective-C name, subclass `LauncherAnswerModule`, and conform to `LauncherAnswerProvider`:
+
+```swift
+import Foundation
+
+@objc(NookDemoAnswerProvider)
+final class DemoAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
+    let id = "demo"
+    func answer(for query: String, context: LauncherAnswerContext) -> LauncherAnswer? {
+        guard context.hasTime, query.lowercased() == "answer demo" else { return nil }
+        return LauncherAnswer(expression: query, leftBadge: "Demo", result: "42",
+                              rightBadge: "The answer", copyValue: "42", copyWithUnits: "42 things")
+    }
+}
+```
+
+Startup discovers module subclasses automatically, including in optimized builds. **No launcher-view, startup-list,
+or other-provider edit is required.** `LauncherAnswers.shared.register(provider)` also supports explicit registration;
+registering the same ID replaces it. IDs sort deterministically; the first non-nil answer wins, so grammars should be
+specific and return nil for ordinary app/file searches. `LauncherAnswer` owns expression/result text, badges, optional
+note/swatch, copy payload, and secondary copy/URL actions. Operators and connector words are dimmed by the generic card.
+
+Providers run on their own serial background queues, with a **2 ms deadline per provider**. The registry waits no longer
+than that deadline, discards late answers, skips a still-busy provider, and bounds retries to the latest waiting query.
+Check `context.hasTime` during bounded computation. Do no disk/network work in `answer`; prewarm expensive formatters in
+module initialization and read cached values. Results are cancellable and checked against the current query/presentation
+before publishing. Context supplies a fixed clock, locale and time zone for deterministic tests.
+
+For optional asynchronous work, also conform to `LauncherAnswerRefining` and implement
+`refine(for:context:completion:)`. Return a cached answer (or `isAvailable: false` placeholder) synchronously, do the work
+outside the answer budget, then call completion to re-evaluate the current query. Protect shared caches and throttle I/O;
+callbacks from superseded searches cannot change the card. Test fixtures belong in `tests/answers/`, including positives,
+ordinary searches that must return nil, malformed inputs, and warmed timing checks. Run `bash tests/answers/run.sh`.

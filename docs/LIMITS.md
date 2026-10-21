@@ -284,3 +284,40 @@ Notch content attaches immediately for keyboard entry; hover keeps the delayed a
 waits for attachment and early typing is replayed after focus is ready; closing cancels pending focus/reveal work.
 The launcher's header crossfade/spring and instant resizing while typing are retained. Visual ghosting, actual first-key
 focus, and permission toggles require a manual check in a single running Nook instance; automated tests never launch it.
+
+## Native launcher smart answers
+
+- Smart answers run locally without AI. They never replace normal search results. The native card, actions and height
+  changes are shared by every provider; adding a file that subclasses `LauncherAnswerModule` and conforms to
+  `LauncherAnswerProvider` installs a new provider after rebuilding. Web plugins do not inject native answer providers.
+- Answer queries are bounded to 512 UTF-8 bytes. Every provider runs off the main thread on a serial queue with a 2 ms
+  result deadline; late answers are ignored and busy providers cannot accumulate work. Swift cannot forcibly stop a
+  provider function: a slow implementation can finish in its own queue, while later searches skip it. OS scheduling is
+  not a real-time guarantee. Providers must use bounded computation/caches; shipped warmed p95 timings are tested below 2 ms.
+- Math is a hand-written, finite-result, depth/token-bounded parser, never NSExpression/eval. Unary functions require
+  parentheses, trig uses radians, `log` is base 10, and `ln` is natural log. `%` is percentage (not remainder): `150 + 20%`
+  adds 20% of 150. Power is right-associative and binds before unary minus. Bare numbers and unknown names are not answers.
+  Both decimal separators work; a single comma means a decimal mark, while mixed marks use the final mark as decimal.
+  Floating-point rounding and a 13-significant-digit copy limit apply; this is not arbitrary-precision arithmetic.
+- Unit conversions cover length, mass, volume, temperature, speed, area, bytes/bits, durations, energy, pressure and angle.
+  Cups/spoons/gallons/pints/fluid ounces are US measures unless explicitly `imperial gallon`. KB/MB/GB are decimal;
+  KiB/MiB/GiB are binary. Below-absolute-zero temperatures and incompatible dimensions are rejected. Implicit conversions
+  prefer the locale's measurement system, using the counterpart when already in that system. Months/years are not fixed
+  duration units. Currency symbols/aliases take precedence over ambiguous bare unit names such as `pounds`.
+- Currency is the only network-backed answer. The fixed, no-key ExchangeRate-API USD feed supplies cross rates, refreshed
+  at most hourly (daily source updates); failures are throttled too. Only rate/cache timestamps persist alongside the
+  rates in the disposable Launcher cache. No amounts/queries are transmitted or saved. Offline use keeps the last good
+  rates with an age/Offline note. First use without cached rates shows unavailable/loading instead of invented values.
+  Copying is disabled in those states. The source attribution link is in currency actions. Rates are indicative.
+- City names and IANA identifiers use macOS time-zone data; bundled country aliases use capitals/mainland zones (Spain =
+  Madrid, US = New York, Australia = Sydney). Specify a city/IANA ID for another region. Zone conversions use today's date
+  in the source zone; nonexistent DST times are rejected, repeated times use the first occurrence. Relative days/weeks
+  use calendar days in the destination zone; hours/minutes/seconds use elapsed time. Time output is 24-hour; Unix means
+  seconds. Date differences count Gregorian calendar days in the local zone; Christmas means the next December 25.
+- Colors accept opaque #RGB/#RRGGBB, integer RGB and HSL. Base conversion supports signed magnitudes up to UInt64.max,
+  with 0x/0b/0o prefixes; no fractional bases or two's-complement inference. Percentage change uses the absolute starting
+  value as denominator and rejects a zero start. Unsupported/invalid expressions simply leave regular results visible.
+- Return copies and restores the original app; Command Return checks Accessibility and the captured application's identity
+  before sending Command V. It leaves the result on the clipboard. If the app quits or loses focus, no paste is sent.
+  Real focus/paste, screen-reader behavior, multi-display layout and notch resizing still need manual review in a single
+  running Nook instance; automated tests use inert output and offscreen rendering, never launch Nook or type into apps.

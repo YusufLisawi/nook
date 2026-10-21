@@ -275,7 +275,7 @@ Omit it to use the default scope. `kind`: `all`, `folder`, `app`, `document`, `i
 `{ path, name, kind, category, size, modified, added, lastUsed }` (`added` falls back to filesystem creation).
 Results rank exact basename, prefix, word start (including ASCII camel case), substring, then subsequence;
 newly added/modified files and Nook-opened frecency order each tier. Empty searches show newest added/modified
-files, including never-opened Downloads and screenshots. With `kind: 'all'`, Recent omits folders; choose the
+files, including never-opened Downloads and screenshots when folder access permits. With `kind: 'all'`, Recent omits folders; choose the
 Folder filter to see recent folders. Match tiers always dominate usage. Native results update each keystroke;
 the bridge has no debounce. Queries retain all matching candidate IDs for safe incremental narrowing.
 
@@ -295,8 +295,9 @@ same client's previous search. Use a unique `clientID` per web view and new `req
 superseded before its first reply receives `cancelled: true`, so every bridge promise settles. Clients without
 heartbeats expire after 120 seconds when refreshed; explicit cancellation releases them immediately.
 `total` counts all matching names in the own index; `truncated` means more matches exist than displayed rows.
-There is no 20,000-candidate cap in the own index. While the first catalog builds, bounded Spotlight candidates
-provide temporary, correctly filtered results (`indexing: true`, `source: 'spotlight'`); their coverage is partial.
+There is no 20,000-candidate cap in the own index. Bounded Spotlight candidates provide partial metadata
+results during builds and for folders without direct access (`source: 'index+spotlight'` when merged).
+Both sources use the same query compiler/ranking. macOS may withhold protected metadata until access is granted.
 `gathering: false` means the current result calculation completed, while later file changes can still emit updates.
 
 `filesSettings` fires when scope/hidden/exclusions change. Home is scanned in the background, excluding Library,
@@ -306,6 +307,14 @@ permissions in `~/Library/Caches/com.yusuf.nook/FileIndex`; file contents and qu
 replays changes after restart; dropped history or changed journal/scope triggers a rebuild. Descendant symlinks
 are indexed as references and never traversed. Previews remain bounded and in memory; cloud-only items show a
 Finder download hint. Trash uses `FileManager.trashItem` and refuses configured index roots.
+
+Startup never requests folder permission. Desktop/Documents/Downloads, media folders, Library (including cloud
+storage), and removable/network volumes are gated before filesystem access. The native **Allow access** row
+(⇧⌘A) and Settings → File Search request Desktop/Documents/Downloads only after a click; successful grants are
+remembered. Other protected locations require Full Disk Access, detected by a silent FDA-only sentinel open.
+Automatic previews in gated folders show metadata only. Spotlight always uses its symbolic home scope, with
+lexical result filtering: explicit protected-folder scopes were found to prompt on macOS. If macOS withholds
+those results too, Allow access is required. Additional root symlinks are rejected without following them.
 
 The bundled Files tab is native SwiftUI; a user `files` web plugin can still override it and use this bridge.
 Native shortcuts: ↑↓ select, Return opens, ⌘Return reveals, Space toggles Quick Look (Shift-Space types a space),

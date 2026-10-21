@@ -2,6 +2,21 @@ import Foundation
 import Darwin
 
 enum FileIndexPath {
+    /// Pure string normalization. URL(fileURLWithPath:) without isDirectory, and
+    /// realpath, can perform a stat and trigger TCC even before a search starts.
+    static func lexical(_ raw: String) -> String {
+        let expanded = raw.hasPrefix("~/") ? NSHomeDirectory() + String(raw.dropFirst()) : raw
+        var parts: [Substring] = []
+        for part in expanded.split(separator: "/") {
+            if part == "." { continue }
+            if part == ".." { if !parts.isEmpty { parts.removeLast() }; continue }
+            parts.append(part)
+        }
+        let normalized = "/" + parts.joined(separator: "/")
+        if normalized.hasPrefix("/System/Volumes/Data/") { return lexical(String(normalized.dropFirst("/System/Volumes/Data".count))) }
+        for alias in ["/tmp", "/var", "/etc"] where normalized == alias || normalized.hasPrefix(alias + "/") { return "/private" + normalized }
+        return normalized
+    }
     /// Foundation intentionally rewrites /private/tmp back to /tmp. FSEvents uses the
     /// physical spelling, so catalog roots/scopes use realpath, including missing tails.
     static func canonical(_ path: String) -> String {
@@ -112,7 +127,7 @@ struct FileIndexQuery {
                 add(added ? 10 : 8, "", start.timeIntervalSince1970, negated: negated)
                 if let end { add(added ? 11 : 9, "", end.timeIntervalSince1970) }
             } else if term.hasPrefix("~/") || term.hasPrefix("/") {
-                let path = FileIndexPath.canonical(URL(fileURLWithPath: (term as NSString).expandingTildeInPath).standardizedFileURL.path)
+                let path = FileIndexPath.lexical(term)
                 add(2, path, negated: negated)
             } else if term.contains("*") || term.contains("?") {
                 add(1, term, negated: negated)

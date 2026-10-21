@@ -22,6 +22,7 @@ final class FileNameIndex {
     private var eventID: UInt64 = 0
     private var fingerprint: UInt64 = 0
     private var config: Configuration?
+    private var _configuration: Configuration?
     private var _ready = false
     private var _diagnostic: String?
     private var _count = 0
@@ -31,17 +32,22 @@ final class FileNameIndex {
     private var forcePending = false
     private let cacheDirectory: URL
     private let home: String
+    private let configure: (UserDefaults, String, String) -> Configuration
 
     struct Configuration: Equatable {
+        let access: FileSearchAccessPolicy
         let roots: [String]
         let homeRoot: String
         let excluded: String
+        let metadataExcluded: [String]
         let hidden, library, dependencies, packages: Bool
-        init(defaults: UserDefaults = .standard, home: String = NSHomeDirectory(), cachePath: String? = nil) {
+        init(defaults: UserDefaults = .standard, home: String = NSHomeDirectory(), cachePath: String? = nil, access: FileSearchAccessPolicy? = nil) {
+            let access = access ?? FileSearchAccessPolicy.current(defaults: defaults, home: home)
+            self.access = access
             let additional = (defaults.string(forKey: "files.indexRoots") ?? "").components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { $0.hasPrefix("/") || $0.hasPrefix("~/") }
-                .map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).standardizedFileURL.path }.filter { $0 != "/" }
-            let physicalRoots: [String] = ([home] + additional).map { FileIndexPath.canonical($0) }
+                .map { FileIndexPath.lexical($0) }.filter { $0 != "/" }
+            let physicalRoots: [String] = ([home] + additional).compactMap(access.safeRoot)
             let candidates: [String] = Set(physicalRoots).sorted { lhs, rhs in
                 if lhs.count != rhs.count { return lhs.count < rhs.count }
                 return lhs < rhs
@@ -49,28 +55,39 @@ final class FileNameIndex {
             var unique: [String] = []
             for path in candidates where !unique.contains(where: { FileSearchPolicy.isInside(path, root: $0) }) { unique.append(path) }
             roots = unique
-            homeRoot = FileIndexPath.canonical(home)
+            homeRoot = FileIndexPath.lexical(home)
             let snapshot = FileSearchPreferences.Snapshot(defaults: defaults)
             hidden = snapshot.showHidden; library = defaults.bool(forKey: "files.indexLibrary")
             dependencies = defaults.bool(forKey: "files.indexDependencies"); packages = defaults.bool(forKey: "files.indexPackages")
-            excluded = (snapshot.excluded + [cachePath ?? home + "/Library/Caches/com.yusuf.nook/FileIndex"] + (library ? [] : [home + "/Library"]))
-                .map(FileIndexPath.canonical).joined(separator: "\n")
+            metadataExcluded = (snapshot.excluded + [cachePath ?? home + "/Library/Caches/com.yusuf.nook/FileIndex"] + (library ? [] : [home + "/Library"]))
+                .map(FileIndexPath.lexical)
+            excluded = (snapshot.excluded + [cachePath ?? home + "/Library/Caches/com.yusuf.nook/FileIndex"] + (library ? [] : [home + "/Library"]) + access.exclusions)
+                .map(FileIndexPath.lexical).joined(separator: "\n")
         }
         var hash: UInt64 {
             let journals = roots.map { root -> String in
                 var info = stat()
-                guard stat(root, &info) == 0, let uuid = FSEventsCopyUUIDForDevice(info.st_dev) else { return "" }
+                guard lstat(root, &info) == 0, let uuid = FSEventsCopyUUIDForDevice(info.st_dev) else { return "" }
                 return CFUUIDCreateString(nil, uuid) as String
             }
-            let text = roots.joined(separator: "\n") + journals.joined(separator: "|") + "|" + excluded + "|\(hidden)|\(library)|\(dependencies)|\(packages)|v2"
+            let text = roots.joined(separator: "\n") + journals.joined(separator: "|") + "|" + excluded + "|\(hidden)|\(library)|\(dependencies)|\(packages)|access-v3"
             return text.utf8.reduce(0xcbf29ce484222325) { ($0 ^ UInt64($1)) &* 0x100000001b3 }
         }
         func scan(_ index: OpaquePointer, root: String) {
-            nf_scan(index, root, excluded, hidden ? 1 : 0, library ? 1 : 0, dependencies ? 1 : 0, packages ? 1 : 0)
+            let liveVolumes = access.fullDiskAccess ? [] : FileSearchAccessPolicy.protectedVolumes()
+            let gatedExclusions = ([excluded] + liveVolumes).joined(separator: "\n")
+            nf_scan(index, root, gatedExclusions, hidden ? 1 : 0, library ? 1 : 0, dependencies ? 1 : 0, packages ? 1 : 0)
         }
-        func accepts(_ path: String) -> Bool {
+        func acceptsMetadata(_ path: String) -> Bool {
+            // Metadata results may include protected folders when macOS already
+            // exposes them. Apply search preferences without opening their URLs.
             guard roots.contains(where: { FileSearchPolicy.isInside(path, root: $0) }) else { return false }
-            if excluded.components(separatedBy: .newlines).contains(where: { !$0.isEmpty && FileSearchPolicy.isInside(path, root: $0) }) { return false }
+            return accepts(path, exclusions: metadataExcluded)
+        }
+        func accepts(_ path: String) -> Bool { accepts(path, exclusions: excluded.components(separatedBy: .newlines)) }
+        private func accepts(_ path: String, exclusions: [String]) -> Bool {
+            guard roots.contains(where: { FileSearchPolicy.isInside(path, root: $0) }) else { return false }
+            if exclusions.contains(where: { !$0.isEmpty && FileSearchPolicy.isInside(path, root: $0) }) { return false }
             let components = path.split(separator: "/").map(String.init)
             if components.contains(where: { [".Trash", ".Trashes", ".Spotlight-V100", ".fseventsd", ".DocumentRevisions-V100", ".TemporaryItems"].contains($0) }) { return false }
             if !hidden && components.contains(where: { $0.hasPrefix(".") }) { return false }
@@ -83,8 +100,9 @@ final class FileNameIndex {
         static let packageExtensions = Set("app bundle framework plugin appex photoslibrary photolibrary xcassets xcodeproj xcworkspace playground pages numbers key rtfd sparsebundle band logicx garageband".split(separator: " ").map(String.init))
     }
 
-    init(cacheDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/com.yusuf.nook/FileIndex"), home: String = NSHomeDirectory()) {
-        self.cacheDirectory = URL(fileURLWithPath: FileIndexPath.canonical(cacheDirectory.path)); self.home = FileIndexPath.canonical(home)
+    init(cacheDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/com.yusuf.nook/FileIndex"), home: String = NSHomeDirectory(), configure: @escaping (UserDefaults, String, String) -> Configuration = { Configuration(defaults: $0, home: $1, cachePath: $2) }) {
+        self.configure = configure
+        self.cacheDirectory = URL(fileURLWithPath: FileIndexPath.lexical(cacheDirectory.path), isDirectory: true); self.home = FileIndexPath.lexical(home)
     }
     deinit {
         if let stream { FSEventStreamStop(stream); FSEventStreamInvalidate(stream); FSEventStreamRelease(stream) }
@@ -94,8 +112,9 @@ final class FileNameIndex {
     var ready: Bool { lock.lock(); defer { lock.unlock() }; return _ready }
     var status: (count: Int, diagnostic: String?, restored: Bool) { lock.lock(); defer { lock.unlock() }; return (_count, _diagnostic, _restored) }
 
+    var configuration: Configuration? { lock.lock(); defer { lock.unlock() }; return _configuration }
+
     func start(defaults: UserDefaults = .standard, force: Bool = false) {
-        let next = Configuration(defaults: defaults, home: home, cachePath: cacheDirectory.path)
         lock.lock(); rebuildVersion += 1; let revision = rebuildVersion; forcePending = forcePending || force; lock.unlock()
         updates.async { [weak self] in
             guard let self else { return }
@@ -103,10 +122,14 @@ final class FileNameIndex {
             let current = self.rebuildVersion == revision, requestedForce = self.forcePending
             if current { self.forcePending = false }
             self.lock.unlock()
-            guard current, requestedForce || !self.started || self.config != next else { return }
+            guard current else { return }
+            // Even root normalization, FDA detection and journal identity checks
+            // belong off main. A slow/unavailable disk cannot delay opening Nook.
+            let next = self.configure(defaults, self.home, self.cacheDirectory.path)
+            guard requestedForce || !self.started || self.config != next else { return }
             self.started = true; self.config = next; self.fingerprint = next.hash
             self.stopWatching(); self.saveWork?.cancel(); self.saveWork = nil
-            self.lock.lock(); self._ready = false; self.lock.unlock()
+            self.lock.lock(); self._ready = false; self._configuration = next; self.lock.unlock()
             self.publish()
             self.build(next, force: requestedForce)
         }
@@ -187,7 +210,7 @@ final class FileNameIndex {
             let path = raw.hasPrefix("/System/Volumes/Data/") ? String(raw.dropFirst("/System/Volumes/Data".count)) : raw
             // Default Library exclusion also keeps our cache writes out of the update loop.
             if FileSearchPolicy.isInside(path, root: cacheDirectory.path) { continue }
-            guard config.accepts(path) else {
+            guard config.accepts(path), config.access.fullDiskAccess || !FileSearchAccessPolicy.protectedVolumes().contains(where: { FileSearchPolicy.isInside(path, root: $0) }) else {
                 #if FILE_INDEX_DIAGNOSTICS
                 fputs("EXCLUDED \(path) roots=\(config.roots)\n", stderr)
                 #endif
@@ -222,7 +245,8 @@ final class FileNameIndex {
     }
 
     private static func readRecord(_ path: String, config: Configuration) -> FileSearchResult? {
-        let url = URL(fileURLWithPath: path)
+        guard config.access.allows(path) else { return nil }
+        let url = URL(fileURLWithPath: path, isDirectory: false)
         guard !config.excluded.components(separatedBy: .newlines).contains(where: { !$0.isEmpty && FileSearchPolicy.isInside(path, root: $0) }) else { return nil }
         if !config.hidden && path.split(separator: "/").contains(where: { $0.hasPrefix(".") }) { return nil }
         guard let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey, .isSymbolicLinkKey, .isHiddenKey, .fileSizeKey, .contentModificationDateKey, .creationDateKey, .addedToDirectoryDateKey, .contentTypeKey]) else { return nil }

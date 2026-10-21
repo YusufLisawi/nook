@@ -9,6 +9,7 @@ struct FileSearchSettingsPane: View {
     @AppStorage("files.indexLibrary") private var library = false
     @AppStorage("files.indexDependencies") private var dependencies = false
     @AppStorage("files.indexPackages") private var packages = false
+    @ObservedObject private var access = FileSearchAccess.shared
     @State private var status = FileNameIndex.shared.status
     @State private var ready = FileNameIndex.shared.ready
 
@@ -22,6 +23,18 @@ struct FileSearchSettingsPane: View {
                     Text("All configured folders").tag("all")
                 }
                 Toggle("Show hidden files", isOn: $showHidden)
+            }
+            Section("Folder access") {
+                LabeledContent("Full Disk Access", value: access.policy.fullDiskAccess ? "Allowed" : "Not enabled")
+                if access.policy.needsAccess {
+                    Button(access.requesting ? "Waiting for access…" : "Allow Desktop, Documents and Downloads…") { access.allow() }.disabled(access.requesting)
+                } else if !access.policy.fullDiskAccess {
+                    LabeledContent("Desktop, Documents and Downloads", value: "Allowed")
+                }
+                Button("Open Full Disk Access…") { access.openFullDiskAccess() }
+                if access.requested { Button("Forget Folder Access") { access.revoke() } }
+                Text("Access is requested only when you choose Allow. Successful folder grants are remembered. Pictures, Movies, Music, Library, cloud folders and external volumes require Full Disk Access. Spotlight can only return the files macOS permits it to show.")
+                    .foregroundStyle(.secondary)
             }
             Section("Index") {
                 LabeledContent("Status", value: ready ? "\(status.count.formatted()) names" : "Building in the background…")
@@ -49,11 +62,12 @@ struct FileSearchSettingsPane: View {
                 Text("One absolute folder path per line; ~ means your home folder. Folder contents are excluded too. Library, dependencies, build folders, and package contents are skipped by default.")
             }
             Section {
-                Text("Names and dates stay on this Mac. Recent shows newly added or modified files first. The cached index catches up after restart; Spotlight provides temporary results during the first build. Protected folders require Files & Folders permission.")
+                Text("Names and dates stay on this Mac. Recent shows newly added or modified files first. The cached index catches up after restart; Spotlight provides metadata results while the first index builds and for folders excluded by access permissions.")
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        .onAppear { access.start(); access.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: FileNameIndex.changed)) { _ in
             status = FileNameIndex.shared.status; ready = FileNameIndex.shared.ready
         }

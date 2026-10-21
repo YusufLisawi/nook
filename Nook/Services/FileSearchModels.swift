@@ -20,7 +20,7 @@ enum FileSearchPreferences {
             showHidden = defaults.bool(forKey: hiddenKey)
             excluded = (defaults.string(forKey: excludedKey) ?? "").components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespaces) }.filter { $0.hasPrefix("/") || $0.hasPrefix("~/") }
-                .map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).standardizedFileURL.path }
+                .map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath, isDirectory: true).standardizedFileURL.path }
         }
 
         func allows(_ path: String) -> Bool {
@@ -126,7 +126,7 @@ struct FileSearchResult {
         if contentTypes.contains("public.folder") { return "folder" }
         if contentTypes.contains("public.image") { return "image" }
         if contentTypes.contains("com.adobe.pdf") { return "pdf" }
-        if contentTypes.contains("public.source-code") || FileSearchPolicy.codeExtensions.contains(URL(fileURLWithPath: path).pathExtension.lowercased()) { return "code" }
+        if contentTypes.contains("public.source-code") || FileSearchPolicy.codeExtensions.contains((path as NSString).pathExtension.lowercased()) { return "code" }
         if contentTypes.contains("public.movie") { return "video" }
         if contentTypes.contains("public.audio") { return "audio" }
         if contentTypes.contains("public.archive") { return "archive" }
@@ -146,7 +146,7 @@ extension FileSearchResult {
                                                 "kMDItemFSContentChangeDate", "kMDItemLastUsedDate", "kMDItemDateAdded", "kMDItemFSCreationDate", "kMDItemContentTypeTree", "kMDItemFSInvisible"]) ?? [:]
         guard let path = knownPath ?? values["kMDItemPath"] as? String else { return nil }
         self.path = path
-        name = values["kMDItemFSName"] as? String ?? URL(fileURLWithPath: path).lastPathComponent
+        name = values["kMDItemFSName"] as? String ?? (path as NSString).lastPathComponent
         kind = values["kMDItemKind"] as? String ?? "File"
         size = (values["kMDItemFSSize"] as? NSNumber)?.int64Value ?? 0
         modified = (values["kMDItemFSContentChangeDate"] as? Date)?.timeIntervalSince1970 ?? 0

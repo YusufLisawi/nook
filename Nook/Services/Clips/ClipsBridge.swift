@@ -6,9 +6,13 @@ import Quartz
 import SwiftUI
 
 enum ClipsFeature {
+    private static var accessObserver: NSObjectProtocol?
     static func start() {
         ClipboardHistory.shared.start()
-        ScreenCaptureIndex.shared.start(directory: ClipboardHistory.shared.directory)
+        ScreenCaptureIndex.shared.start(directory: ClipboardHistory.shared.directory, accessAllowed: { FileSearchAccess.shared.policy.allows($0.path) })
+        accessObserver = NotificationCenter.default.addObserver(forName: FileSearchAccess.changed, object: nil, queue: .main) { _ in
+            ScreenCaptureIndex.shared.refresh()
+        }
         ClipsActions.shared.start()
         SettingsRegistry.register(id: "clipboard", title: "Clipboard", symbol: "doc.on.clipboard.fill", tint: .orange, order: 44) { ClipboardSettingsPane() }
         BridgeRegistry.register("clips", functions: ["history", "screenshots", "status", "thumbnail", "copy", "paste", "open", "reveal", "delete", "pin", "unpin", "clear", "quickLook"]) { fn, args, _, reply in

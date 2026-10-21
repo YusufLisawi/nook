@@ -6,6 +6,7 @@ xcrun clang -std=c11 -O3 -Wall -Wextra -Werror -c Nook/Services/Files/FileNameIn
 xcrun swiftc -g -swift-version 5 -warnings-as-errors \
   -import-objc-header Nook/Services/Files/NookFiles-Bridging.h \
   Nook/Services/FileSearchModels.swift Nook/Services/Files/FileIndexQuery.swift \
+  Nook/Services/Files/FileSearchAccessPolicy.swift Nook/Services/Files/FileSearchAccess.swift \
   Nook/Services/Files/FileSearchTab.swift Nook/Views/KeyboardFocus.swift \
   tests/files/TabStateStubs.swift tests/files/TabStateTests.swift \
   "$files_test_dir/index.o" -o "$files_test_dir/tab-tests"

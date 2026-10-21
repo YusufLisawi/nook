@@ -132,7 +132,7 @@ struct FileSearchTab: View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .light)).foregroundStyle(.secondary)
-                TextField("Search files…", text: $state.query).textFieldStyle(.plain).font(.system(size: 22, weight: .medium))
+                TextField("Search files…", text: $state.query).textFieldStyle(.plain).font(.system(size: 22, weight: .medium)).tint(.white)
                     .focused($searching).keyboardInitialFocus(tab: "files")
                     .accessibilityLabel("Search files by name. Shift Space inserts a space; Space opens Quick Look.")
                 if state.gathering { ProgressView().controlSize(.mini).help("Building the file index…") }

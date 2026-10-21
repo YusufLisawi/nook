@@ -8,7 +8,7 @@ enum LauncherFileSource {
             let rows = (payload["results"] as? [[String: Any]] ?? []).compactMap(FileSearchResult.init(json:))
             reply(.success(rows.map { item in
                 LauncherEntry(id: "file:" + item.path, title: item.name,
-                              subtitle: (item.path as NSString).deletingLastPathComponent,
+                              subtitle: ((item.path as NSString).deletingLastPathComponent as NSString).abbreviatingWithTildeInPath,
                               kind: item.kind, symbol: FileSearchTab.symbol(item.category), source: .files, target: .file(item.path))
             }))
         }

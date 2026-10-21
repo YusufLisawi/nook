@@ -125,6 +125,7 @@ final class FileSearchTabState: ObservableObject {
 struct FileSearchTab: View {
     @ObservedObject var vm: NotchViewModel
     @StateObject private var state = FileSearchTabState()
+    @ObservedObject private var access = FileSearchAccess.shared
     @FocusState private var searching: Bool
 
     var body: some View {
@@ -136,6 +137,7 @@ struct FileSearchTab: View {
                     .accessibilityLabel("Search files by name. Shift Space inserts a space; Space opens Quick Look.")
                 if state.gathering { ProgressView().controlSize(.mini).help("Building the file index…") }
             }.padding(.horizontal, 8).frame(height: 54)
+            if access.policy.needsAccess { FileSearchAccessRow() }
             HStack {
                 Text(state.query.isEmpty ? "Recent" : "Results").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
                 Spacer()
@@ -184,7 +186,7 @@ struct FileSearchTab: View {
                             .background(RoundedRectangle(cornerRadius: 9).fill(.white.opacity(state.selected == index ? 0.14 : 0)))
                             .onTapGesture(count: 2) { state.selected = index; state.perform("open") }
                             .onTapGesture { state.selected = index }
-                            .onDrag { NSItemProvider(contentsOf: URL(fileURLWithPath: item.path)) ?? NSItemProvider() }
+                            .onDrag { NSItemProvider(contentsOf: URL(fileURLWithPath: item.path, isDirectory: item.category == "folder")) ?? NSItemProvider() }
                             .accessibilityElement(children: .combine).accessibilityAddTraits(.isButton)
                             .accessibilityAddTraits(state.selected == index ? .isSelected : [])
                             .accessibilityAction { state.selected = index; state.perform("open") }

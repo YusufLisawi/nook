@@ -38,6 +38,8 @@ struct WatcherTests {
         try Data("first".utf8).write(to: initial)
         let child = root.appendingPathComponent("Downloads/Folder/child.txt")
         try Data("child".utf8).write(to: child)
+        defaults.set(true, forKey: FileSearchAccessPolicy.requestedKey)
+        defaults.set([root.appendingPathComponent("Downloads").path], forKey: FileSearchAccessPolicy.grantedKey)
         let index = FileNameIndex(cacheDirectory: cache, home: root.path)
         index.start(defaults: defaults)
         wait("initial build") { index.ready }

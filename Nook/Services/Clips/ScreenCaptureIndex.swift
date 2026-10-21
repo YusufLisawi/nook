@@ -11,7 +11,7 @@ final class ScreenCaptureIndex {
     private(set) var error: String?
     private(set) var scanning = false
     private(set) var isReady = false
-    private(set) var folder = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Desktop")
+    private(set) var folder = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).appendingPathComponent("Desktop", isDirectory: true)
     private var directory: URL!
     private var source: DispatchSourceFileSystemObject?
     private var refreshTimer: Timer?
@@ -23,6 +23,7 @@ final class ScreenCaptureIndex {
     private let io = DispatchQueue(label: "com.yusuf.nook.clips.index", qos: .utility)
     private let ocrQueue = DispatchQueue(label: "com.yusuf.nook.clips.ocr", qos: .utility)
     private let folderProvider: () -> URL
+    private var accessAllowed: (URL) -> Bool = { _ in false }
     private let ocrEnabled: () -> Bool
     private var cacheURL: URL { directory.appendingPathComponent("screenshots.json") }
 
@@ -36,18 +37,22 @@ final class ScreenCaptureIndex {
         let override = UserDefaults.standard.string(forKey: ClipPreferences.folder)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let system = CFPreferencesCopyAppValue("location" as CFString, "com.apple.screencapture" as CFString) as? String
         let path = override.isEmpty ? (system ?? "~/Desktop") : override
-        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true).standardizedFileURL.resolvingSymlinksInPath()
+        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true).standardizedFileURL
     }
 
-    func start(directory: URL) {
+    func start(directory: URL, accessAllowed: @escaping (URL) -> Bool = { _ in false }) {
         guard self.directory == nil else { return }
         self.directory = directory
+        self.accessAllowed = accessAllowed
         let url = cacheURL
         io.async {
             let loaded = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode([ClipEntry].self, from: $0) } ?? []
             DispatchQueue.main.async {
-                let configured = self.folderProvider().standardizedFileURL.resolvingSymlinksInPath()
-                self.entries = loaded.filter { $0.urls.first?.deletingLastPathComponent().standardizedFileURL.resolvingSymlinksInPath().path == configured.path }
+                let configured = self.folderProvider().standardizedFileURL
+                self.entries = self.accessAllowed(configured) ? loaded.filter { entry in
+                    guard let path = entry.paths.first else { return false }
+                    return URL(fileURLWithPath: path, isDirectory: false).deletingLastPathComponent().standardizedFileURL.path == configured.path
+                } : []
                 self.folder = configured // preserve the restored cache when the first watcher is installed
                 self.refresh()
                 self.observer = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -61,7 +66,13 @@ final class ScreenCaptureIndex {
     }
 
     func refresh() {
-        let desired = folderProvider().standardizedFileURL.resolvingSymlinksInPath()
+        let desired = folderProvider().standardizedFileURL
+        guard accessAllowed(desired) else {
+            pendingScan?.cancel(); source?.cancel(); source = nil
+            revision += 1; folder = desired; entries = []; isReady = true
+            error = "Allow folder access in File Search Settings to index screenshots."
+            emit(); return
+        }
         if desired != folder || source == nil {
             let changedFolder = desired != folder
             folder = desired
@@ -94,6 +105,7 @@ final class ScreenCaptureIndex {
     }
 
     private func scan() {
+        guard accessAllowed(folder) else { return }
         guard !scanning else { scanAgain = true; return }
         scanning = true
         emit()

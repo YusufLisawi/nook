@@ -9,11 +9,11 @@ xcrun clang -std=c11 -O3 -Wall -Wextra -Werror -c Nook/Services/Files/FileNameIn
 xcrun swiftc -O -swift-version 5 -warnings-as-errors -parse-as-library \
   -import-objc-header Nook/Services/Files/NookFiles-Bridging.h \
   Nook/Core/Extensions.swift Nook/Services/FileSearchModels.swift \
-  Nook/Services/Files/FileIndexQuery.swift Nook/Services/Files/FileNameIndex.swift \
-  Nook/Services/Files/FileSpotlightFallback.swift Nook/Services/Files/FileSearchWebShortcuts.swift \
+  Nook/Services/Files/FileIndexQuery.swift Nook/Services/Files/FileSearchAccessPolicy.swift Nook/Services/Files/FileNameIndex.swift \
+  Nook/Services/Files/FileSearchAccess.swift Nook/Services/Files/FileSpotlightFallback.swift Nook/Services/Files/FileSearchWebShortcuts.swift \
   Nook/Services/FileSearchPreview.swift Nook/Services/FileSearchQuickLook.swift \
   Nook/Services/FileSearchService.swift Nook/Views/FileSearchSettingsPane.swift \
-  tests/files/NativeTests.swift "$files_test_dir/index.o" -o "$files_test_dir/native-tests"
+  tests/files/FileAccessTests.swift tests/files/NativeTests.swift "$files_test_dir/index.o" -o "$files_test_dir/native-tests"
 "$files_test_dir/native-tests"
 bash tests/files/index.sh
 bash tests/files/watcher.sh

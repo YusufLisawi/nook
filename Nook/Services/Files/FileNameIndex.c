@@ -232,11 +232,15 @@ static int excluded(const char *path,const char *list) {
     } return 0;
 }
 typedef struct { const char *excluded,*root; int hidden,library,dependencies,packages; } Config;
-static void scan(NFIndex *s,const char *path,const Config *c,int depth,int inherited_hidden,int parent_fd,const char *leaf) {
+static void scan(NFIndex *s,const char *path,const Config *c,int depth,int inherited_hidden,int parent_fd,const char *leaf,dev_t root_device) {
     if(depth>256 || excluded(path,c->excluded)) return;
     const char *name=strrchr(path,'/'); name=name?name+1:path;
     struct stat st;
     if(fstatat(parent_fd,leaf,&st,AT_SYMLINK_NOFOLLOW)!=0) { s->skipped++; return; }
+    // Do not cross a mount inserted while a walk is in flight. Mount-table
+    // exclusions are applied before stat; this is a second, race-safe boundary.
+    if(depth && st.st_dev!=root_device) return;
+    if(!depth) root_device=st.st_dev;
     int hidden=inherited_hidden || name[0]=='.' || (st.st_flags&UF_HIDDEN)!=0;
     if(hidden && !c->hidden) return;
     int dir=S_ISDIR(st.st_mode);
@@ -260,12 +264,12 @@ static void scan(NFIndex *s,const char *path,const Config *c,int depth,int inher
     while((entry=readdir(d))) {
         if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")) continue;
         char child[4096]; int n=snprintf(child,sizeof(child),"%s/%s",path,entry->d_name);
-        if(n>0 && (size_t)n<sizeof(child)) scan(s,child,c,depth+1,hidden,dirfd(d),entry->d_name);
+        if(n>0 && (size_t)n<sizeof(child)) scan(s,child,c,depth+1,hidden,dirfd(d),entry->d_name,root_device);
     }
     closedir(d);
 }
 void nf_scan(NFIndex *s,const char *root,const char *exclusions,int hidden,int library,int dependencies,int packages) {
-    Config c={exclusions,root,hidden,library,dependencies,packages}; scan(s,root,&c,0,0,AT_FDCWD,root);
+    Config c={exclusions,root,hidden,library,dependencies,packages}; scan(s,root,&c,0,0,AT_FDCWD,root,0);
 }
 
 NFQuery *nf_query_create(const char *scope,uint32_t kinds,double now) {

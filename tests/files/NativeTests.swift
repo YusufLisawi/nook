@@ -10,6 +10,7 @@ enum PluginEvents {
 @main
 struct NativeTests {
     static func main() throws {
+        try FileAccessTests.run()
         let domain = "nook.files.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: domain)!
         defer { defaults.removePersistentDomain(forName: domain) }
@@ -75,8 +76,15 @@ struct NativeTests {
         for (text, kind) in [("", "all"), ("literal ' * [x]", "all"), ("swift", "code")] {
             let query = NSMetadataQuery()
             query.predicate = FileSearchPolicy.predicate(query: text, kind: kind)
-            query.searchScopes = [FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")]
+            query.searchScopes = [NSMetadataQueryUserHomeScope]
             precondition(query.start(), "Spotlight rejected a file-search predicate")
+            query.stop()
+        }
+        for text in ["", "report", "[name]", "report | invoice", "*.png", "ext:pdf;docx", "!draft", "a?b", "literal [name]"] {
+            let query = NSMetadataQuery()
+            query.predicate = FileSearchService.metadataPredicate(try FileIndexQuery(text))
+            query.searchScopes = [NSMetadataQueryUserHomeScope]
+            precondition(query.start(), "Spotlight rejected a safe overlay predicate")
             query.stop()
         }
         let previewer = FileSearchPreview()

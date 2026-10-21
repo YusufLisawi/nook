@@ -60,6 +60,7 @@ enum LauncherFileSource {
 enum FileSearchService {
     static let shared = FileSearchServiceStub()
     final class FileSearchServiceStub {
+        func cancel(_ key: String) {}
         func handle(_ action: String, args: [Any], reply: @escaping (Any?, String?) -> Void) { reply(nil, nil) }
     }
 }

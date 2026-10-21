@@ -27,9 +27,13 @@ struct ScreenCaptureTests {
         let shot = folder.appendingPathComponent("Screenshot 2026-10-21 at 13.03.00.png")
         let unrelated = folder.appendingPathComponent("ordinary-photo.png")
         try png.write(to: shot); try png.write(to: unrelated)
+        let denied = ScreenCaptureIndex(folderProvider: { folder }, ocrEnabled: { false })
+        denied.start(directory: root.appendingPathComponent("DeniedCache", isDirectory: true))
+        wait { denied.isReady }
+        assert(denied.entries.isEmpty && denied.error != nil && !denied.scanning, "startup without access must not watch or scan the screenshot folder")
         var chosenFolder = folder
         let index = ScreenCaptureIndex(folderProvider: { chosenFolder }, ocrEnabled: { true })
-        index.start(directory: cache)
+        index.start(directory: cache, accessAllowed: { _ in true })
         wait { index.isReady && index.entries.first?.ocrText != nil }
         assert(index.entries.count == 1 && index.entries[0].urls.first?.resolvingSymlinksInPath() == shot.resolvingSymlinksInPath())
         assert(index.entries[0].ocrText!.localizedCaseInsensitiveContains("MAGENTA"))
@@ -45,7 +49,7 @@ struct ScreenCaptureTests {
         assert(ScreenCaptureIndex.isCapture(folder.appendingPathComponent("Screen Recording sample.mov")))
 
         let restored = ScreenCaptureIndex(folderProvider: { folder }, ocrEnabled: { false })
-        restored.start(directory: cache)
+        restored.start(directory: cache, accessAllowed: { _ in true })
         wait { restored.isReady }
         assert(restored.entries.first(where: { $0.id == id })?.ocrText?.contains("MAGENTA") == true)
         assert(restored.entries.first(where: { $0.id == id })?.pinned == true)

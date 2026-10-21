@@ -27,6 +27,7 @@
 		1CDCD80A3E3122C1C6D42913 /* FileSearchTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA6894129919D67E4060E39 /* FileSearchTab.swift */; };
 		1E12765695120CAD5AB0EB3A /* PluginStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FE341CD71E95E7E4C20ED3 /* PluginStore.swift */; };
 		1F22C8775A8B95C8B54B5150 /* TabNavigationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF2B540E5E356FAF33CDDF88 /* TabNavigationStore.swift */; };
+		21C0E43A0FCA90A2CE4C85E8 /* FileSearchAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = F737ED0684FF959121B7F4E6 /* FileSearchAccess.swift */; };
 		2762D4E0C67F7DBC6A27DC88 /* FileSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01026A830E58009F4086E3B /* FileSearchService.swift */; };
 		2C07176FCE68482897504420 /* CodexLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C0E1700B97B0BE8C00E4E /* CodexLink.swift */; };
 		2C3B2C55233DE936E04CD16B /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44481D567E5664A614F2BDF9 /* MicRecorder.swift */; };
@@ -112,6 +113,7 @@
 		C63113DB4DAC5186FA0FCFBF /* CaptureShield.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3695BCFB2AE45A793E9D585D /* CaptureShield.swift */; };
 		C7A5023E1CA3B5B4CC2CB557 /* NotchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867998E9B233A6020709500D /* NotchController.swift */; };
 		CA78B061E8B1DCEE10EBA1C0 /* AgentsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D8AF0C0507505D2DEDCDB4B /* AgentsPane.swift */; };
+		CC9DEBCFCE85F7C69FB9D784 /* FileSearchAccessPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51253853197AEC798A22207 /* FileSearchAccessPolicy.swift */; };
 		D0A1223E7F4F65DEA0EBAE31 /* PluginStorePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F852F8AAAF23FBC93E0E9D5 /* PluginStorePane.swift */; };
 		D294316C8D30AB259292D361 /* ScreenCaptureIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 557619AFCA1334AE03FFD95B /* ScreenCaptureIndex.swift */; };
 		D3E46316EDC9B513E855F37E /* TimerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31AA95267FAFBFBDB850E8C /* TimerService.swift */; };
@@ -271,6 +273,7 @@
 		C28711F85CADC23250C7502C /* PluginStoreCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginStoreCommands.swift; sourceTree = "<group>"; };
 		C31AA95267FAFBFBDB850E8C /* TimerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerService.swift; sourceTree = "<group>"; };
 		C50B5F2C98350BBDDE39EFC6 /* TabNavigationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabNavigationViewModel.swift; sourceTree = "<group>"; };
+		C51253853197AEC798A22207 /* FileSearchAccessPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchAccessPolicy.swift; sourceTree = "<group>"; };
 		C56F150318FB5BF1029A8DF1 /* FileShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShelf.swift; sourceTree = "<group>"; };
 		C81AED7CB4CB02EC732338BF /* MouseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseConfig.swift; sourceTree = "<group>"; };
 		C85405BE5C88AF6CC224DE35 /* MouseBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseBridge.swift; sourceTree = "<group>"; };
@@ -288,6 +291,7 @@
 		F49191F3D14AD9ECE7CA3B1A /* MouseFixService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseFixService.swift; sourceTree = "<group>"; };
 		F524EF4CA8F1F533CB661C07 /* DockNavigationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockNavigationViews.swift; sourceTree = "<group>"; };
 		F713B95919446A0FCB1A07F3 /* FileNameIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileNameIndex.swift; sourceTree = "<group>"; };
+		F737ED0684FF959121B7F4E6 /* FileSearchAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchAccess.swift; sourceTree = "<group>"; };
 		F8A708EC61760010B0EA91A3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FB0D3096715CC7687F6FA829 /* KeyboardActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardActions.swift; sourceTree = "<group>"; };
 		FD70FF370E94556B10546FF6 /* ProxyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyService.swift; sourceTree = "<group>"; };
@@ -559,6 +563,8 @@
 				76DA1D2A9C3D1504E69CBF44 /* FileNameIndex.c */,
 				2AB79F0E7026C2150905CEF9 /* FileNameIndex.h */,
 				F713B95919446A0FCB1A07F3 /* FileNameIndex.swift */,
+				F737ED0684FF959121B7F4E6 /* FileSearchAccess.swift */,
+				C51253853197AEC798A22207 /* FileSearchAccessPolicy.swift */,
 				6EA6894129919D67E4060E39 /* FileSearchTab.swift */,
 				882C7D81777DF92EE6D0D9C4 /* FileSearchWebShortcuts.swift */,
 				795E4CC0EA36A25C0B2F26B5 /* FileSpotlightFallback.swift */,
@@ -713,6 +719,8 @@
 				FC3ABE4B5C731454FAA5EC2C /* FileIndexQuery.swift in Sources */,
 				143137EB999A60C0F39035A6 /* FileNameIndex.c in Sources */,
 				46C54A96B79EBBD022362C36 /* FileNameIndex.swift in Sources */,
+				21C0E43A0FCA90A2CE4C85E8 /* FileSearchAccess.swift in Sources */,
+				CC9DEBCFCE85F7C69FB9D784 /* FileSearchAccessPolicy.swift in Sources */,
 				78948816316DF3E65E939FBE /* FileSearchModels.swift in Sources */,
 				C45EFE92B882049EE02C44D0 /* FileSearchPreview.swift in Sources */,
 				5C53FC59EA30258D2BEF2D74 /* FileSearchQuickLook.swift in Sources */,

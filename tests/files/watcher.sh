@@ -6,6 +6,6 @@ xcrun clang -std=c11 -O3 -Wall -Wextra -Werror -c Nook/Services/Files/FileNameIn
 xcrun swiftc -O -swift-version 5 -warnings-as-errors \
   -import-objc-header Nook/Services/Files/NookFiles-Bridging.h \
   Nook/Services/FileSearchModels.swift Nook/Services/Files/FileIndexQuery.swift \
-  Nook/Services/Files/FileNameIndex.swift tests/files/WatcherTests.swift \
+  Nook/Services/Files/FileSearchAccessPolicy.swift Nook/Services/Files/FileNameIndex.swift tests/files/WatcherTests.swift \
   "$files_test_dir/index.o" -o "$files_test_dir/watcher-tests"
 "$files_test_dir/watcher-tests"

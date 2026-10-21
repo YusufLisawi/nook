@@ -22,12 +22,17 @@ final class FileSearchService {
     func register() {
         guard observers.isEmpty else { return }
         FileSearchWebShortcuts.register()
+        FileSearchAccess.shared.start()
         BridgeRegistry.register("files", functions: ["search", "cancel", "keepAlive", "preview", "open", "reveal", "quickLook", "copyPath", "copyName", "copyFile", "openWith", "trash", "status", "rebuild"]) { [weak self] fn, args, pluginID, reply in
             self?.handle(fn, args: args, pluginID: pluginID, reply: reply)
         }
         SettingsRegistry.register(id: "files", title: "File Search", symbol: "doc.text.magnifyingglass", tint: .blue, order: 46,
                                   keywords: ["index", "recent", "files", "folders", "Downloads"]) { FileSearchSettingsPane() }
         index.start(defaults: defaults)
+        observers.append(NotificationCenter.default.addObserver(forName: FileSearchAccess.changed, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.index.start(defaults: self.defaults)
+        })
         observers.append(NotificationCenter.default.addObserver(forName: FileNameIndex.changed, object: nil, queue: .main) { [weak self] _ in
             self?.refreshClients()
         })
@@ -72,33 +77,41 @@ final class FileSearchService {
     private func run(_ session: FileIndexClient, key: String) {
         session.version += 1
         let version = session.version
-        if index.ready {
+        guard let config = index.configuration else {
+            session.update(session.payload([], total: 0, elapsed: 0, gathering: true)); return
+        }
+        let parsed: FileIndexQuery
+        do { parsed = try FileIndexQuery(session.text) }
+        catch {
+            var payload = session.payload([], total: 0, elapsed: 0, gathering: false)
+            payload["error"] = error.localizedDescription; session.update(payload); return
+        }
+        if session.configuration != config {
             session.fallback?.cancel(); session.fallback = nil
-            index.search(session.text, scope: session.scope, kind: session.kind, limit: session.limit, client: key) { [weak self, weak session] result in
-                guard let self, let session, self.sessions[key] === session, session.version == version else { return }
-                switch result {
-                case .success(let (rows, total, elapsed)):
-                    session.update(session.payload(rows, total: total, elapsed: elapsed, gathering: false))
-                case .failure(let error):
-                    var payload = session.payload([], total: 0, elapsed: 0, gathering: false)
-                    payload["error"] = error.localizedDescription; session.update(payload)
-                }
-            }
-        } else if session.fallback == nil {
-            do {
-                let parsed = try FileIndexQuery(session.text)
-                let fallback = FileSpotlightFallback(query: parsed.highlightTerms.first ?? "", scope: session.scope, kind: session.kind,
+            session.metadataRows = []; session.nativeRows = []
+            session.configuration = config
+        }
+        if !index.ready { session.nativeRows = []; session.nativeTotal = 0 }
+        // Always use the symbolic home scope. Explicit protected-folder scopes
+        // trigger TCC inside NSMetadataQuery, even when passed as plain strings.
+        if !index.ready || !config.access.fullDiskAccess {
+            if session.fallback == nil {
+                let fallback = FileSpotlightFallback(query: "", scope: session.scope, kind: session.kind,
                     preferences: preferences, limit: session.limit, usage: [:], clientID: session.client, requestID: session.request)
-                let config = FileNameIndex.Configuration(defaults: defaults)
-                fallback.roots = config.roots; fallback.allowsPath = config.accepts
+                let scopeRoot = session.scope == "all" ? "" : session.scope == "home" ? config.homeRoot : config.homeRoot + "/" + session.scope
+                fallback.allowsPath = { [weak self] path in
+                    config.acceptsMetadata(path) && (scopeRoot.isEmpty || FileSearchPolicy.isInside(path, root: scopeRoot))
+                        && (self?.index.ready != true || !config.accepts(path))
+                }
+                fallback.candidatePredicate = Self.metadataPredicate(parsed)
                 let fallbackKind = session.kind
                 fallback.rankResults = { FileNameIndex.rankCandidates($0, query: parsed, kind: fallbackKind) }
-                session.fallback = fallback
-                session.update(session.payload([], total: 0, elapsed: 0, gathering: true))
+                session.fallback = fallback; session.metadataGathering = true
                 fallback.emit = { [weak self, weak session] rows, payload in
-                    guard let self, let session, self.sessions[key] === session, !self.index.ready else { return }
-                    var result = payload; result["source"] = "spotlight"; result["indexing"] = true; result["query"] = session.text
-                    session.update(result)
+                    guard let self, let session, self.sessions[key] === session, session.configuration == config else { return }
+                    session.metadataRows = rows
+                    session.metadataGathering = payload["gathering"] as? Bool == true
+                    self.deliver(session, parsed: parsed)
                 }
                 fallback.expired = { [weak self, weak session] in
                     guard let self, let session, self.sessions[key] === session else { return }
@@ -107,11 +120,52 @@ final class FileSearchService {
                     else { self.cancel(key) }
                 }
                 fallback.schedule()
-            } catch {
-                var payload = session.payload([], total: 0, elapsed: 0, gathering: false)
-                payload["error"] = error.localizedDescription; session.update(payload)
             }
+        } else {
+            session.fallback?.cancel(); session.fallback = nil
+            session.metadataRows = []; session.metadataGathering = false
         }
+        if index.ready {
+            index.search(session.text, scope: session.scope, kind: session.kind, limit: session.limit, client: key) { [weak self, weak session] result in
+                guard let self, let session, self.sessions[key] === session, session.version == version else { return }
+                switch result {
+                case .success(let (rows, total, elapsed)):
+                    session.nativeRows = rows; session.nativeTotal = total; session.elapsed = elapsed
+                    self.deliver(session, parsed: parsed)
+                case .failure(let error):
+                    var payload = session.payload([], total: 0, elapsed: 0, gathering: false)
+                    payload["error"] = error.localizedDescription; session.update(payload)
+                }
+            }
+        } else { deliver(session, parsed: parsed) }
+    }
+
+    private func deliver(_ session: FileIndexClient, parsed: FileIndexQuery) {
+        guard let config = session.configuration else { return }
+        let metadata = session.metadataRows.filter { !index.ready || !config.accepts($0.path) }
+        // Native rows come last so their Nook frecency wins on duplicate paths.
+        let ranked = FileNameIndex.rankCandidates(metadata + session.nativeRows, query: parsed, kind: session.kind)
+        let rows = Array(ranked.prefix(session.limit))
+        var payload = session.payload(rows, total: max(ranked.count, session.nativeTotal), elapsed: session.elapsed, gathering: session.metadataGathering)
+        payload["source"] = metadata.isEmpty ? "index" : "index+spotlight"
+        session.update(payload)
+    }
+
+    /// A permissive metadata candidate predicate; the C matcher applies the full
+    /// grammar and ranking. OR groups and subsequences must not lose candidates.
+    static func metadataPredicate(_ parsed: FileIndexQuery) -> NSPredicate {
+        // NSMetadataQuery rejects TRUEPREDICATE with an Objective-C exception.
+        let broad = FileSearchPolicy.predicate(query: "", kind: "all")
+        let groups = Set(parsed.atoms.map(\.group))
+        var predicates: [NSPredicate] = []
+        for group in groups {
+            guard let atom = parsed.atoms.first(where: { $0.group == group && ($0.type == 0 || $0.type == 1) }) else { return broad }
+            let pattern = atom.type == 1 ? atom.text : "*" + atom.text.map(String.init).joined(separator: "*") + "*"
+            predicates.append(NSPredicate(format: "%K LIKE[cd] %@", "kMDItemFSName", pattern))
+        }
+        if predicates.isEmpty { return broad }
+        if predicates.count == 1 { return predicates[0] }
+        return NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
     }
 
     func handle(_ fn: String, args: [Any], pluginID: String = "native.files", reply: @escaping (Any?, String?) -> Void) {
@@ -145,10 +199,26 @@ final class FileSearchService {
             reply(["ready": index.ready, "count": status.count, "notice": status.diagnostic ?? ""], nil); return
         }
         if fn == "rebuild" { index.start(defaults: defaults, force: true); reply(NSNull(), nil); return }
+        let path = args.first as? String ?? ""
+        if fn == "preview" {
+            let policy = index.configuration?.access ?? FileSearchAccessPolicy()
+            guard policy.allows(path), FileSearchAccess.shared.policy.allows(path) else { reply(["notice": "Allow folder access to load a preview."], nil); return }
+            DispatchQueue.global(qos: .userInitiated).async { [previews] in
+                // Never follow an alias into a protected folder automatically.
+                guard path.hasPrefix("/"), !path.contains("\0"), policy.safeFile(path) != nil else {
+                    DispatchQueue.main.async { reply(["notice": "No automatic preview. Use Quick Look to open this item."], nil) }; return
+                }
+                do { previews.load(try FileSearchPreview.fileURL(path), reply: reply) }
+                catch { DispatchQueue.main.async { reply(nil, error.localizedDescription) } }
+            }
+            return
+        }
         do {
-            let url = try FileSearchPreview.fileURL(args.first as? String ?? "")
+            // Copying a path/name is metadata-only and must never request access.
+            let metadataOnly = ["copyPath", "copyName", "copyFile"].contains(fn)
+            guard path.hasPrefix("/"), !path.contains("\0") else { throw FileSearchError.message("Choose an absolute file path.") }
+            let url = metadataOnly ? URL(fileURLWithPath: path, isDirectory: false) : try FileSearchPreview.fileURL(path)
             switch fn {
-            case "preview": previews.load(url, reply: reply)
             case "open":
                 guard NSWorkspace.shared.open(url) else { throw FileSearchError.message("No application could open this file.") }
                 recordUse(url.path); reply(NSNull(), nil)
@@ -165,7 +235,7 @@ final class FileSearchService {
             case "trash":
                 guard args.count > 1, (args[1] as? [String: Any])?["confirm"] as? Bool == true else { throw FileSearchError.message("Confirm moving this file to Trash.") }
                 let canonical = FileIndexPath.canonical(url.path)
-                guard canonical != "/", !FileNameIndex.Configuration(defaults: defaults).roots.contains(canonical) else { throw FileSearchError.message("Choose a file or subfolder inside an indexed folder.") }
+                guard canonical != "/", !(index.configuration?.roots ?? [NSHomeDirectory()]).contains(canonical) else { throw FileSearchError.message("Choose a file or subfolder inside an indexed folder.") }
                 // Work off main; Trash may involve a mounted or cloud-backed volume.
                 let index = index
                 DispatchQueue.global(qos: .userInitiated).async {
@@ -211,6 +281,12 @@ private final class FileIndexClient {
     var touched = Date()
     var version = 0
     var fallback: FileSpotlightFallback?
+    var configuration: FileNameIndex.Configuration?
+    var nativeRows: [FileSearchResult] = []
+    var metadataRows: [FileSearchResult] = []
+    var nativeTotal = 0
+    var elapsed = 0.0
+    var metadataGathering = false
     var onCancel: (() -> Void)?
     init(index: FileNameIndex, text: String, scope: String, kind: String, limit: Int, client: String, request: String, update: @escaping ([String: Any]) -> Void) {
         self.index = index

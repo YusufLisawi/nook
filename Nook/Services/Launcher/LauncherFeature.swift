@@ -186,6 +186,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     }
 
     func closed() {
+        FileSearchService.shared.cancel("native.launcher:launcher:\(ObjectIdentifier(self))")
         operation += 1
         chatTask?.cancel(); chatTask = nil
         context = nil

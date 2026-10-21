@@ -1,6 +1,6 @@
 import Foundation
 
-/// Cold first-build fallback only. Retired as soon as the own index is ready.
+/// Metadata-only fallback and protected-folder overlay. Never opens result URLs.
 final class FileSpotlightFallback {
     private static let metadataWorker = DispatchQueue(label: "com.yusuf.nook.files.metadata", qos: .userInitiated, attributes: .concurrent)
     let created = Date()
@@ -27,7 +27,7 @@ final class FileSpotlightFallback {
     private var expiry: Timer?
     var emit: (([FileSearchResult], [String: Any]) -> Void)?
     var expired: (() -> Void)?
-    var roots = [NSHomeDirectory()]
+    var candidatePredicate: NSPredicate?
     var allowsPath: ((String) -> Bool)?
     var rankResults: (([FileSearchResult]) -> [FileSearchResult])?
 
@@ -59,13 +59,10 @@ final class FileSpotlightFallback {
 
     private func start() {
         guard !stopped else { return }
-        query.predicate = FileSearchPolicy.predicate(query: queryText, kind: kind)
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        switch scope {
-        case "Developer", "Downloads": query.searchScopes = [home.appendingPathComponent(scope)]
-        case "all": query.searchScopes = roots.map { URL(fileURLWithPath: $0) }
-        default: query.searchScopes = [NSMetadataQueryUserHomeScope]
-        }
+        query.predicate = candidatePredicate ?? FileSearchPolicy.predicate(query: queryText, kind: kind)
+        // This symbolic scope preflights access without requesting it. Folder
+        // URL/string scopes perform filesystem checks and can display TCC prompts.
+        query.searchScopes = [NSMetadataQueryUserHomeScope]
         query.notificationBatchingInterval = 0.025
         query.sortDescriptors = queryText.isEmpty ? [NSSortDescriptor(key: "kMDItemDateAdded", ascending: false), NSSortDescriptor(key: "kMDItemFSContentChangeDate", ascending: false)] : []
         query.operationQueue = .main

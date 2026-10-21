@@ -125,11 +125,29 @@ uses the filesystem's added-to-directory date, falling back to creation; filesys
 
 Home is indexed by default, excluding Library, hidden files, dependencies/caches/builds and common app/package
 contents. Native Settings configures additional folders, exclusions and inclusion switches. Common package and
-kind recognition uses extension heuristics; custom package extensions can be explicitly excluded. Explicit root
-aliases are resolved to physical paths; descendant symlinks are never traversed. Unreadable/TCC-protected locations
-are skipped with a status notice; grant Files & Folders access and rebuild to add previously inaccessible content.
-Spotlight Privacy does not exclude files from the own index: use File Search's exclusions. Cloud placeholders
-can be indexed by name; preview/open still requires availability, and Nook does not request bulk downloads.
+kind recognition uses extension heuristics; custom package extensions can be explicitly excluded. Root and
+descendant symlinks are never followed; paths are normalized lexically without filesystem probes.
+
+Permission requests are opt-in. Without Full Disk Access, startup excludes Desktop/Documents/Downloads,
+Pictures/Movies/Music, Library (including iCloud Drive/Mobile Documents/CloudStorage), and removable/network
+mounts before stat/open. Include Library and additional roots cannot bypass this gate. The native Files row
+(⇧⌘A) and Settings → File Search explicitly request Desktop/Documents/Downloads, remembering only successful
+directory reads. A denied request is not retried at startup. Forget Folder Access removes Nook's remembered
+choice, not the macOS TCC grant. Previously successful grants are reused; there is no public silent per-folder
+preflight, so if TCC is reset separately, forget Nook's choice before the next launch. Full Disk Access is tested
+by opening (without reading) the TCC database, which silently denies access when unavailable. All detection,
+root validation, scanning and persistence run off main; the UI and query queue do not wait for a disk walk.
+Pictures/media, cloud data, Library and removable/network roots require Full Disk Access. Mount-table exclusions
+and a C scanner device boundary prevent walking onto mounted volumes beneath the home folder.
+
+Spotlight uses only NSMetadataQueryUserHomeScope; explicit Desktop/Documents/Downloads scopes caused TCC
+prompts in an independent, non-FDA standalone probe on this Mac and are not used. The symbolic home query
+completed without a folder prompt, but macOS withheld protected-folder rows in that probe. Results macOS does
+expose are merged into Recent and queries with the same ranking, including in the launcher. Withheld results
+require Allow access; this cannot be bypassed safely. Spotlight Privacy does not exclude names from the own
+index: use File Search's exclusions. Automatic previews never open a gated path; explicit Open/Quick Look may
+request access in response to that action. Cloud previews still require availability; no bulk downloads occur.
+The Clips screenshot watcher shares the access gate, so it cannot request Desktop access at startup either.
 
 The private binary catalog under `~/Library/Caches/com.yusuf.nook/FileIndex` stores names/paths, sizes, dates,
 Nook-opened counts/dates and an FSEvents watermark, without contents or query history. It loads at launch and
@@ -141,11 +159,11 @@ at most uncheckpointed Nook-opened history; filesystem changes replay from the o
 
 The own index searches all candidates and returns up to 100 rows. A character mask, C/NEON matching, bounded
 ranking heap and complete-candidate incremental narrowing avoid Spotlight latency. Benchmarks cover this Mac's
-home folder and one million synthetic names (see root REPORT.md); they measure the engine, not rendered-frame
+home folder and one million synthetic names (see docs/reports/files2.md); they measure the engine, not rendered-frame
 latency. Larger catalogs/complex OR queries, busy disks, network volumes or permission prompts can exceed one
 frame. Paths are bounded to 4,095 bytes and traversal to 256 levels; the string table uses 32-bit offsets.
-During the first build/rebuild, Spotlight provides partial candidates capped at 20,000; filters are applied with
-the same query compiler, but some subsequence/OR matches wait for the own catalog to finish.
+During builds and for gated folders, Spotlight provides partial candidates capped at 20,000; filters are applied
+with the same query compiler. Coverage depends on Spotlight Privacy, importer metadata and macOS access.
 
 Native actions include bounded text/Quick Look thumbnail previews, Quick Look panel, open/reveal, path/name
 copy, file drag-out and explicitly confirmed Move to Trash. `nook.files.trash(path, {confirm:true})` requires

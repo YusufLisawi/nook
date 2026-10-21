@@ -17,7 +17,9 @@ swiftc -swift-version 5 -warnings-as-errors -target "$(uname -m)-apple-macos14.2
   Nook/Views/Settings/SettingsShortcutRecorder.swift \
   Nook/Services/Launcher/LauncherRanking.swift Nook/Services/Launcher/LauncherPreferences.swift \
   Nook/Services/Launcher/LauncherFeature.swift \
-  tests/tabs/IntegrationStubs.swift tests/launcher/StateStubs.swift tests/launcher/InteractionTests.swift -o "$launcher_test_dir/interactions"
+  Nook/Services/Launcher/Answers/LauncherAnswer.swift Nook/Services/Launcher/Answers/LauncherAnswers.swift \
+  Nook/Services/Launcher/Answers/*Provider.swift tests/answers/InteractionStubs.swift \
+  tests/tabs/IntegrationStubs.swift tests/launcher/StateStubs.swift "${NOOK_LAUNCHER_INTERACTION_TEST:-tests/launcher/InteractionTests.swift}" -o "$launcher_test_dir/interactions"
 "$launcher_test_dir/interactions"
 
 cp tests/launcher/agents.cjs "$launcher_test_dir/agents.cjs"

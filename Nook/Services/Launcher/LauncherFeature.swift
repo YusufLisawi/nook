@@ -13,6 +13,7 @@ final class LauncherFeature: ObservableObject {
 
     static func start() {
         LauncherApplicationIndex.shared.start()
+        _ = LauncherAnswers.shared
         // Resolve and persist the default once. Later assignments must not move a user's shortcut.
         let fallback = LauncherShortcut.current
         if UserDefaults.standard.data(forKey: LauncherPreferences.shortcutKey) == nil { LauncherShortcut.save(fallback) }
@@ -120,6 +121,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     weak var vm: NotchViewModel?
     @Published var query = "" { didSet { confirmation = nil; error = nil; actionsPresented = false; refresh() } }
     @Published private(set) var results: [LauncherEntry] = []
+    @Published private(set) var smartAnswer: LauncherAnswer?
     @Published var selectedIndex = 0
     @Published var actionsPresented = false
     @Published var actionIndex = 0
@@ -136,6 +138,9 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     private var chatTask: Task<Void, Never>?
     private var operation = 0
     private var fileRequest = 0
+    private var smartRequest: LauncherAnswerRequest?
+    private var smartGeneration = 0
+    private var smartQuery = ""
 
     init(vm: NotchViewModel) {
         self.vm = vm
@@ -160,6 +165,9 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     }
 
     var selected: LauncherEntry? { results.indices.contains(selectedIndex) ? results[selectedIndex] : nil }
+    var smartAnswerSelected: Bool { selectedIndex == -1 && smartAnswer != nil }
+    var answerTargetApplication: NSRunningApplication? { context?.application }
+    var visibleResultCount: Int { max(1, min(smartAnswer == nil ? 8 : 5, results.count)) }
     var canAskAI: Bool { LauncherPreferences.sources.contains(.askAI) && !LauncherQuery(query).text.isEmpty }
 
     func present() {
@@ -186,6 +194,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     }
 
     func closed() {
+        smartGeneration += 1; smartRequest?.cancel(); smartRequest = nil; smartAnswer = nil
         FileSearchService.shared.cancel("native.launcher:launcher:\(ObjectIdentifier(self))")
         operation += 1
         chatTask?.cancel(); chatTask = nil
@@ -241,6 +250,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     }
 
     private func refresh() {
+        refreshSmartAnswer()
         let parsed = LauncherQuery(query), now = Date().timeIntervalSince1970
         let ids = LauncherRanking.ranked(candidates.map(\.document), query: parsed, history: LauncherFeature.shared.history, now: now)
         var rows: [LauncherEntry]
@@ -259,7 +269,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
                                       kind: "AI", symbol: "sparkles", source: .askAI, target: .askAI))
         }
         results = rows
-        selectedIndex = 0
+        selectedIndex = smartAnswer == nil ? 0 : -1
         resize()
         fileRequest += 1
         let request = fileRequest
@@ -278,12 +288,40 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         }
     }
 
+    private func refreshSmartAnswer() {
+        smartGeneration += 1
+        let generation = smartGeneration
+        smartRequest?.cancel()
+        if smartQuery != query {
+            smartQuery = query; smartAnswer = nil
+            if selectedIndex < 0 { selectedIndex = 0 }
+        }
+        guard LauncherQuery(query).source == nil, !query.isEmpty, chatQuery == nil else {
+            smartAnswer = nil; return
+        }
+        let text = query
+        smartRequest = LauncherAnswers.shared.request(text, invalidated: { [weak self] in
+            DispatchQueue.main.async {
+                guard let self, self.smartGeneration == generation, self.vm?.launcherPresented == true, self.chatQuery == nil else { return }
+                self.refreshSmartAnswer()
+            }
+        }, completion: { [weak self] value in
+            guard let self, self.smartGeneration == generation, self.query == text, self.vm?.launcherPresented == true, self.chatQuery == nil else { return }
+            let firstAnswer = self.smartAnswer == nil && value != nil
+            if self.actionsPresented, self.smartAnswer?.actions != value?.actions { self.actionsPresented = false; self.actionIndex = 0 }
+            self.smartAnswer = value
+            if firstAnswer, self.selectedIndex == 0 { self.selectedIndex = -1 }
+            if value == nil, self.selectedIndex == -1 { self.selectedIndex = 0; self.actionsPresented = false }
+            self.resize()
+        })
+    }
+
     private var pendingHeight: CGFloat?
 
     /// Coalesced and applied on the next run-loop turn: setting the height re-enters `resize()` through SwiftUI updates,
     /// and a nested animated change inside the first one left the black shape stuck at the old (taller) size.
     private var targetHeight: CGFloat {
-        chatQuery == nil ? 62 + 24 + CGFloat(max(1, min(8, results.count))) * 44 + 42 + (error == nil ? 0 : 26) : 470
+        chatQuery == nil ? 62 + (smartAnswer == nil ? 0 : 156) + 24 + CGFloat(visibleResultCount) * 44 + 42 + (error == nil ? 0 : 26) : 470
     }
 
     func resize() {
@@ -307,15 +345,18 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
     func move(_ delta: Int) {
         confirmation = nil
         if actionsPresented {
-            let count = selected?.secondaryTitle == nil ? 1 : 2
+            let count = smartAnswerSelected ? max(1, smartAnswer?.actions.count ?? 0) : (selected?.secondaryTitle == nil ? 1 : 2)
             actionIndex = (actionIndex + delta + count) % count
-        } else if !results.isEmpty { selectedIndex = (selectedIndex + delta + results.count) % results.count }
+        } else {
+            let first = smartAnswer == nil ? 0 : -1, count = results.count + (smartAnswer == nil ? 0 : 1)
+            if count > 0 { selectedIndex = first + (selectedIndex - first + delta + count) % count }
+        }
     }
 
     func escape() {
         if actionsPresented { actionsPresented = false }
         else if confirmation != nil { confirmation = nil }
-        else if chatQuery != nil { operation += 1; chatTask?.cancel(); thinking = false; chatQuery = nil; error = nil; resize() }
+        else if chatQuery != nil { operation += 1; chatTask?.cancel(); thinking = false; chatQuery = nil; error = nil; refreshSmartAnswer(); resize() }
         else if !query.isEmpty { query = "" }
         else { dismiss(restoreFocus: true) }
     }
@@ -325,14 +366,19 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 { escape(); return true }
         if flags == .command && key == "k" {
-            guard chatQuery == nil, selected != nil else { return true }
+            guard chatQuery == nil, selected != nil || smartAnswerSelected else { return true }
             actionsPresented.toggle(); actionIndex = 0; return true
         }
         if chatQuery != nil { return false }
         if event.keyCode == 125 || flags == .control && key == "n" { move(1); return true }
         if event.keyCode == 126 || flags == .control && key == "p" { move(-1); return true }
         if event.keyCode == 36 || event.keyCode == 76 {
-            if !event.isARepeat, let selected { run(selected, alternate: flags.contains(.command) || actionsPresented && actionIndex == 1) }
+            if !event.isARepeat {
+                if smartAnswerSelected, let answer = smartAnswer {
+                    if actionsPresented, !flags.contains(.command), answer.actions.indices.contains(actionIndex) { runSmartAnswer(action: answer.actions[actionIndex]) }
+                    else { runSmartAnswer(paste: flags.contains(.command)) }
+                } else if let selected { run(selected, alternate: flags.contains(.command) || actionsPresented && actionIndex == 1) }
+            }
             return true
         }
         if flags == .command, let number = Int(key), (1...9).contains(number) {
@@ -464,6 +510,7 @@ final class LauncherState: ObservableObject, @unchecked Sendable { // main-threa
 
     private func startChat(_ prompt: String, token: Int) {
         chatTask?.cancel()
+        smartRequest?.cancel(); smartAnswer = nil
         chatQuery = prompt; answer = ""; thinking = true; error = nil; resize()
         chatTask = Task { @MainActor [weak self] in
             do {

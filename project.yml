@@ -53,8 +53,8 @@ targets:
       path: Nook/Info.plist
       properties:
         CFBundleDisplayName: Nook
-        CFBundleShortVersionString: "1.8.0"
-        CFBundleVersion: "23"
+        CFBundleShortVersionString: "1.8.1"
+        CFBundleVersion: "24"
         CFBundleIconFile: AppIcon
         SUFeedURL: https://nook.motkan.com/appcast.xml
         SUPublicEDKey: o0nqzSMKi74tZHIX4EozjBPfG36ikQh6OblRjqlPddA= # gitleaks:allow (public key, ships in the app)

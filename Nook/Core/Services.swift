@@ -29,6 +29,7 @@ final class Services: ObservableObject {
         WindowManager.shared.start()
         ClipsFeature.start()
         PluginStore.register()
+        FileSearchService.shared.register()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

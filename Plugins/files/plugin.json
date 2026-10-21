@@ -1,0 +1,12 @@
+{
+  "id": "files",
+  "name": "File Search",
+  "symbol": "doc.text.magnifyingglass",
+  "entry": "index.html",
+  "order": 46,
+  "height": 380,
+  "settings": [
+    { "key": "showPreview", "label": "Show preview pane", "type": "toggle", "default": true },
+    { "key": "resultLimit", "label": "Maximum results", "type": "number", "min": 10, "max": 100, "step": 10, "default": 60 }
+  ]
+}

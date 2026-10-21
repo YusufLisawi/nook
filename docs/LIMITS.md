@@ -110,3 +110,15 @@ in place during clear/retention. Clipboard text and OCR caches are stored locall
 they are not encrypted separately from the user's account.
 
 - **Store:** the public GitHub catalog is cached for offline browsing; installing/updating requires GitHub and is subject to its public API rate limits. An unpublished repository is shown as an empty Store. Packages are pinned to Git tree hashes and limited to 200 regular non-executable files, 5 MB each, 20 MB total. Updates refuse local edits; replaced/uninstalled copies go to Trash while saved data remains. `nook publish <path>` previews a validated contribution and requires `--yes` before using authenticated `gh` to fork, branch, upload, and open a PR. Store validation is a packaging/UI check, not a security review.
+
+
+## Native File Search
+
+`nook.files.*` provides live Spotlight filename search, scope/kind filters, ranked results, bounded text previews,
+QuickLookThumbnailing PNG previews, a native Quick Look panel, Finder reveal, open/open-with, and path/file copy.
+Settings → File Search controls the default scope, excluded folders, and hidden files. No helper or extra dependency
+is required. Queries only see indexed, accessible files; Spotlight Privacy exclusions remain in effect. There is no
+fallback filesystem crawl. Broad searches cap candidate enumeration at 20,000, and return `truncated: true`.
+Warm cached candidates return immediately; cold index latency depends on Spotlight and mounted volumes, so a universal
+sub-100 ms guarantee is not possible. Live queries stop on plugin close, replacement, or inactivity expiry.
+See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract and lifecycle.

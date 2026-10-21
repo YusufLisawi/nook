@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Search</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="definitions" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="i-file" viewBox="0 0 20 20"><path d="M5 2h7l4 4v12H5V2Zm7 0v5h4M8 11h5M8 14h5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 20 20"><path d="M2 5V3h6l2 3h8v11H2V5Z"/></symbol>
+    <symbol id="i-app" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="3"/><path d="m6 14 4-8 4 8M7 12h6"/></symbol>
+    <symbol id="i-image" viewBox="0 0 20 20"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="m3 15 5-5 3 3 3-4 4 5M6 7h.01"/></symbol>
+    <symbol id="i-code" viewBox="0 0 20 20"><path d="m6 5-4 5 4 5M14 5l4 5-4 5M11 3l-2 14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 20 20"><circle cx="8" cy="8" r="5"/><path d="m12 12 5 5"/></symbol>
+  </defs></svg>
+  <main class="nk-root">
+    <header class="nk-row-flex">
+      <svg class="icon nk-muted" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="search" class="nk-input nk-fill" type="search" placeholder="Search files by name…" aria-label="Search files by name" title="Space opens Quick Look. Shift-Space inserts a space." role="combobox" aria-controls="results" aria-expanded="true" aria-autocomplete="list" autocomplete="off" spellcheck="false">
+      <span id="spinner" class="nk-spinner" role="status" aria-label="Searching" hidden></span>
+    </header>
+    <div class="nk-row-flex filters">
+      <label class="nk-small nk-muted" for="scope">In</label>
+      <select id="scope" class="nk-input" aria-label="Search scope">
+        <option value="">Default scope</option><option value="home">Home</option><option value="Developer">Developer</option><option value="Downloads">Downloads</option><option value="all">All indexed locations</option>
+      </select>
+      <label class="nk-small nk-muted" for="kind">Kind</label>
+      <select id="kind" class="nk-input" aria-label="File kind">
+        <option value="all">Any kind</option><option value="folder">Folders</option><option value="app">Applications</option><option value="document">Documents</option><option value="image">Images</option><option value="pdf">PDFs</option><option value="code">Code</option>
+      </select>
+      <span id="count" class="nk-small nk-muted nk-num" role="status"></span>
+    </div>
+    <div id="error" class="nk-error" role="alert" hidden><span id="error-text" class="nk-fill"></span><button id="retry" class="nk-btn nk-ghost" type="button">Retry</button></div>
+    <div id="workspace" class="workspace nk-fill">
+      <section class="nk-col nk-fill results-pane" aria-label="Matching files">
+        <div id="results" class="nk-list nk-scroll nk-fill" role="listbox" aria-label="Files" tabindex="0"></div>
+        <div id="empty" class="nk-empty nk-fill" hidden><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><b id="empty-title">Recent files</b><span id="empty-detail" class="nk-small">Type a name to search the Spotlight index.</span></div>
+      </section>
+      <aside id="preview" class="nk-card nk-col" aria-label="File preview">
+        <div id="preview-empty" class="nk-empty"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg><span>Select a file to preview</span></div>
+        <div id="preview-loading" class="nk-empty" hidden><span class="nk-spinner"></span><span>Loading preview…</span></div>
+        <div id="preview-content" class="nk-col nk-fill" hidden>
+          <div id="preview-visual" class="preview-visual" hidden><img id="thumbnail" alt="Selected file preview"></div>
+          <pre id="text-preview" class="nk-scroll" tabindex="0" aria-label="Text preview" hidden></pre>
+          <p id="preview-notice" class="nk-small nk-muted" hidden></p>
+          <div class="metadata nk-scroll">
+            <b id="preview-name" class="nk-title"></b>
+            <dl><dt>Kind</dt><dd id="meta-kind"></dd><dt>Size</dt><dd id="meta-size"></dd><dt>Modified</dt><dd id="meta-modified"></dd><dt>Path</dt><dd id="meta-path"></dd></dl>
+          </div>
+        </div>
+        <div id="preview-error" class="nk-error" role="status" hidden></div>
+      </aside>
+    </div>
+    <footer class="nk-row-flex nk-small nk-muted">
+      <span id="status" class="nk-fill" role="status">↑↓ Select · ↵ Open · ⌘↵ Reveal · Space Preview</span>
+      <button id="actions" class="nk-btn nk-ghost" type="button" aria-haspopup="menu" aria-controls="menu" aria-expanded="false" disabled>Actions <kbd>⌘K</kbd></button>
+    </footer>
+    <div id="menu" class="nk-card nk-list nk-scroll" role="menu" aria-label="File actions" hidden></div>
+  </main>
+  <script src="model.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

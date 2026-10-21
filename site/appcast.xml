@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.5.3</title>
+  <pubDate>Wed, 21 Oct 2026 15:20:31 GMT</pubDate>
+  <sparkle:version>15</sparkle:version>
+  <sparkle:shortVersionString>1.5.3</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Cleaner keyboard focus: no more orange rings — focused buttons get a soft light tint</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.5.3/Nook.dmg" type="application/octet-stream" sparkle:edSignature="UGdOEHb9F3Xcl+1ZgZca2mTC8G6uawEiXhjkG7Yh7y1O/MKojPqPfp9xUJuRD72jfLHx4zSlmTP2a7ZPQv2NCw==" length="10026172"/>
+</item>
+<item>
   <title>Nook 1.5.2</title>
   <pubDate>Wed, 21 Oct 2026 15:15:42 GMT</pubDate>
   <sparkle:version>14</sparkle:version>

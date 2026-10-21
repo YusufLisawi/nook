@@ -27,7 +27,7 @@ final class NotchKeyboardState: ObservableObject {
 
     init(vm: NotchViewModel) { self.vm = vm }
 
-    var results: [Entry] {
+    var entries: [Entry] {
         guard let vm else { return [] }
         let dock = vm.dockItems
         var entries = vm.enabledTabs.map { tab in
@@ -55,7 +55,11 @@ final class NotchKeyboardState: ObservableObject {
                          subtitle: action.subtitle.isEmpty ? pluginName : "\(pluginName) · \(action.subtitle)",
                          symbol: "bolt", shortcut: action.shortcut, target: .action(action))
         }
-        return entries.enumerated().compactMap { index, entry -> (Entry, Int, Int)? in
+        return entries
+    }
+
+    var results: [Entry] {
+        entries.enumerated().compactMap { index, entry -> (Entry, Int, Int)? in
             guard let score = KeyboardSearch.score(query, in: entry.title + " " + entry.subtitle) else { return nil }
             return (entry, score, index)
         }.sorted { $0.1 == $1.1 ? $0.2 < $1.2 : $0.1 > $1.1 }.map { $0.0 }
@@ -125,7 +129,8 @@ final class NotchKeyboardController {
 
     func escape() {
         guard let vm else { return }
-        if vm.keyboard.isPresented { dismissPalette() }
+        if vm.launcherPresented { vm.launcherEscape?() }
+        else if vm.keyboard.isPresented { dismissPalette() }
         else if vm.showingSettings { vm.showingSettings = false; focusContent() }
         else { vm.close() }
     }
@@ -136,7 +141,7 @@ final class NotchKeyboardController {
         // Wait for the newly selected SwiftUI content to attach, without focusing a detached WKWebView.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self] in
             guard let self, self.focusRequest == request, let vm = self.vm, let panel = self.panel,
-                  vm.isOpen, !vm.keyboard.isPresented, panel.isKeyWindow else { return }
+                  vm.isOpen, !vm.launcherPresented, !vm.keyboard.isPresented, panel.isKeyWindow else { return }
             if !vm.showingSettings, let tab = vm.currentTab, let view = vm.web.view(for: tab) {
                 if view.window === panel {
                     panel.makeFirstResponder(view)
@@ -197,6 +202,7 @@ final class NotchKeyboardController {
     private func handle(_ event: NSEvent) -> Bool {
         guard let vm else { return false }
         vm.keyboard.engaged = true
+        if vm.launcherPresented { return vm.launcherKeyHandler?(event) ?? false }
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 { escape(); return true }

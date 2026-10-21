@@ -29,9 +29,9 @@ final class NotchController {
     func start() {
         rebuild()
         viewModel.onClose = { [weak self] in self?.keyboard?.didClose(); self?.dropKeyFocus() }
-        let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
-            guard let self, self.viewModel.isOpen, !self.viewModel.pinned, !self.viewModel.liveRect.contains(NSEvent.mouseLocation),
-                  self.viewModel.holdRect?.contains(NSEvent.mouseLocation) != true else { return }
+        let monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] _ in
+            guard let self, self.viewModel.isOpen, (!self.viewModel.pinned || self.viewModel.launcherPresented), !self.viewModel.liveRect.contains(NSEvent.mouseLocation),
+                  (self.viewModel.launcherPresented || self.viewModel.holdRect?.contains(NSEvent.mouseLocation) != true) else { return }
             self.viewModel.close()
         }
         if let monitor { monitors.append(monitor) }
@@ -127,6 +127,7 @@ final class NotchController {
 
     /// Two-finger trackpad swipes over this notch. Mouse wheels (no gesture phase) pass straight through.
     private func handleScroll(_ event: NSEvent) -> NSEvent? {
+        if viewModel.launcherPresented { return event }
         guard event.window === panel, event.hasPreciseScrollingDeltas, Prefs.bool(Prefs.swipes) else { return event }
         if event.momentumPhase != [] { return swipeAxis == .horizontal ? nil : event }
         guard event.phase != [] else { return event }

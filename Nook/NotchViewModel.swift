@@ -21,6 +21,10 @@ final class NotchViewModel: ObservableObject {
     @Published var state: NotchState = .closed
     @Published var tab: String = "home" {
         willSet {
+            if newValue != tab, launcherPresented {
+                holdRect = liveRect.union(holdRect ?? .null)
+                launcherDidClose?()
+            }
             // A shorter tab shrinks the notch away from the dock the user just clicked; keep the old area "inside"
             // until the mouse re-enters the new shape or leaves the old one, so switching tabs never closes the notch.
             if isOpen, newValue != tab { holdRect = liveRect.union(holdRect ?? .null) }
@@ -40,6 +44,12 @@ final class NotchViewModel: ObservableObject {
     @Published var slideEdge: Edge = .trailing
     /// The current tab's settings are showing in place of its content.
     @Published var showingSettings = false
+    /// Native transient mode; its implementation and keyboard routing live in Services/Launcher.
+    @Published var launcherPresented = false
+    @Published var launcherHeight: CGFloat = 180
+    var launcherKeyHandler: ((NSEvent) -> Bool)?
+    var launcherEscape: (() -> Void)?
+    var launcherDidClose: (() -> Void)?
     @Published private(set) var activity: Activity?
 
     let services = Services.shared
@@ -105,6 +115,7 @@ final class NotchViewModel: ObservableObject {
         let notch = geometry.notch.size
         switch state {
         case .open:
+            if launcherPresented { return CGSize(width: 720, height: notch.height + launcherHeight) }
             return CGSize(width: max(Self.openWidth, notch.width + 300), height: notch.height + 8 + contentHeight + 8 + Self.dockHeight + 10 + (currentGroup == nil ? 0 : 34))
         case .closed:
             if let activity { return CGSize(width: notch.width + 2 * sideWidth(for: activity), height: notch.height) }
@@ -154,7 +165,7 @@ final class NotchViewModel: ObservableObject {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         }
         withAnimation(Self.spring) { state = .open }
-        web.emit("open", self.tab)
+        if !launcherPresented { web.emit("open", self.tab) }
     }
 
     /// Switch tab with a slide that matches the tab's position.
@@ -181,6 +192,7 @@ final class NotchViewModel: ObservableObject {
 
     func close() {
         guard isOpen else { return }
+        launcherDidClose?()
         holdRect = nil
         pinned = false
         showingSettings = false

@@ -16,7 +16,10 @@ struct NotchRootView: View {
                     .shadow(color: .black.opacity(vm.isOpen ? 0.45 : (clickToOpenHover ? 0.35 : 0)), radius: vm.isOpen ? 18 : 8, y: vm.isOpen ? 8 : 3)
                 Group {
                     if vm.isOpen {
-                        ExpandedView(vm: vm).transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+                        Group {
+                            if vm.launcherPresented { LauncherView(vm: vm) }
+                            else { ExpandedView(vm: vm) }
+                        }.transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
                     } else {
                         CollapsedView(vm: vm).transition(.opacity)
                     }

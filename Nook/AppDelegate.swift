@@ -14,6 +14,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Services.shared.start()
         rebuildNotches()
         Services.shared.dictation.hotkeys.onShortcut = { [weak self] key, mods in
+            if LauncherShortcut.matches(key: key, modifiers: mods) {
+                DispatchQueue.main.async { if let controller = self?.notchUnderMouse() { LauncherFeature.toggle(controller) } }
+                return true
+            }
             if OpenNookShortcut.matches(key: key, modifiers: mods) {
                 DispatchQueue.main.async { self?.notchUnderMouse()?.openWithKeyboard() }
                 return true

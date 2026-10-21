@@ -63,7 +63,7 @@ Plugins folder (your copy wins) and reveals it; **Revert to built-in** trashes y
   `--border rgba(255,255,255,.08)`, `--accent #ff9f0a`, `--good #30d158`, `--bad #ff453a`, `--radius 14px`. Font: `-apple-system`.
 - No network CDNs; keep everything inline or in the folder. Use `nook.fetch` for HTTP (no CORS).
 - Style: follow **docs/UI-GUIDELINES.md** (`nook guide`). The **Nook UI kit** (`nk-*` classes: cards, rows, buttons, pills, inputs, empty/error states…) is injected into every plugin — use it instead of writing your own.
-- The webview stays alive while the app runs, so timers keep going between tab switches.
+- Web views are created on first display. Hidden views unload after a 15-second save grace period; disabling a feature unloads its views immediately. Persist drafts with `nook.storage` and restore them on load. Native timers and agent runs remain owned by their enabled native features.
 
 ## Bridge — `window.nook` (all calls return Promises)
 
@@ -405,7 +405,7 @@ nook publish ./my-plugin --yes    # authenticated gh: fork, contribution branch,
 
 The public repository's complete initial contents live in this source tree's `store/` folder. Each `plugins/<id>/` contains a valid Nook plugin and `store.json` with `description`, `author`, semantic `version`, `tags: []`, and `screenshots: []` (local relative image paths). `node scripts/validate.mjs` checks every package; `node scripts/generate-index.mjs` generates the catalog. CI validates PRs and regenerates the index on `main`.
 
-The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow only regular non-executable files (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
+The app and CLI cache `index.json` under `~/Library/Caches/com.yusuf.nook/PluginStore/`. A missing repository displays an empty Store; unavailable networking falls back to saved entries. Installation uses immutable Git trees and verifies blob/tree hashes before moving a staged package into the user Plugins folder. Files use the raw CDN only when their hashes match, with immutable Git blobs as a fallback, so current packages usually need just one GitHub API request. `.nook-store.json` records the installed version and tree SHA. Updates refuse to overwrite unrelated or edited copies, and move replaced copies to Trash. Packages allow regular files, with executable helpers under `bin/` (200 files, 5 MB each, 20 MB total); no hidden files, symlinks, or unsafe paths. Public GitHub API rate limits can delay downloads. Plugins can run commands as the user, so review source before installing.
 
 
 ## Native Settings and shortcuts
@@ -622,6 +622,7 @@ In web JavaScript call `await nook.host.call(method, params)` (or new v2 conveni
 | `notch.setHeight` | `{height: number}`; clamped 80–400 | approval only |
 | `activity.set` / `notch.activity`, `activity.clear` | `{text,symbol?,color?}` / `{}` | approval only |
 | `storage.get`, `storage.set`, `storage.all` | `{key}`, `{key,value}`, `{}`; per-plugin JSON | approval only |
+| `features.list` | `{}` → `[{id,title,enabled}]`; effective shared feature state | approval only |
 | `settings.get`, `settings.set`, `settings.open` | `{}`, `{key,value}`, `{}`; declared options only | approval only |
 | `clipboard.read`, `clipboard.write`, `clipboard.watch` | `{}`, `{text}`, `{enabled}`; `clipboard` events each changed sample (1 s) | clipboard |
 | `files.read`, `files.write` | `{path}` → UTF-8 text; `{path,text}` (4 MB limit) | files |
@@ -691,7 +692,8 @@ Every `contributes` value is an array, up to 100 entries, with unique `id`s. All
 disable/revoke/uninstall. Declarative hotkeys/items/jobs match the parameter shapes above. `answerProviders`
 uses `{id,prefix,method}`; the native launcher reads a bounded cache, asks the helper asynchronously, shows a
 loading/error result, and never blocks its 2 ms native answer budget. Prefixes should be specific. Entries and
-answers require the launcher enabled; phase 1 integrates with the existing native launcher pending its migration.
+answers require Launcher enabled, and answers also require Smart Answers. Keyboard & Open Nook may be off.
+Phase 1 integrates with the existing native launcher pending its migration.
 `settings` entries `{id,title?}` add grouped native Settings panes using the plugin's top-level `settings` schema.
 `menuBar` entries `{id,title?,symbol?}` create an SF Symbol status item and emit `menuBar: {id}` on activation.
 `urlHandlers` entries `{id}` accept `nook://plugin/<plugin-id>/<handler-id>?...`, emitting `{handler,url}`.
@@ -714,7 +716,10 @@ See [Apple DTS on responsible code and file permissions](https://developer.apple
 
 The Store index adds `default: true` and `sha256`. On the first successful online bootstrap Nook installs
 missing defaults; failures retry at a later check and never remove bundled or installed plugins. Nook checks
-daily and on Settings open (30-second debounce). Unchanged permission/trust grants update silently; added
+daily and on Settings open (30-second debounce) while the Plugin Store feature is on. Turning it off cancels
+Store networking and its update timer. Preinstall does not enable a default-off feature: Mouse appears as
+`plugin:mouse` in the shared Features registry and starts only after its existing switch is enabled and trust is approved.
+Unchanged permission/trust grants update silently; added
 permissions or a newly introduced helper require consent before the app replaces the old package. CLI
 installs/updates verify packages; the running host requests approval before executing newly granted capabilities.
 Offline, existing packages and bundled v1 plugins continue working.
@@ -744,4 +749,32 @@ the Store PR workflow. Source review, deterministic binaries, signing/notarizati
 belong in the plugin's documentation. The full build guide ships as `store/SKILL.md` and in `skill/nook/plugin-v2.md`.
 
 V2 host shell commands belong to their plugin: stdout/stderr drain concurrently (1 MiB captured each),
-timeouts stop the process group, and disabling/revoking cancels them. In-flight AI tasks are cancelled too.
+timeouts stop the process group, and disabling/revoking cancels them. In-flight HTTP and AI tasks are cancelled too. V2 page resources are released when the last visible page
+unloads, except resources owned by an enabled background helper. A second visible display keeps them alive.
+
+
+## Feature availability and page lifetime
+
+Settings → Features controls native service lifetimes and reuses the existing disabled-tab preference.
+Disabled features reject bridge calls without creating their services; extension namespaces are registered only while
+needed. Shortcuts keep their saved assignments but do not route while their owner is off.
+
+```js
+const features = await nook.features.list(); // [{ id, title, enabled }] — effective state, including dependencies
+nook.on('features', rows => { /* hide controls for disabled capabilities */ });
+nook.on('visibility', visible => { /* start/stop page polling immediately */ });
+```
+
+`open`/`show` still carry the selected tab ID; `close` means the notch closed. Stop page timers on hide/close and restart
+on show. A loaded page receives `visibility` when its host changes visibility. Pages load only when shown, so initialize
+as visible. Unopened tabs create no web view. A disabled tab unloads immediately; a hidden tab unloads after 15 seconds.
+Unloading cancels that page's pending shell, HTTP and `ai.chat` work and removes its action registrations. Long-lived
+agent chats and native countdowns belong to their native services, not a page. Detached processes deliberately launched
+outside the shell's process tree are outside page lifetime control.
+
+Native feature IDs include `launcher`, `smartAnswers`, `launcherFiles`, `files`, `clipboard`, `screenshots`, `windows`,
+`commands`, `agents`, `dictation`, `links`, `proxy`, `mixer`, `monitor`, `media`, `timers`, `keyboard`,
+`teleprompter`, `cleaner`, `pluginStore`, `home`, `notes`, `scratch`, and `shelf`. Other discovered plugins use
+`plugin:<id>`, including `plugin:mouse` for the migrated Mouse plugin. Features and Tabs & Plugins share
+one enable state; revocation turns that same state off. Clipboard and screenshot history share the Clips tab; either can run independently. `system` calls require
+Monitor and a visible calling tab. Home checks capabilities before invoking stats/timer APIs.

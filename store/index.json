@@ -13,10 +13,10 @@
     ],
     "screenshots": [],
     "path": "plugins/mouse",
-    "sha": "8381854653b45844463a43060937d6fc8736d8c6",
-    "sha256": "3c0f6f67209adf89106588504352fadee47dfc062c4ce67e06d56c0001504dc7",
+    "sha": "d28641c9bb55ce7559564bdb270dd1da9a2463ff",
+    "sha256": "2076e17937a87fb9ae29be991a3e42ae8becf3b957acc1ef0739a88767b72b7a",
     "default": true,
-    "updatedAt": "2026-10-21T19:56:00Z"
+    "updatedAt": "2026-10-21T20:19:40Z"
   },
   {
     "id": "word-count",

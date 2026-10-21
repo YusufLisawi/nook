@@ -14,6 +14,7 @@
   let systemBusy = false;
   let processesBusy = false;
   let stopped = false;
+  let visible = true;
 
   function ring(name, ratio, label, tone, description) {
     const node = $(`${name}-ring`);
@@ -135,7 +136,7 @@
   }
 
   async function pollSystem() {
-    if (systemBusy || stopped) return;
+    if (!visible || systemBusy || stopped) return;
     systemBusy = true;
     try {
       if (!window.nook?.system) throw new Error('Bridge unavailable');
@@ -170,7 +171,7 @@
   }
 
   async function pollProcesses() {
-    if (processesBusy || stopped) return;
+    if (!visible || processesBusy || stopped) return;
     processesBusy = true;
     try {
       if (!window.nook?.shell) throw new Error('Bridge unavailable');
@@ -208,10 +209,21 @@
     }
   }
 
-  void pollSystem();
-  void pollProcesses();
-  const systemTimer = setInterval(() => { void pollSystem(); }, 1500);
-  const processTimer = setInterval(() => { void pollProcesses(); }, 3000);
+  let systemTimer = null, processTimer = null;
+  function setVisible(on) {
+    visible = on;
+    clearInterval(systemTimer); clearInterval(processTimer);
+    systemTimer = processTimer = null;
+    if (!on || stopped) return;
+    void pollSystem(); void pollProcesses();
+    systemTimer = setInterval(() => { void pollSystem(); }, 1500);
+    processTimer = setInterval(() => { void pollProcesses(); }, 3000);
+  }
+  nook.on('open', tab => setVisible(tab === nook.plugin.id));
+  nook.on('show', tab => setVisible(tab === nook.plugin.id));
+  nook.on('close', () => setVisible(false));
+  nook.on('visibility', setVisible);
+  setVisible(true);
   window.addEventListener('resize', () => {
     drawChart('download-chart', samples.down, 'good');
     drawChart('upload-chart', samples.up, 'accent');

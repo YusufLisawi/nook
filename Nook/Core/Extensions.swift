@@ -16,6 +16,8 @@ enum BridgeRegistry {
         namespaces[namespace] = (functions, handler)
     }
 
+    static func unregister(_ namespace: String) { namespaces.removeValue(forKey: namespace) }
+
     /// `ns.fn` → true if a registered namespace handled it.
     static func handle(_ full: String, args: [Any], pluginID: String, reply: @escaping (Any?, String?) -> Void) -> Bool {
         guard let dot = full.firstIndex(of: "."), let entry = namespaces[String(full[..<dot])] else { return false }

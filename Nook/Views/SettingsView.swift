@@ -4,11 +4,12 @@ import SwiftUI
 struct SettingsView: View {
     let onScreensChanged: () -> Void
     @ObservedObject private var router = SettingsRouter.shared
+    @ObservedObject private var features = Features.shared
     @State private var query = ""
     @State private var extensionRevision = 0
 
     private var builtIns: [SettingsPane] {
-        SettingsPane.allCases.filter { SettingsSearch.matches(query, in: [$0.title] + $0.keywords) }
+        SettingsPane.allCases.filter { features.paneEnabled($0.rawValue) && SettingsSearch.matches(query, in: [$0.title] + $0.keywords) }
     }
 
     private var extensions: [SettingsExtension] {
@@ -58,7 +59,9 @@ struct SettingsView: View {
         } detail: {
             let id = router.pane ?? SettingsPane.general.rawValue
             Group {
-                if visibleIDs.isEmpty {
+                if !features.paneEnabled(id) {
+                    FeaturesPane()
+                } else if visibleIDs.isEmpty {
                     ContentUnavailableView.search(text: query)
                 } else if let pane = SettingsRegistry.panes.first(where: { $0.id == id }) {
                     pane.view().formStyle(.grouped)
@@ -91,7 +94,11 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .nookSettingsRegistryChanged)) { _ in
             extensionRevision += 1
         }
+        .onReceive(NotificationCenter.default.publisher(for: .nookFeaturesChanged)) { _ in
+            if !features.paneEnabled(router.pane ?? "") { router.pane = "features" }
+        }
         .onAppear {
+            if !features.paneEnabled(router.pane ?? "") { router.pane = "features" }
             if !SettingsRouter.isKnown(router.pane ?? "") { router.pane = SettingsPane.general.rawValue }
         }
     }

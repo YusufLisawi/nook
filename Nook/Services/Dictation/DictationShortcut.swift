@@ -86,7 +86,7 @@ struct DictationShortcutField: View {
     private func start() {
         recording = true
         peak = []
-        Services.shared.dictation.hotkeys.paused = true // don't start dictating while recording a shortcut
+        Services.shared.hotkeys.paused = true // don't start dictating while recording a shortcut
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
             if event.type == .flagsChanged {
                 let flags = Modifiers.from(event.modifierFlags)
@@ -119,6 +119,6 @@ struct DictationShortcutField: View {
         peak = []
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-        Services.shared.dictation.hotkeys.paused = false
+        Services.shared.hotkeys.paused = false
     }
 }

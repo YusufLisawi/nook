@@ -13,6 +13,11 @@ final class WindowSpaces {
     private let skyLight = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
     private let process = dlopen(nil, RTLD_LAZY)
 
+    deinit {
+        if let skyLight { dlclose(skyLight) }
+        if let process { dlclose(process) }
+    }
+
     private func symbol<T>(_ names: [String], in handle: UnsafeMutableRawPointer?, as type: T.Type) -> T? {
         guard let handle else { return nil }
         for name in names {
@@ -97,7 +102,7 @@ final class WindowSpaces {
         }
         let nudge: CGFloat = point.x + 6 < area.maxX - 4 ? 6 : -6
         let heldPoint = CGPoint(x: point.x + nudge, y: point.y)
-        let monitor = Services.shared.dictation.hotkeys
+        let monitor = Services.shared.hotkeys
         let wasPaused = monitor.paused
         monitor.paused = true // synthetic desktop keys must not fire a user's Nook shortcut
         var mouseHeld = false

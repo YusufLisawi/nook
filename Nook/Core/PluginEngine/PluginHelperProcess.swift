@@ -12,6 +12,7 @@ final class PluginHelperProcess: @unchecked Sendable {
     private let event: (String, Any) -> Void
     private let log: (String) -> Void
     private var process: Process?
+    private var keepAlive: PluginHelperProcess?
     private var input: FileHandle?
     private var output: FileHandle?
     private var errors: FileHandle?
@@ -106,12 +107,13 @@ final class PluginHelperProcess: @unchecked Sendable {
                         self.queue.asyncAfter(deadline: .now() + 2) { kill(-pid, SIGKILL) }
                     }
                     self.cleanup()
-                    self.scheduleRestart()
+                    self.scheduleRestart(uptime: Date().timeIntervalSince(self.started))
                 }
             }
             process = task; input = stdin.fileHandleForWriting; output = out; errors = err
             _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
             try task.run()
+            keepAlive = self // The registry may release us on disable before Process delivers termination.
             stdin.fileHandleForReading.closeFile(); stdout.fileHandleForWriting.closeFile(); stderr.fileHandleForWriting.closeFile()
             started = Date()
             log("Helper started (pid \(task.processIdentifier)).")
@@ -123,9 +125,9 @@ final class PluginHelperProcess: @unchecked Sendable {
         }
     }
 
-    private func scheduleRestart() {
+    private func scheduleRestart(uptime: TimeInterval = 0) {
         guard wanted else { return }
-        let delay = backoff.next(uptime: Date().timeIntervalSince(started))
+        let delay = backoff.next(uptime: uptime)
         log("Restarting helper in \(Int(delay))s.")
         let work = DispatchWorkItem { [weak self] in self?.launch() }
         retry = work; queue.asyncAfter(deadline: .now() + delay, execute: work)
@@ -196,6 +198,10 @@ final class PluginHelperProcess: @unchecked Sendable {
         input = nil; output = nil; errors = nil; process = nil; framer = PluginRPCFramer(); hostRequests = 0
         let callbacks = Array(pending.values); pending.removeAll()
         callbacks.forEach { $0(nil, "Helper stopped.") }
+        let token = generation
+        queue.asyncAfter(deadline: .now() + 2) {
+            if self.generation == token, self.process == nil { self.keepAlive = nil }
+        }
     }
 
     private static func descendants(_ pid: pid_t, depth: Int = 0) -> [pid_t] {

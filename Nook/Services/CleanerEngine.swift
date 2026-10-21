@@ -27,12 +27,19 @@ struct CleanerEngine {
     private enum SafetyError: Error { case unsafe, missing }
     private let home: URL
     private let trash: (URL) throws -> Void
+    private let isCancelled: () -> Bool
+    private let launch: (Process) throws -> Void
     private let files = FileManager.default
 
     init(home: URL = FileManager.default.homeDirectoryForCurrentUser,
          trash: @escaping (URL) throws -> Void = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }) {
-        self.home = home.standardizedFileURL
-        self.trash = trash
+        self.home = home.standardizedFileURL; self.trash = trash
+        self.isCancelled = { false }; self.launch = { try $0.run() }
+    }
+    init(isCancelled: @escaping () -> Bool, launch: @escaping (Process) throws -> Void) {
+        self.home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        self.trash = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }
+        self.isCancelled = isCancelled; self.launch = launch
     }
 
     func clean(category: String, days: Int, now: Date = Date()) throws -> Result {
@@ -42,6 +49,7 @@ struct CleanerEngine {
         let cutoff = now.addingTimeInterval(-Double(min(365, max(7, days))) * 86400)
         var result = Result()
         for relative in roots {
+            if isCancelled() { throw CancellationError() }
             let root: URL
             let items: [URL]
             do {
@@ -56,6 +64,7 @@ struct CleanerEngine {
                 continue
             }
             for item in items {
+                if isCancelled() { throw CancellationError() }
                 if category == "caches", Self.excludedCache(item.lastPathComponent) { continue }
                 do {
                     let before = try info(item)
@@ -75,10 +84,12 @@ struct CleanerEngine {
                     guard before.st_dev == after.st_dev, before.st_ino == after.st_ino,
                           after.st_mode & S_IFMT != S_IFLNK else { throw SafetyError.unsafe }
                     if category == "downloads", !eligibleDownload(after, cutoff: cutoff) { continue }
+                    if isCancelled() { throw CancellationError() }
                     try trash(item)
                     result.bytes += bytes
                     result.moved += 1
-                } catch SafetyError.missing { continue } // App removed its own cache during this run.
+                } catch is CancellationError { throw CancellationError() }
+                catch SafetyError.missing { continue } // App removed its own cache during this run.
                 catch SafetyError.unsafe { result.skipped += 1 }
                 catch {
                     if Self.isPermission(error) {
@@ -127,9 +138,11 @@ struct CleanerEngine {
         let output = Pipe()
         process.standardOutput = output
         process.standardError = FileHandle.nullDevice
-        try process.run()
-        let timeout = DispatchWorkItem { if process.isRunning { process.terminate() } }
-        DispatchQueue.global().asyncAfter(deadline: .now() + 120, execute: timeout)
+        try launch(process)
+        let timeout = DispatchSource.makeTimerSource(queue: .global())
+        timeout.schedule(deadline: .now() + 120)
+        timeout.setEventHandler { if process.isRunning { process.terminate() } }
+        timeout.resume()
         defer { timeout.cancel() }
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()

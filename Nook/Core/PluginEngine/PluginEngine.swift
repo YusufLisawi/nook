@@ -22,10 +22,16 @@ final class PluginEngine {
             engine.webCall(id: id, method: "host.call", args: args, vm: nil, reply: reply)
         }
         Services.shared.plugins.$tabs.combineLatest(Services.shared.plugins.$revision)
-            .receive(on: RunLoop.main).sink { _ in engine.reconcile() }.store(in: &engine.bag)
+            .receive(on: RunLoop.main).sink { _ in
+                engine.reconcile()
+                Task { @MainActor in PluginAutomaticUpdates.shared.reconcile() }
+            }.store(in: &engine.bag)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .merge(with: NotificationCenter.default.publisher(for: .nookPluginPermissionsChanged))
-            .receive(on: RunLoop.main).sink { _ in engine.reconcile() }.store(in: &engine.bag)
+            .merge(with: NotificationCenter.default.publisher(for: .nookPluginPermissionsChanged), NotificationCenter.default.publisher(for: .nookFeaturesChanged))
+            .receive(on: RunLoop.main).sink { _ in
+                engine.reconcile()
+                Task { @MainActor in PluginAutomaticUpdates.shared.reconcile() }
+            }.store(in: &engine.bag)
         NotificationCenter.default.publisher(for: .nookPluginEvent).receive(on: RunLoop.main).sink { note in
             guard let event = note.userInfo?["event"] as? String, !event.hasPrefix("native:") else { return }
             let target = note.userInfo?["plugin"] as? String
@@ -54,9 +60,11 @@ final class PluginEngine {
                 if revisions[tab.id] != stamp { stop(tab.id); revisions[tab.id] = stamp }
             } catch { PluginLog.write(tab.id, level: "error", message: error.localizedDescription) }
         }
+        Set(manifests.keys).subtracting(current.keys).forEach(stop)
         manifests = current
+        PluginContributions.shared.reconcileConsumers()
         for id in Array(helpers.keys) where !shouldRun(id) { stop(id) }
-        for (id, manifest) in manifests where !Prefs.disabledTabSet.contains(id) {
+        for (id, manifest) in manifests where Features.shared.tabEnabled(id) {
             guard PluginPermissions.shared.approved(manifest) else {
                 if manifest.native?.background == true || visible.values.contains(id) {
                     Task { @MainActor in if await PluginPermissions.shared.review(manifest) { self.reconcile() } }
@@ -66,12 +74,12 @@ final class PluginEngine {
             PluginContributions.shared.install(manifest)
             if shouldRun(id), helpers[id] == nil { launch(manifest) }
         }
-        PluginContributions.shared.reconcile(active: Set(manifests.values.filter { !Prefs.disabledTabSet.contains($0.id) && PluginPermissions.shared.approved($0) }.map(\.id)))
+        PluginContributions.shared.reconcile(active: Set(manifests.values.filter { Features.shared.tabEnabled($0.id) && PluginPermissions.shared.approved($0) }.map(\.id)))
     }
 
     private func shouldRun(_ id: String) -> Bool {
         guard let manifest = manifests[id], let native = manifest.native,
-              !Prefs.disabledTabSet.contains(id), PluginPermissions.shared.approved(manifest) else { return false }
+              Features.shared.tabEnabled(id), PluginPermissions.shared.approved(manifest) else { return false }
         return native.background || visible.values.contains(id)
     }
 
@@ -91,15 +99,19 @@ final class PluginEngine {
         PluginHostAPI.shared.stop(id)
         if Services.shared.pluginActivity?.pluginID == id { Services.shared.pluginActivity = nil }
     }
-    func shutdown() { Array(helpers.keys).forEach(stop) }
+    func shutdown() { Array(manifests.keys).forEach(stop) }
     static func dataDirectory(_ id: String) -> URL { Services.supportDir.appendingPathComponent("Data/\(id)", isDirectory: true) }
 
-    func lifecycle(owner: String, event: String, payload: Any) {
-        if event == "open" || event == "show" {
-            if let id = payload as? String { visible[owner] = id }
-        } else if event == "close" { visible.removeValue(forKey: owner) }
-        else { return }
+    func setVisible(owner: String, plugin: String?) {
+        guard visible[owner] != plugin else { return }
+        visible[owner] = plugin
         reconcile()
+    }
+    func releasePage(_ id: String) {
+        if manifests[id]?.native?.background != true,
+           !Features.shared.tabEnabled(id) || !visible.values.contains(id) {
+            PluginHostAPI.shared.stop(id)
+        }
     }
     func removeOwner(_ owner: String) { visible.removeValue(forKey: owner); reconcile() }
 
@@ -119,7 +131,7 @@ final class PluginEngine {
         if method == "host.call" {
             hostCall(id: id, method: args.first as? String ?? "", params: args.dropFirst().first ?? [:], vm: vm, reply: reply)
         } else if method == "native.call" {
-            guard let manifest = manifests[id], PluginPermissions.shared.approved(manifest), !Prefs.disabledTabSet.contains(id) else { return reply(nil, "Plugin access is not approved or the plugin is disabled.") }
+            guard let manifest = manifests[id], PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id) else { return reply(nil, "Plugin access is not approved or the plugin is disabled.") }
             reconcile()
             guard let helper = helpers[id] else { return reply(nil, "Helper unavailable. Open this plugin’s tab or enable background mode.") }
             helper.call(args.first as? String ?? "", params: args.dropFirst().first ?? [:]) { value, error in DispatchQueue.main.async { reply(value, error) } }
@@ -131,7 +143,7 @@ final class PluginEngine {
     func hostCall(id: String, method: String, params: Any, vm: NotchViewModel?, reply: @escaping PluginHelperProcess.Reply) {
         let method = method.hasPrefix("host.") ? String(method.dropFirst(5)) : method
         do {
-            guard let manifest = manifests[id], !Prefs.disabledTabSet.contains(id) else { throw PluginEngineError("Plugin disabled or missing.") }
+            guard let manifest = manifests[id], Features.shared.tabEnabled(id) else { throw PluginEngineError("Plugin disabled or missing.") }
             try PluginCapabilityPolicy.check(method, manifest: manifest, grant: PluginPermissions.shared.grants[id])
             PluginHostAPI.shared.call(id: id, method: method, params: params as? [String: Any] ?? [:], manifest: manifest, vm: vm, reply: reply)
         } catch { reply(nil, error.localizedDescription) }

@@ -5,8 +5,9 @@ import SwiftUI
 /// Every resource is keyed by plugin id and is removed on disable/revoke/uninstall.
 final class PluginContributions: NSObject {
     static let shared = PluginContributions()
-    static let actionOwner = "plugin-engine"
+    static let actionOwner = KeyboardActions.extensionOwner
     private var installed = Set<String>()
+    private var consumers = ""
     private var hotkeys: [String: (EventHotKeyRef, UInt32)] = [:]
     private var hotkeyActions: [UInt32: (String, String)] = [:]
     private var nextHotkey: UInt32 = 1
@@ -55,13 +56,19 @@ final class PluginContributions: NSObject {
     private func attempt(_ id: String, _ work: () throws -> Void) {
         do { try work() } catch { PluginLog.write(id, level: "error", message: error.localizedDescription) }
     }
+    func reconcileConsumers() {
+        let current = "\(Features.shared.enabled("launcher")):\(Features.shared.enabled("smartAnswers"))"
+        guard current != consumers else { return }
+        consumers = current
+        Array(installed).forEach(remove)
+    }
     func reconcile(active: Set<String>) { for id in installed.subtracting(active) { remove(id) } }
     func remove(_ id: String) {
         installed.remove(id)
         for key in Array(hotkeys.keys) where key.hasPrefix(id + "/") { unregisterHotkey(key) }
         for key in Array(menus.keys) where key.hasPrefix(id + "/") { if let item = menus.removeValue(forKey: key) { NSStatusBar.system.removeStatusItem(item) } }
         for key in Array(jobs.keys) where key.hasPrefix(id + "/") { jobs.removeValue(forKey: key)?.invalidate() }
-        for key in Array(answers.keys) where key.hasPrefix(id + "/") { answers.removeValue(forKey: key)?.deactivate(); LauncherAnswers.shared.unregister("plugin:" + key) }
+        for key in Array(answers.keys) where key.hasPrefix(id + "/") { answers.removeValue(forKey: key)?.deactivate(); if Features.shared.enabled("smartAnswers") { LauncherAnswers.shared.unregister("plugin:" + key) } }
         for pane in settings.filter({ $0.value == id }).keys { SettingsRegistry.unregister(pane); settings.removeValue(forKey: pane) }
         KeyboardActions.shared.remove(ownerID: Self.actionOwner, pluginID: id)
     }
@@ -79,9 +86,9 @@ final class PluginContributions: NSObject {
     }
 
     private func registerItems(_ id: String, _ rows: [[String: Any]]) throws {
-        guard !Prefs.disabledTabSet.contains("launcher") else { throw PluginEngineError("Enable the launcher to contribute items.") }
+        guard Features.shared.enabled("launcher") else { throw PluginEngineError("Enable the launcher to contribute items.") }
         var error: String?
-        _ = BridgeRegistry.handle("actions.register", args: [rows, Self.actionOwner], pluginID: id) { _, failure in error = failure }
+        KeyboardActions.shared.register(rows, pluginID: id, ownerID: Self.actionOwner) { _, failure in error = failure }
         if let error { throw PluginEngineError(error) }
     }
     private func registerHotkey(_ id: String, _ row: [String: Any]) throws {
@@ -118,9 +125,9 @@ final class PluginContributions: NSObject {
         jobs[name] = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { _ in PluginEvents.emit("job", ["id": key], to: id) }
     }
     private func registerAnswer(_ id: String, _ row: [String: Any]) throws {
-        guard !Prefs.disabledTabSet.contains("launcher"), let key = row["id"] as? String, !key.isEmpty,
+        guard Features.shared.enabled("launcher"), Features.shared.enabled("smartAnswers"), let key = row["id"] as? String, !key.isEmpty,
               let prefix = row["prefix"] as? String, !prefix.isEmpty,
-              let method = row["method"] as? String, !method.isEmpty else { throw PluginEngineError("Answer providers need id, prefix, method, and an enabled launcher.") }
+              let method = row["method"] as? String, !method.isEmpty else { throw PluginEngineError("Answer providers need id, prefix, method, and Launcher and Smart Answers enabled.") }
         let name = id + "/" + key
         guard answers.count < 100 || answers[name] != nil else { throw PluginEngineError("Too many answer providers.") }
         let provider = PluginLauncherAnswerProvider(pluginID: id, key: name, prefix: prefix, method: method)
@@ -133,7 +140,7 @@ final class PluginContributions: NSObject {
     }
     static func handleURL(_ url: URL) {
         let parts = url.pathComponents.dropFirst()
-        guard let id = parts.first, let manifest = PluginEngine.shared.manifests[id], PluginPermissions.shared.approved(manifest), !Prefs.disabledTabSet.contains(id) else { return }
+        guard let id = parts.first, let manifest = PluginEngine.shared.manifests[id], PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id) else { return }
         let route = parts.dropFirst().first ?? ""
         guard (manifest.contributes["urlHandlers"] ?? []).contains(where: { $0["id"] as? String == route }) else { return }
         PluginEvents.emit("url", ["handler": route, "url": url.absoluteString], to: id)
@@ -166,7 +173,7 @@ final class PluginLauncherAnswerProvider: LauncherAnswerProvider, LauncherAnswer
     func deactivate() { lock.lock(); active = false; cache.removeAll(); lock.unlock() }
     init(pluginID: String, key: String, prefix: String, method: String) { self.pluginID = pluginID; id = "plugin:" + key; self.prefix = prefix; self.method = method }
     func answer(for query: String, context: LauncherAnswerContext) -> LauncherAnswer? {
-        guard query.hasPrefix(prefix), !Prefs.disabledTabSet.contains("launcher") else { return nil }
+        guard query.hasPrefix(prefix) else { return nil }
         lock.lock(); defer { lock.unlock() }
         guard active else { return nil }
         return cache[query] ?? LauncherAnswer(section: "Plugin", expression: query, leftBadge: "", result: "Loading…", rightBadge: "", copyValue: "", isAvailable: false)

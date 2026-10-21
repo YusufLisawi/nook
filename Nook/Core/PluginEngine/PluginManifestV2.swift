@@ -162,7 +162,7 @@ enum PluginCapabilityPolicy {
         let method = method.hasPrefix("host.") ? String(method.dropFirst(5)) : method
         let family = method.split(separator: ".").first.map(String.init) ?? method
         switch family {
-        case "native", "notch", "activity", "storage", "settings", "log", "keyboard": return []
+        case "native", "notch", "activity", "storage", "settings", "log", "keyboard", "features": return []
         case "actions": return ["launcher"]
         case "clipboard": return ["clipboard"]
         case "files": return ["files"]

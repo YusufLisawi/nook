@@ -70,6 +70,13 @@ struct WatcherTests {
         eventually(restored, "while-stopped.txt", exists: true)
         eventually(restored, "initial.txt", exists: false)
         restored.shutdown()
+        restored.stop()
+        precondition(!restored.ready && restored.status.count == 0 && restored.configuration == nil, "off releases all packed index state")
+        restored.stop()
+        restored.start(defaults: defaults)
+        wait("re-enable after teardown") { restored.ready }
+        eventually(restored, "while-stopped.txt", exists: true)
+        restored.stop()
         print("PASS: real FSEvents creation, modified size, directory rename/removal, post-launch exclusions, binary-cache restart and sinceWhen catch-up, using only /tmp fixtures")
     }
 }

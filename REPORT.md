@@ -3,7 +3,8 @@
 Phase 1 implements Store-delivered native plugins as separate supervised processes, while preserving existing
 web-only v1 plugins. Mouse is the proof: its native implementation is no longer compiled into Nook. No Nook
 instance was launched, no GUI automation/input posting was used, and no live Nook Application Support data or
-/Applications contents were modified. Nothing was pushed, merged, published or released.
+/Applications contents were modified. Nothing was pushed, published or released. Per the lead's follow-up, main at `6221bf0` was merged into this
+branch, including the lean agent's shared Features registry and idle-work changes.
 
 ## Architecture and behavior
 
@@ -20,23 +21,27 @@ instance was launched, no GUI automation/input posting was used, and no live Noo
   the helper, retaining pid/stdio and the native launch chain. Disable/revoke/uninstall cancels restarts, closes
   stdin and terminates ordinary descendants, with a two-second SIGKILL fallback. Normal foreground helpers
   stop when the last display closes their tab. Production execution never loads helper code into the app.
-- `PluginEngine.swift` connects registry/preferences, multi-display visibility, helper calls and event delivery.
+- `PluginEngine.swift` connects the shared Features registry, multi-display visibility, helper calls and event delivery.
   The registered `native` and `host` namespaces are the transports. Both web aliases and helper `host.*` requests
-  pass through the same capability policy. File edits/registry revisions restart helpers for hot reload.
+  pass through the same capability policy. File edits/registry revisions restart helpers for hot reload. Features and Tabs & Plugins use the same
+  state (`plugin:<id>` for discovered plugins); revoke disables that state. There is no engine-specific enable switch.
+  Main's lazy web views, 15-second hidden eviction, immediate disabled eviction and cancellation are retained.
+  A page on another display keeps foreground host resources alive; background resources follow helper lifetime.
 - `PluginHostAPI.swift` exposes notch/activity, clipboard/watch, scoped UTF-8 files/Trash/reveal/open, network,
   notifications, AIBrain completion, SelectionGrabber text/paste, frontmost app/window metadata, allowlisted
   focused AX actions, per-plugin settings/storage, Keychain secrets, shortcuts and contributions. A single
   pre-open hook captures AICommandContext for approved Accessibility plugins; selection/paste restores/refuses
   the original target rather than typing into a web input. AX actions remain a small generic focused-element
   allowlist. Host shell tasks are separately owned/cancelled per plugin and drain both pipes concurrently with
-  bounded capture. AI tasks are cancelled on stop. No host AI keys are handed to helpers.
+  bounded capture. HTTP and AI tasks are cancelled on stop. No host AI keys are handed to helpers.
 - `PluginPermissions.swift` supplies serialized native consent sheets, plain-language capability descriptions,
   explicit unsandboxed/TCC disclosure, selected folder scopes and a grouped Permissions & Trust section in
   Tabs & Plugins. Declarations are not grants. A new helper requires native-code trust even with zero listed
   capabilities. Revocation also disables the plugin persistently. Developer copies are labeled Developer.
 - `PluginContributions.swift` owns global Carbon hotkeys (conflict checks + events), launcher entries and async
-  prefix answer providers, grouped setting panes, SF Symbol menu-bar buttons, `nook://plugin/<id>/<handler>`
-  routes, named activities and background jobs. Resources are removed on disable/revoke/uninstall. Native
+  prefix answer providers (gated by Launcher + Smart Answers), grouped setting panes, SF Symbol menu-bar buttons, `nook://plugin/<id>/<handler>`
+  routes, named activities and background jobs. Launcher items work independently of Keyboard & Open Nook;
+  disabling the launcher removes its contributed items/providers without stopping unrelated helper work. Resources are removed on disable/revoke/uninstall. Native
   launcher answers read a 32-query bounded cache; IPC never blocks its 2 ms native provider budget. Enabled
   foreground helpers need their tab open to receive events; use background permission/lifetime for shortcuts,
   jobs, menu-bar or URL events that must reach a helper while closed.
@@ -46,6 +51,8 @@ instance was launched, no GUI automation/input posting was used, and no live Noo
   PLUGINS.md). V2 Store packages require SHA-256. The catalog adds default:true; first successful online bootstrap
   installs missing defaults, daily and Settings-open checks update managed packages, and expanded permissions
   ask before app replacement. Declined defaults are remembered. Offline startup keeps installed/bundled plugins.
+  The existing Plugin Store feature owns the daily timer/networking; turning it off cancels both. Preinstall does
+  not enable default-off plugins such as Mouse.
 - `nook new --native swift|rust|node|python` scaffolds a working helper/control UI. `--output` permits isolated
   projects/tests. `nook dev <path>` safely mirrors and follows edits in Nook's watched plugin folder, refuses
   unrelated/local edits, and never builds or launches Nook. `--once` performs one sync. `nook validate` checks v2
@@ -57,7 +64,9 @@ Moved `MouseConfig`, `MouseActions`, `MouseEventState`, `MouseScroller`, `MouseF
 `store/plugins/mouse/native/`; removed the in-app bridge/service registration. The previous Mouse HTML/CSS/JS
 is now the Store package and uses `nook.native.call('mouse.<method>', {args:[...]})` and native notifications.
 The methods and input behavior are retained. Mouse configuration reads old Nook preferences only for migration,
-then writes `NOOK_DATA_DIR/mouse.json`. Its own Enable switch still defaults off.
+then writes `NOOK_DATA_DIR/mouse.json`. The shared `plugin:mouse` feature and its input Enable setting default off.
+A saved native `features.enabled.mouse` choice migrates once to `features.enabled.plugin:mouse`; no native Mouse
+factory remains in Features or Services.
 
 `bash store/plugins/mouse/build.sh` builds arm64 + x86_64, combines and ad-hoc signs `bin/helper`. The universal
 binary is included so the checked-in Store folder is actually installable without running an install script.
@@ -68,7 +77,8 @@ install the local built folder with `nook dev` in a controlled Nook session. Oth
 ## What remains in the app binary
 
 Core infrastructure: notch panel/geometry/keyboard focus and dock/group presentation, WKWebView/UI kit,
-BridgeRegistry/SettingsRegistry, permission/storage/Keychain adapters, helper supervisor/exec trampoline,
+BridgeRegistry/SettingsRegistry, the shared Features lifecycle registry, permission/storage/Keychain adapters,
+helper supervisor/exec trampoline,
 Store client/update scheduler, notification/TCC-facing adapters, AIBrain and SelectionGrabber primitives,
 settings/login/updater/CLI integration. The synthetic-input marker stays as a shared host-routing primitive.
 
@@ -76,7 +86,8 @@ Phase 1 intentionally also retains **all pre-existing features except Mouse**: n
 file index/search/previews, Clips, Windows, keyboard palette, AI Commands, Agents, Dictation, audio mixer, proxy,
 link catcher, cleaner bridge, system stats, timers, media, Shelf/Scratch and their existing settings/bridges.
 Their v1 web UIs continue working. This is an engine/proof commit, not a claim those features have migrated.
-The lean agent's feature enable registry/efficiency changes are not in this worktree and must be merged by the lead.
+Main's lean implementation is merged: optional native services stay lazy, disabled features reject legacy
+bridges, global shortcut routing follows effective availability, and Settings releases its view tree on close.
 
 ## Files and merge surface
 
@@ -95,8 +106,9 @@ NotchKeyboard filtering/routing for engine-owned actions; PluginRegistry v2 vali
 not new feature switches. StoreClient/StorePublisher/PluginStore gain digest/mode/approval support; CLI main
 adds dispatch/validation/test-directory override. Node validation/index generation, PLUGINS.md, LIMITS.md,
 Store README/CONTRIBUTING and the repo skill are updated. Existing test runners/stubs were adjusted for moved
-Mouse sources, new Store validator dependencies and engine-owned actions. Regenerate the Xcode project after
-merging; keep the generic exec trampoline plus `PluginEngine.start()` when resolving lean's Services changes.
+Mouse sources, new Store validator dependencies and engine-owned actions. Merge integration additionally touches
+Features (dynamic Mouse ownership/default migration), KeyboardActions (independent extension contribution owner)
+and WebPluginHost (visibility/page cancellation). The regenerated project includes main's 1.10.0 release metadata.
 
 `project.yml` embeds templates in app resources, shares the Foundation manifest with the CLI and uses the
 existing Xcode 26 warning-free App Intents link-generation approach. No compiler diagnostics are suppressed.
@@ -108,13 +120,14 @@ use their standard libraries; jsdom is test-only under /tmp, following existing 
 
 - Required exact Release command was run and succeeds with zero compiler/linker diagnostics. This Mac/Xcode
   still emits the same environment warning documented by the other feature reports: **Using the first of
-  multiple matching destinations** (native/Rosetta). Log: `/tmp/nook-engine-build-exact-final.log`.
+  multiple matching destinations** (native/Rosetta). Log: `/tmp/nook-engine-merged-build-exact.log`.
 - Universal Release build with `-destination 'generic/platform=macOS'` succeeds with **zero warnings of any kind
-  and zero errors**; both app/helper architectures remain supported. Log: `/tmp/nook-engine-build-final.log`.
+  and zero errors**; both app/helper architectures remain supported. Log: `/tmp/nook-engine-merged-build-universal.log`.
 - `NOOK_ENGINE_CLI="$PWD/build/Build/Products/Release/Nook.app/Contents/MacOS/nook-cli" bash tests/engine/run.sh`:
   warnings-as-errors Swift tests for fragmented/multiple/invalid/oversized JSON-RPC, backoff/reset, permission
-  rejection/revocation/native-trust changes, malformed manifests, path/symlink/nonexistent-leaf escape rejection,
-  bidirectional helper RPC, crash restart, production exec process-group child cleanup, stopped-call rejection,
+  rejection/revocation/native-trust changes, shared Features/tab enablement, malformed manifests, path/symlink/nonexistent-leaf escape rejection,
+  bidirectional helper RPC, crash restart, release of a supervisor removed by its owner, production exec
+  process-group child cleanup, stopped-call rejection,
   concurrent large shell stdout/stderr, timeout and disable cancellation. Fake local URLProtocol Store covers
   default metadata/offline fallback, Node/Swift hashes, executable installation, missing/corrupt SHA-256,
   permission-increase refusal preserving old code, approved replacement, Trash and saved-data retention.
@@ -126,7 +139,9 @@ use their standard libraries; jsdom is test-only under /tmp, following existing 
 - `bash tests/store/run.sh`: existing client and mocked-publisher regressions pass. `npm --prefix store test`:
   35 tests pass. `node store/scripts/validate.mjs` and index generation pass for Mouse and Word Count.
 - `bash tests/keyboard/run.sh`, `bash tests/launcher/run.sh`, `bash tests/tabs/run.sh`: existing native and mocked
-  UI checks pass, including 56 launcher and 50+39 tab/shortcut integration checks. Post-hook tabs rerun passes.
+  UI checks pass, including 56 launcher and 50+39 tab/shortcut integration checks. `bash tests/features/run.sh`
+  verifies the merged lifecycle/default migration, resource release, hotkeys, bridge cancellation and visibility guards.
+  These suites were rerun after main integration; logs are `/tmp/nook-engine-merged-*-final.log`.
 - Built CLI validation passes for all native templates and Mouse. `git diff --check` passes.
 
 All installs/downloads/Trash/gh submissions in tests use isolated generated fixtures or injected mocks. Nook,
@@ -142,13 +157,16 @@ not exercised. The precise runtime/TCC/UI checks below remain for the lead under
    build. Never run two Nooks. Use `nook dev <repo>/store/plugins/mouse --once` for the local built proof, or publish
    the updated Store only through the lead's normal release process. Review the Developer/native capability sheet.
 3. With Accessibility denied, inspect the Mouse inline error/retry; explicitly grant the correct identity in System
-   Settings and enable smoothing/learning. Check wheel reversals, trackpad pass-through, extra-button overlap and
+   Settings and enable `plugin:mouse` in Features/Tabs, then smoothing/learning. Check wheel reversals, trackpad pass-through, extra-button overlap and
    disable while held. Inspect helper PID/logs; disabling the plugin or revoking access must stop it and cancel restarts.
 4. Test a scaffold with background:false across two displays: open starts, the last close stops, reopening starts.
    Kill its helper deliberately in the disposable account and confirm backoff/UI ready refresh. Check global shortcut,
-   menu-bar, URL, job, grouped settings, launcher item and prefix-answer contribution fixtures with declared permissions.
+   menu-bar, URL, job and grouped settings with declared permissions. Enable Launcher/Smart Answers to test
+   contributed items/answers, turn Keyboard off, and verify they still work. Disable either consumer and verify
+   resources disappear without reviving that native service. Toggle the plugin from both Settings locations.
 5. Inspect consent before Store install/update, added-permission refusal keeping the old version, revocation persisting
    through restart, unchanged-permission silent update, local-edit refusal, offline startup and default preinstall.
+   Turning Plugin Store off must cancel the update timer/networking; a preinstalled Mouse remains disabled.
 6. Verify selection/paste and frontmost metadata from an explicit plugin action using a disposable editor. Changed/
    closed targets must refuse paste. Check the native permission form's light/dark layout and keyboard/screen-reader flow.
 

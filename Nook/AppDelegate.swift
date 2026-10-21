@@ -13,8 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Prefs.registerDefaults()
         Services.shared.start()
         rebuildNotches()
-        Services.shared.dictation.hotkeys.onShortcut = { [weak self] key, mods in
-            if LauncherShortcut.matches(key: key, modifiers: mods) {
+        Services.shared.hotkeys.onShortcut = { [weak self] key, mods in
+            if Features.shared.enabled("launcher"), LauncherShortcut.matches(key: key, modifiers: mods) {
                 DispatchQueue.main.async { if let controller = self?.notchUnderMouse() { LauncherFeature.toggle(controller) } }
                 return true
             }
@@ -23,8 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 return true
             }
             if NSApp.keyWindow is NotchPanel { return false } // local notch shortcuts take precedence
-            if Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
-            if WindowManager.shared.handleShortcut(key: key, modifiers: mods) { return true }
+            if Features.shared.enabled("commands"), Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
+            if Features.shared.enabled("windows"), WindowManager.shared.handleShortcut(key: key, modifiers: mods) { return true }
             if let group = NativeShortcutIntegration.group(key: key, modifiers: mods) {
                 DispatchQueue.main.async { self?.notchUnderMouse()?.toggleGroupWithKeyboard(group.id) }
                 return true
@@ -33,9 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.async { self.notchUnderMouse()?.toggleWithKeyboard(tab: tab) }
             return true
         }
-        Services.shared.commands.closeNotches = { [weak self] in self?.controllers.forEach { $0.viewModel.close() } }
-        WindowManager.shared.closeNotches = { [weak self] in self?.controllers.forEach { $0.viewModel.close() } }
-        Services.shared.commands.openTab = { [weak self] tab in self?.notchUnderMouse()?.viewModel.open(tab: tab) }
+        Services.shared.closeNotches = { [weak self] in self?.controllers.forEach { $0.viewModel.close() } }
+        Services.shared.openTab = { [weak self] tab in self?.notchUnderMouse()?.viewModel.open(tab: tab) }
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             self?.rebuildNotches()
         }
@@ -44,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupEditMenu()
         handleTerminationSignals()
         ToolsInstaller.installIfNeeded()
-        settingsController.prewarm()
+        // Settings and its discovery snapshots are created on first open.
     }
 
     /// Hidden main menu so ⌘A/⌘C/⌘V/⌘Z work in the Settings window (Nook has no visible menu bar).
@@ -76,10 +75,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case "close": controllers.forEach { $0.viewModel.close() }
             case "reload": Services.shared.plugins.reload(); Services.shared.plugins.touch()
             case "settings": showSettings(pane: tab)
-            case "install": PluginStore.shared.open(tab)
+            case "install": if Features.shared.enabled("pluginStore") { PluginStore.shared.open(tab) }
             case "plugin": PluginContributions.handleURL(url)
             case "launcher": // nook://launcher[/query] — open the launcher, optionally pre-filled (scripts, tests)
-                guard let controller = notchUnderMouse() else { break }
+                guard Features.shared.enabled("launcher"), let controller = notchUnderMouse() else { break }
                 if !controller.viewModel.launcherPresented { LauncherFeature.toggle(controller) }
                 if let query = tab, !query.isEmpty { LauncherFeature.shared.state(for: controller.viewModel).query = query }
             case "check-updates": updater.checkForUpdates(nil)
@@ -157,7 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// The search button in the notch header: switch that notch to the launcher.
     func openLauncher(in vm: NotchViewModel) {
-        guard let controller = controllers.first(where: { $0.viewModel === vm }), !vm.launcherPresented else { return }
+        guard Features.shared.enabled("launcher"), let controller = controllers.first(where: { $0.viewModel === vm }), !vm.launcherPresented else { return }
         LauncherFeature.toggle(controller)
     }
 

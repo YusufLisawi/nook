@@ -59,4 +59,6 @@ Build it with `bash plugins/mouse/build.sh`; public distribution still needs sig
 The catalog now includes `sha256` and `default`. `default:true` in store.json opts into first-launch preinstall.
 V2 packages require SHA-256 in addition to immutable Git tree/blob verification. Hashing includes executable
 modes: only helpers under bin/ may be executable. No install scripts run. Defaults/update checks work offline
-with installed copies; app-managed updates ask before adding permissions. Developer copies aren't auto-updated.
+with installed copies; app-managed updates ask before adding permissions. The shared Plugin Store feature
+controls update networking; Features and Tabs & Plugins share each plugin's enable state. Preinstalled Mouse stays
+off until explicitly enabled and approved. Developer copies aren't auto-updated.

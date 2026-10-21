@@ -46,10 +46,10 @@ struct SettingsShortcutItem: Identifiable {
     }
 
     static var all: [Self] {
-        Services.shared.plugins.orderedTabs.map(Self.tab)
-        + Services.shared.commands.commands.map(Self.command)
-        + [Self.dictation(hold: true), Self.dictation(hold: false)]
-        + TabNavigationStore.shared.groups.map(Self.group)
+        Services.shared.plugins.orderedTabs.filter { Features.shared.tabEnabled($0.id) }.map(Self.tab)
+        + (Features.shared.enabled("commands") ? Services.shared.commands.commands.map(Self.command) : [])
+        + (Features.shared.enabled("dictation") ? [Self.dictation(hold: true), Self.dictation(hold: false)] : [])
+        + TabNavigationStore.shared.groups.filter { $0.members.contains(where: Features.shared.tabEnabled) }.map(Self.group)
         + ShortcutRegistry.shortcuts.map(Self.registration)
     }
 
@@ -90,7 +90,7 @@ private final class SettingsShortcutSession: ObservableObject {
         stop()
         report(nil)
         id = item.id
-        Services.shared.dictation.hotkeys.paused = true
+        Services.shared.hotkeys.paused = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self else { return event }
             if event.type == .flagsChanged {
@@ -140,7 +140,7 @@ private final class SettingsShortcutSession: ObservableObject {
         monitor = nil
         id = nil
         peak = []
-        Services.shared.dictation.hotkeys.paused = false
+        Services.shared.hotkeys.paused = false
     }
 }
 

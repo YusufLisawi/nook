@@ -7,6 +7,7 @@ final class PluginShellCommand: @unchecked Sendable {
     private var process: Process?
     private var cancelled = false
     private var groupPID: pid_t = 0
+    private var timeoutWork: DispatchWorkItem?
     private final class Capture: @unchecked Sendable {
         let lock = NSLock(); var data = Data()
         func append(_ chunk: Data) {
@@ -22,36 +23,36 @@ final class PluginShellCommand: @unchecked Sendable {
             task.executableURL = launcher ?? URL(fileURLWithPath: "/bin/zsh")
             task.arguments = (launcher == nil ? [] : ["_plugin-exec", "/bin/zsh"]) + ["-lc", command]
             task.standardInput = FileHandle.nullDevice; task.standardOutput = output; task.standardError = errors
+            let stdout = Capture(), stderr = Capture(), drains = DispatchGroup()
+            drains.enter(); drains.enter()
+            task.terminationHandler = { task in
+                self.queue.async {
+                    self.timeoutWork?.cancel(); self.timeoutWork = nil
+                    if self.groupPID > 0 {
+                        let group = self.groupPID
+                        kill(-group, SIGTERM)
+                        self.queue.asyncAfter(deadline: .now() + 2) { kill(-group, SIGKILL) }
+                    }
+                    drains.notify(queue: self.queue) {
+                        task.terminationHandler = nil
+                        self.process = nil
+                        completion(["code": Int(task.terminationStatus), "stdout": stdout.text, "stderr": stderr.text])
+                    }
+                }
+            }
             self.process = task
-            do { try task.run() } catch { self.process = nil; completion(["code": -1, "stdout": "", "stderr": error.localizedDescription]); return }
+            do { try task.run() } catch { task.terminationHandler = nil; self.process = nil; completion(["code": -1, "stdout": "", "stderr": error.localizedDescription]); return }
             self.groupPID = launcher == nil ? 0 : task.processIdentifier
             output.fileHandleForWriting.closeFile(); errors.fileHandleForWriting.closeFile()
-            let stdout = Capture(), stderr = Capture(), drains = DispatchGroup()
             for (handle, capture) in [(output.fileHandleForReading, stdout), (errors.fileHandleForReading, stderr)] {
-                drains.enter()
                 DispatchQueue.global(qos: .utility).async {
                     while true { let data = handle.availableData; if data.isEmpty { break }; capture.append(data) }
                     try? handle.close(); drains.leave()
                 }
             }
             let killer = DispatchWorkItem { self.terminate() }
+            self.timeoutWork = killer
             self.queue.asyncAfter(deadline: .now() + timeout, execute: killer)
-            DispatchQueue.global(qos: .utility).async {
-                task.waitUntilExit()
-                self.queue.async {
-                    killer.cancel()
-                    if self.groupPID > 0 {
-                        let group = self.groupPID
-                        kill(-group, SIGTERM)
-                        self.queue.asyncAfter(deadline: .now() + 2) { kill(-group, SIGKILL) }
-                    }
-                }
-                drains.wait()
-                self.queue.async {
-                    self.process = nil
-                    completion(["code": Int(task.terminationStatus), "stdout": stdout.text, "stderr": stderr.text])
-                }
-            }
         }
     }
     func cancel() { queue.sync { cancelled = true; terminate() } }

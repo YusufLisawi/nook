@@ -4,7 +4,12 @@ import SwiftUI
 /// Published state is memory-only. All checks and user-authorized folder reads run
 /// on a dedicated queue, never the main queue or the filename query queue.
 final class FileSearchAccess: ObservableObject {
-    static let shared = FileSearchAccess()
+    private static var instance: FileSearchAccess?
+    static var shared: FileSearchAccess {
+        if let instance { return instance }
+        let value = FileSearchAccess(); instance = value; return value
+    }
+    static func disable() { instance?.stop(); instance = nil }
     static let changed = Notification.Name("nookFileSearchAccessChanged")
     @Published private(set) var policy = FileSearchAccessPolicy()
     @Published private(set) var requesting = false
@@ -24,6 +29,8 @@ final class FileSearchAccess: ObservableObject {
         observer = NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.refresh() }
         refresh()
     }
+    func stop() { if let observer { NotificationCenter.default.removeObserver(observer) }; observer = nil }
+
     deinit { if let observer { NotificationCenter.default.removeObserver(observer) } }
     func refresh() {
         guard !checking && !requesting else { return }

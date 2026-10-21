@@ -6,36 +6,42 @@ import Quartz
 import SwiftUI
 
 enum ClipsFeature {
-    private static var accessObserver: NSObjectProtocol?
+    private static var registered = false
+    static func reconcile() {
+        guard !Features.shared.enabled("clipboard"), !Features.shared.enabled("screenshots") else { return }
+        registered = false
+        ClipsActions.shared.stop(); ClipsThumbnails.shared.clear(); ClipsPreview.shared.close()
+        BridgeRegistry.unregister("clips"); SettingsRegistry.unregister("clipboard")
+    }
     static func start() {
-        ClipboardHistory.shared.start()
-        ScreenCaptureIndex.shared.start(directory: ClipboardHistory.shared.directory, accessAllowed: { FileSearchAccess.shared.policy.allows($0.path) })
-        accessObserver = NotificationCenter.default.addObserver(forName: FileSearchAccess.changed, object: nil, queue: .main) { _ in
-            ScreenCaptureIndex.shared.refresh()
-        }
+        guard !registered else { return }; registered = true
         ClipsActions.shared.start()
         SettingsRegistry.register(id: "clipboard", title: "Clipboard", symbol: "doc.on.clipboard.fill", tint: .orange, order: 44) { ClipboardSettingsPane() }
         BridgeRegistry.register("clips", functions: ["history", "screenshots", "status", "thumbnail", "copy", "paste", "open", "reveal", "delete", "pin", "unpin", "clear", "quickLook"]) { fn, args, _, reply in
-            let history = ClipboardHistory.shared, captures = ScreenCaptureIndex.shared
+            let historyEntries = Features.shared.enabled("clipboard") ? ClipboardHistory.shared.entries : []
+            let captureEntries = Features.shared.enabled("screenshots") ? ScreenCaptureIndex.shared.entries : []
             let value = args.first as? String ?? ""
             let ok = { reply(NSNull(), nil) }
             do {
                 switch fn {
                 case "history":
                     let filter = ClipFilter(value)
-                    reply(ClipEntry.sorted(history.entries).filter { filter.matches($0) }.map(\.payload), nil)
+                    reply(ClipEntry.sorted(historyEntries).filter { filter.matches($0) }.map(\.payload), nil)
                 case "screenshots":
                     let filter = ClipFilter(value)
-                    reply(ClipEntry.sorted(captures.entries).filter { filter.matches($0) }.map(\.payload), nil)
+                    reply(ClipEntry.sorted(captureEntries).filter { filter.matches($0) }.map(\.payload), nil)
                 case "status":
-                    reply(["enabled": UserDefaults.standard.bool(forKey: ClipPreferences.enabled),
-                           "ocr": UserDefaults.standard.bool(forKey: ClipPreferences.ocr),
-                           "indexing": captures.scanning, "folder": captures.folder.path,
-                           "clipboardLoading": !history.isReady, "screenshotsLoading": !captures.isReady,
-                           "clipboardError": history.error ?? "", "screenshotsError": captures.error ?? ""], nil)
-                case "clear": history.clear(); ok()
+                    let clipboard = Features.shared.enabled("clipboard"), screenshots = Features.shared.enabled("screenshots")
+                    reply(["enabled": clipboard, "ocr": screenshots && UserDefaults.standard.bool(forKey: ClipPreferences.ocr),
+                           "indexing": screenshots && ScreenCaptureIndex.shared.scanning,
+                           "folder": screenshots ? ScreenCaptureIndex.shared.folder.path : "",
+                           "clipboardLoading": clipboard && !ClipboardHistory.shared.isReady,
+                           "screenshotsLoading": screenshots && !ScreenCaptureIndex.shared.isReady,
+                           "clipboardError": clipboard ? ClipboardHistory.shared.error ?? "" : "",
+                           "screenshotsError": screenshots ? ScreenCaptureIndex.shared.error ?? "" : ""], nil)
+                case "clear": if Features.shared.enabled("clipboard") { ClipboardHistory.shared.clear() }; ok()
                 default:
-                    guard let entry = (history.entries + captures.entries).first(where: { $0.id == value }) else { throw ClipsError.missing }
+                    guard let entry = (historyEntries + captureEntries).first(where: { $0.id == value }) else { throw ClipsError.missing }
                     switch fn {
                     case "thumbnail": ClipsThumbnails.shared.get(entry) { reply($0 ?? NSNull() as Any, $1) }
                     case "copy": ClipsActions.shared.copy(entry) { reply($0 == nil ? NSNull() : nil, $0?.localizedDescription) }
@@ -52,13 +58,13 @@ enum ClipsFeature {
                         NSWorkspace.shared.activateFileViewerSelecting(entry.urls); ok()
                     case "quickLook": try ClipsPreview.shared.show(entry); ok()
                     case "pin", "unpin":
-                        if entry.kind == .screenshot || entry.kind == .recording { try captures.setPinned(value, fn == "pin") }
-                        else { try history.setPinned(value, fn == "pin") }
+                        if entry.kind == .screenshot || entry.kind == .recording { try ScreenCaptureIndex.shared.setPinned(value, fn == "pin") }
+                        else { try ClipboardHistory.shared.setPinned(value, fn == "pin") }
                         ok()
                     case "delete":
                         let completion: (Error?) -> Void = { reply($0 == nil ? NSNull() : nil, $0?.localizedDescription) }
-                        if entry.kind == .screenshot || entry.kind == .recording { captures.delete(value, completion: completion) }
-                        else { history.delete(value, completion: completion) }
+                        if entry.kind == .screenshot || entry.kind == .recording { ScreenCaptureIndex.shared.delete(value, completion: completion) }
+                        else { ClipboardHistory.shared.delete(value, completion: completion) }
                     default: reply(nil, "Unknown clips action: \(fn)")
                     }
                 }
@@ -80,6 +86,11 @@ final class ClipsActions {
         observer = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             self?.remember(note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
         }
+    }
+
+    func stop() {
+        if let observer { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
+        observer = nil; target = nil
     }
 
     private func remember(_ app: NSRunningApplication?) {
@@ -119,7 +130,7 @@ final class ClipsActions {
         copy(entry) { error in
             if let error { self.pasteInProgress = false; return completion(error) }
             let count = NSPasteboard.general.changeCount
-            Services.shared.commands.closeNotches()
+            Services.shared.closeNotches()
             app.activate(options: [])
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                 defer { self.pasteInProgress = false }
@@ -143,6 +154,11 @@ final class ClipsActions {
 private final class ClipsPreview: NSObject, QLPreviewPanelDataSource {
     static let shared = ClipsPreview()
     private var urls: [URL] = []
+
+    func close() {
+        if QLPreviewPanel.sharedPreviewPanelExists() { QLPreviewPanel.shared()?.orderOut(nil) }
+        urls = []
+    }
 
     func show(_ entry: ClipEntry) throws {
         guard !entry.urls.isEmpty else { throw ClipsError.noFile }

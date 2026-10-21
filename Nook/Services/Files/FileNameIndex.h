@@ -30,6 +30,7 @@ void nf_remove(NFIndex *index, const char *path, int subtree);
 void nf_merge(NFIndex *index, const NFIndex *other);
 void nf_use(NFIndex *index, const char *path, double now);
 // Read-only scan. Exclusions are newline-delimited absolute paths. Never follows symlinks.
+void nf_cancel(NFIndex *index);
 void nf_scan(NFIndex *index, const char *root, const char *exclusions, int hidden, int library, int dependencies, int packages);
 int nf_save(const NFIndex *index, const char *path, uint64_t event, uint64_t fingerprint);
 NFIndex *nf_load(const char *path, uint64_t fingerprint, uint64_t *event);

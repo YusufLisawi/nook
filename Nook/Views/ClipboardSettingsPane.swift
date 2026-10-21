@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ClipboardSettingsPane: View {
-    @AppStorage(ClipPreferences.enabled) private var enabled = true
+    @ObservedObject private var features = Features.shared
     @AppStorage(ClipPreferences.days) private var days = 30
     @AppStorage(ClipPreferences.maxItems) private var maxItems = 500
     @AppStorage(ClipPreferences.ignoredApps) private var ignoredApps = ClipPreferences.defaultIgnoredApps
@@ -13,7 +13,7 @@ struct ClipboardSettingsPane: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Keep clipboard history", isOn: $enabled)
+                Toggle("Keep clipboard history", isOn: Binding(get: { features.enabled("clipboard") }, set: { features.set("clipboard", $0) }))
                 Stepper("Keep for \(days) days", value: $days, in: 1...365)
                 Stepper("Maximum unpinned items: \(maxItems)", value: $maxItems, in: 50...10_000, step: 50)
             } footer: {
@@ -26,13 +26,6 @@ struct ClipboardSettingsPane: View {
                     .accessibilityLabel("Ignored applications, one name or bundle identifier per line")
             } header: { Text("Ignored applications") } footer: {
                 Text("One app name or bundle identifier per line. Changes apply to future copies; existing history remains.")
-            }
-            Section {
-                TextField("Folder override", text: $folder, prompt: Text("Use macOS screenshot location"))
-                Text(ScreenCaptureIndex.configuredFolder().path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                Toggle("Recognize text in screenshots", isOn: $ocr)
-            } header: { Text("Screenshots & recordings") } footer: {
-                Text("Watches this folder without moving originals. Text recognition runs locally in the background. Turning it off stops new recognition; cached text remains searchable.")
             }
             Section {
                 LabeledContent("Saved clipboard items", value: "\(history.entries.count)")

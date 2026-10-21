@@ -2,7 +2,19 @@ import SwiftUI
 
 /// Store UI state is independent of notch/plugin lifetimes.
 @MainActor final class PluginStore: ObservableObject {
-    static let shared = PluginStore()
+    private static var instance: PluginStore?
+    static var shared: PluginStore {
+        if let instance { return instance }
+        let value = PluginStore(); instance = value; return value
+    }
+    static func disable() {
+        guard let value = instance else { return }
+        value.disabled = true; value.client.cancelRequests()
+        value.entries = []; value.installations = [:]; value.selectedID = nil
+        instance = nil
+    }
+    private var disabled = false
+
     let client = PluginStoreClient()
     @Published private(set) var entries: [PluginStoreEntry] = []
     @Published private(set) var installations: [String: PluginStoreInstallation] = [:]
@@ -25,26 +37,33 @@ import SwiftUI
     }
 
     func refresh() async {
-        guard !loading else { return }
+        guard !disabled, !loading else { return }
         loading = true
         error = nil
         defer { loading = false }
         if entries.isEmpty, let cached = await client.cachedCatalog() {
+            guard !disabled, !Task.isCancelled else { return }
             entries = cached.plugins
             message = cached.message
         }
         await refreshInstallations()
+        guard !disabled, !Task.isCancelled else { return }
         do {
             let catalog = try await client.catalog(force: true)
+            guard !disabled, !Task.isCancelled else { return }
             entries = catalog.plugins
             message = catalog.message
         } catch { self.error = error.localizedDescription }
     }
 
-    func refreshInstallations() async { installations = await client.installations() }
+    func refreshInstallations() async {
+        guard !disabled else { return }
+        let next = await client.installations()
+        if !disabled { installations = next }
+    }
 
     func install(_ entry: PluginStoreEntry, update: Bool) async {
-        guard busyID == nil else { return }
+        guard !disabled, busyID == nil else { return }
         busyID = entry.id
         error = nil
         defer { busyID = nil }
@@ -56,7 +75,7 @@ import SwiftUI
     }
 
     func uninstall(_ entry: PluginStoreEntry) async {
-        guard busyID == nil else { return }
+        guard !disabled, busyID == nil else { return }
         busyID = entry.id
         error = nil
         defer { busyID = nil }

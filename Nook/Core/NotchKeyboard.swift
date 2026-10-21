@@ -43,7 +43,7 @@ final class NotchKeyboardState: ObservableObject {
             return Entry(id: group.id, title: group.name, subtitle: "Tab Group", symbol: group.symbol,
                          shortcut: index.flatMap { $0 < 9 ? "⌘\($0 + 1)" : nil } ?? group.hotkey?.display ?? "", target: .group(group.id))
         }
-        entries += vm.services.commands.commands.filter(\.enabled).map {
+        entries += (Features.shared.enabled("commands") ? vm.services.commands.commands : []).filter(\.enabled).map {
             Entry(id: "command:\($0.id)", title: $0.name, subtitle: "AI Command", symbol: "wand.and.stars",
                   shortcut: $0.hotkey?.display ?? "", target: .command($0.id))
         }
@@ -246,7 +246,7 @@ final class NotchKeyboardController {
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 { escape(); return true }
-        if flags == .command, key == "k" {
+        if Features.shared.enabled("keyboard"), flags == .command, key == "k" {
             if vm.keyboard.isPresented { dismissPalette() }
             else {
                 vm.showingSettings = false
@@ -299,13 +299,13 @@ final class NotchKeyboardController {
         }
         if !vm.keyboard.isPresented {
             let modifiers = CGEventFlags(rawValue: UInt64(flags.rawValue))
-            if let command = vm.services.commands.commands.first(where: {
+            if Features.shared.enabled("commands"), let command = vm.services.commands.commands.first(where: {
                 $0.enabled && $0.hotkey?.keyCode == Int(event.keyCode) && $0.hotkey?.modifiers == modifiers.rawValue
             }) {
                 if !event.isARepeat { vm.services.commands.run(command.id, fromNotch: true) }
                 return true
             }
-            if WindowShortcuts.shared.action(key: Int64(event.keyCode), modifiers: modifiers) != nil {
+            if Features.shared.enabled("windows"), WindowShortcuts.shared.action(key: Int64(event.keyCode), modifiers: modifiers) != nil {
                 if !event.isARepeat { _ = WindowManager.shared.handleShortcut(key: Int64(event.keyCode), modifiers: modifiers, from: vm) }
                 return true
             }

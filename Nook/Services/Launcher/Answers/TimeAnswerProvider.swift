@@ -5,7 +5,7 @@ final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
     let id = "time"
     /// Countries with several zones use their capital/mainland zone. Explicit IANA IDs are always accepted.
     /// ~90K world places (GeoNames, CC BY 4.0) → zone + country, from Nook/Resources/places.tsv (scripts/gen-places.py).
-    private static let places: [String: (zone: String, country: String)] = {
+    private lazy var places: [String: (zone: String, country: String)] = {
         guard let url = Bundle.main.url(forResource: "places", withExtension: "tsv"),
               let text = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
         var map: [String: (zone: String, country: String)] = [:]
@@ -16,8 +16,8 @@ final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
         }
         return map
     }()
-    private static let zones: [String: String] = {
-        var aliases: [String: String] = places.mapValues(\.zone)
+    private lazy var zones: [String: String] = {
+        var aliases: [String: String] = self.places.mapValues(\.zone)
         for identifier in TimeZone.knownTimeZoneIdentifiers {
             aliases[identifier.lowercased()] = identifier
             let city = identifier.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: "_", with: " ").lowercased() ?? ""
@@ -50,17 +50,17 @@ final class TimeAnswerProvider: LauncherAnswerModule, LauncherAnswerProvider {
     }()
     required init() {
         super.init()
-        DispatchQueue.global(qos: .utility).async { _ = Self.zones } // ~3 MB table; load before the first "time in …"
+        // Tables load on this provider's serial queue on first use and are released with the provider.
     }
     /// "Germany" for "frankfurt", like Raycast; falls back to the typed name.
     private func badge(_ text: String) -> String {
         let key = text.lowercased().trimmingCharacters(in: .whitespaces)
-        if let place = Self.places[key], place.country.lowercased() != key { return place.country }
+        if let place = places[key], place.country.lowercased() != key { return place.country }
         return text.capitalized
     }
     private func zone(_ text: String, context: LauncherAnswerContext) -> TimeZone? {
         if ["here", "local"].contains(text) { return context.timeZone }
-        return Self.zones[text].flatMap(TimeZone.init(identifier:))
+        return zones[text].flatMap(TimeZone.init(identifier:))
     }
     private func calendar(_ zone: TimeZone) -> Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = zone; return c }
     private func isoDate(_ string: String, calendar: Calendar) -> Date? {

@@ -16,7 +16,7 @@ private final class Locked<T>: @unchecked Sendable {
 @main enum EngineTests {
     static func main() throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
-        try framing(); try permissions(root); try manifest(root); try supervisor(root); try shell()
+        try framing(); try permissions(root); try manifest(root); try supervisor(root); try releasedSupervisor(root); try shell()
         print("PASS: Engine framing, permissions, v2 manifests, supervisor lifecycle/restarts/IPC.")
     }
     static func framing() throws {
@@ -111,7 +111,14 @@ private final class Locked<T>: @unchecked Sendable {
             if event == "started" { notices.withValue { $0.append(event) }; ready.signal() }
             if event == "hostReply" { hostReply.signal() }
         }, log: { line in if line.contains("exited") { stopped.signal() } }, launcher: CommandLine.arguments.count > 2 ? URL(fileURLWithPath: CommandLine.arguments[2]) : nil)
-        helper.start()
+        let suite = "nook.engine.registry." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let lifecycle = FeatureLifecycle(defaults: defaults)
+        lifecycle.register(Feature(id: "plugin:supervisor", title: "Supervisor", summary: "", memoryNote: "", defaultEnabled: false, tabs: ["supervisor"], start: helper.start, stop: helper.stop))
+        lifecycle.reconcile()
+        try expect(ready.wait(timeout: .now() + 0.05) == .timedOut, "Feature default off never starts the helper")
+        lifecycle.setTab("supervisor", enabled: true)
         try expect(ready.wait(timeout: .now() + 5) == .success, "Helper starts")
         try expect(hostReply.wait(timeout: .now() + 5) == .success, "Bidirectional host RPC")
         let response = DispatchSemaphore(value: 0)
@@ -128,7 +135,8 @@ private final class Locked<T>: @unchecked Sendable {
         }
         helper.call("crash", params: [:]) { _, _ in }
         try expect(ready.wait(timeout: .now() + 6) == .success, "Crash is isolated and helper restarts")
-        helper.stop()
+        lifecycle.set("plugin:supervisor", enabled: false)
+        try expect(lifecycle.disabledTabs.contains("supervisor") && !lifecycle.enabled("plugin:supervisor"), "Feature and tab switches share one state")
         _ = stopped.wait(timeout: .now() + 3)
         Thread.sleep(forTimeInterval: 2.5)
         if child.withValue({ $0 }) > 0 { try expect(kill(child.withValue { $0 }, 0) == -1 && errno == ESRCH, "Crash kills the helper process group, including child processes") }
@@ -153,5 +161,30 @@ private final class Locked<T>: @unchecked Sendable {
         stopped.run(command: "/bin/sleep 60", timeout: 60, launcher: launcher) { _ in stopDone.signal() }
         stopped.cancel()
         try expect(stopDone.wait(timeout: .now() + 5) == .success, "Plugin disable cancels owned shell work")
+    }
+
+    static func releasedSupervisor(_ root: URL) throws {
+        let manifest = try PluginManifestV2(json: ["id": "released", "name": "Released", "apiVersion": 2,
+            "native": ["run": ["python3", "helper.py"]]], directory: root)
+        let ready = DispatchSemaphore(value: 0), exited = DispatchSemaphore(value: 0)
+        let pid = Locked(pid_t(0))
+        var helper: PluginHelperProcess? = PluginHelperProcess(manifest: manifest,
+            dataDirectory: root.appendingPathComponent("released-data"), host: { _, _, reply in reply(nil, nil) },
+            event: { event, payload in
+                if event == "ready" {
+                    pid.withValue { $0 = (payload as? [String: Any])?["pid"] as? pid_t ?? 0 }
+                    ready.signal()
+                }
+            }, log: { if $0.contains("exited") { exited.signal() } },
+            launcher: CommandLine.arguments.count > 2 ? URL(fileURLWithPath: CommandLine.arguments[2]) : nil)
+        weak var released = helper
+        helper?.start()
+        try expect(ready.wait(timeout: .now() + 5) == .success && pid.withValue { $0 > 0 }, "Released-owner helper starts")
+        helper?.stop(); helper = nil // Match registry removal before Process delivers its termination callback.
+        try expect(exited.wait(timeout: .now() + 5) == .success, "Supervisor survives owner removal until process cleanup")
+        let deadline = Date().addingTimeInterval(4)
+        while released != nil && Date() < deadline { Thread.sleep(forTimeInterval: 0.05) }
+        try expect(released == nil, "Stopped supervisor releases itself after cleanup")
+        try expect(kill(pid.withValue { $0 }, 0) == -1 && errno == ESRCH, "Owner removal leaves no helper process")
     }
 }

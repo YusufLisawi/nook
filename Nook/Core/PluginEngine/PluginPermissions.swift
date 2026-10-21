@@ -69,9 +69,7 @@ final class PluginPermissions: ObservableObject {
 
     func revoke(_ id: String) {
         grants.removeValue(forKey: id); deniedThisSession.insert(id); save()
-        var disabled = Prefs.disabledTabSet
-        disabled.insert(id)
-        UserDefaults.standard.set(disabled.sorted().joined(separator: ","), forKey: Prefs.disabledTabs)
+        Features.shared.setTab(id, false)
         PluginEngine.shared.stop(id)
     }
 

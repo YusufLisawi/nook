@@ -9,6 +9,7 @@ struct IntegrationTests {
             checks += 1
         }
         NativeShortcutIntegration.register()
+        NativeShortcutIntegration.registerWindows()
         let all = SettingsShortcutItem.all
         check(all.contains { $0.id == "extension:keyboard.openNook" && $0.get() != nil }, "Open Nook is registered with its default")
         check(all.filter { $0.group == "Window Management" }.count == WindowAction.allCases.count, "Every window action is registered, including unassigned ones")

@@ -8,6 +8,15 @@
   };
   let todos = [];
   let visible = false;
+  const capabilities = { monitor: !nook.features, timers: !nook.features };
+  function applyFeatures(rows) {
+    for (const id of ['monitor', 'timers']) capabilities[id] = rows.find(row => row.id === id)?.enabled !== false;
+    applySettings(settings);
+  }
+  if (nook.features) {
+    nook.on('features', applyFeatures);
+    nook.features.list().then(applyFeatures).catch(() => {});
+  }
   let loaded = false;
   let loading = true;
   const errors = new Map();
@@ -153,6 +162,7 @@
   }
 
   async function tickStats() {
+    if (!capabilities.monitor || !settings.showStats) return;
     const s = await nook.system();
     setStat('cpu', s.cpu?.usage);
     setStat('mem', s.memory ? s.memory.used / s.memory.total : 0);
@@ -181,13 +191,20 @@
   // Poll only while this tab is on screen.
   async function tick() {
     if (!visible) return;
-    try { await Promise.all([tickStats(), nook.timer.state().then(showTimer)]); showError('live', null); }
+    try { await Promise.all([tickStats(), capabilities.timers && settings.showTimer ? nook.timer.state().then(showTimer) : Promise.resolve()]); showError('live', null); }
     catch (error) { showError('live', `Couldn't refresh status: ${error.message || error}`); }
   }
-  nook.on('open', (tab) => { visible = tab === nook.plugin.id; tick(); });
-  nook.on('show', (tab) => { visible = tab === nook.plugin.id; tick(); });
-  nook.on('close', () => { visible = false; });
-  setInterval(tick, 1000);
+let pollTimer = null;
+function setPolling(on) {
+  clearInterval(pollTimer); pollTimer = null;
+  visible = on;
+  if (on && (capabilities.monitor && settings?.showStats || capabilities.timers && settings?.showTimer)) { void tick(); pollTimer = setInterval(tick, 1000); }
+}
+nook.on('open', tab => setPolling(tab === nook.plugin.id));
+nook.on('show', tab => setPolling(tab === nook.plugin.id));
+nook.on('close', () => setPolling(false));
+nook.on('visibility', setPolling);
+setPolling(true);
 
   // ---- Settings (declared in plugin.json, edited from the notch's sliders button) ----
 
@@ -195,10 +212,11 @@
 
   function applySettings(next) {
     settings = { ...settings, ...(next || {}) };
-    document.querySelector('.stats').hidden = !settings.showStats;
-    ui.timer.hidden = !settings.showTimer;
-    document.querySelector('.side').hidden = !settings.showStats && !settings.showTimer;
-    document.querySelector('.app').classList.toggle('solo', !settings.showStats && !settings.showTimer);
+    const statsOn = settings.showStats && capabilities.monitor, timerOn = settings.showTimer && capabilities.timers;
+    document.querySelector('.stats').hidden = !statsOn;
+    ui.timer.hidden = !timerOn;
+    document.querySelector('.side').hidden = !statsOn && !timerOn;
+    document.querySelector('.app').classList.toggle('solo', !statsOn && !timerOn);
     $('empty').textContent = settings.emptyText || 'Nothing to do.';
     const minutes = String(settings.timerPresets).split(/[,\s]+/).map(Number).filter((n) => n > 0 && n <= 600).slice(0, 4);
     const chips = document.querySelector('.chips');
@@ -211,6 +229,7 @@
       return b;
     }));
     render();
+    setPolling(visible);
   }
   nook.on('settings', applySettings);
   nook.settings.get().then(applySettings).catch(error => { applySettings(); showError('settings', error); });

@@ -3,7 +3,12 @@ import ObjectiveC.runtime
 
 /// Open registry. The launcher renders only LauncherAnswer; adding a module never changes its view or other providers.
 final class LauncherAnswers: @unchecked Sendable {
-    static let shared = LauncherAnswers()
+    private static var instance: LauncherAnswers?
+    static var shared: LauncherAnswers {
+        if let instance { return instance }
+        let value = LauncherAnswers(); instance = value; return value
+    }
+    static func disable() { instance = nil }
     static let providerBudget: UInt64 = 2_000_000
     private final class Slot: @unchecked Sendable {
         let provider: LauncherAnswerProvider

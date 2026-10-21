@@ -5,6 +5,7 @@ scratch_dir="$(mktemp -d /tmp/nook-engine-tests.XXXXXX)"
 trap 'rm -rf "$scratch_dir"' EXIT # Isolated generated fixtures only.
 mkdir -p "$scratch_dir/work"
 xcrun swiftc -swift-version 5 -warnings-as-errors -parse-as-library \
+  "$repo_dir/Nook/Core/FeatureLifecycle.swift" \
   "$repo_dir/Nook/Core/PluginEngine/PluginManifestV2.swift" \
   "$repo_dir/Nook/Core/PluginEngine/PluginRPC.swift" \
   "$repo_dir/Nook/Core/PluginEngine/PluginHelperProcess.swift" \

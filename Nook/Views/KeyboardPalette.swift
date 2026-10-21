@@ -5,7 +5,7 @@ struct KeyboardPalette: View {
     @ObservedObject var vm: NotchViewModel
     @ObservedObject private var state: NotchKeyboardState
     @ObservedObject private var actions = KeyboardActions.shared
-    @ObservedObject private var commands = Services.shared.commands
+    @ObservedObject private var features = Features.shared
     @FocusState private var searching: Bool
 
     init(vm: NotchViewModel) {

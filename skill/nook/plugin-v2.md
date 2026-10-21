@@ -13,8 +13,8 @@ still work; new native plugins use API v2. Read `PLUGINS.md → API v2` for the 
 ## Create and run
 
 ```sh
-nook new my-tool --native node          # also swift, python, rust
-# --output ./plugins creates ./plugins/my-tool instead of installing a dev folder
+nook new my-tool --native node --output ./plugins # also swift, python, rust
+# Omit --output to create a dev folder directly in Nook's plugin directory
 # Swift/Rust: bash ./plugins/my-tool/build.sh before validating
 nook validate ./plugins/my-tool
 nook dev ./plugins/my-tool              # mirror + hot reload, app must already be running
@@ -56,6 +56,12 @@ group. Stop/revoke sends termination and escalates after two seconds. Crashes re
 backoff. Don't daemonize or launch a persistent agent outside supervision. Keep saved state in `NOOK_DATA_DIR`,
 not the package folder. Nook passes `NOOK_PLUGIN_ID`, `NOOK_PLUGIN_DIR`, `NOOK_DATA_DIR` and a standard PATH;
 it does not expose host AI keys or arbitrary environment variables. Helpers log to stderr (`nook logs <id>`).
+
+Use the shared Settings → Features / Tabs & Plugins enable state; never add a second runtime switch in the host.
+Discovered plugins use feature ID `plugin:<id>`. `host.features.list` / `nook.features.list()` returns effective
+capabilities, and `features` events announce changes. A disabled plugin has no helper and its page unloads immediately.
+Hidden pages unload after 15 seconds: save durable state through storage/settings, stop timers on visibility/close,
+and restart them on show. Background helper resources live until disable; foreground page work is cancelled on unload.
 
 ## Build a calm keyboard UI
 
@@ -185,7 +191,7 @@ All sections are arrays of unique `{id,...}` objects, max 100 each. Disabled/rev
 - `hotkeys`: register-shaped objects; CGEventFlags, requires Command/Control/Option and no known conflicts.
 - `launcherItems`: `{id,title,subtitle?,shortcut?}`; helper receives action/actionAlternate events.
 - `answerProviders`: `{id,prefix,method}`; helper gets `{query}`, returns `{result,copyValue?,section?}`. Async cache,
-  loading/error states and a 32-query bound keep native answer rendering responsive. Launcher must be enabled.
+  loading/error states and a 32-query bound keep native answer rendering responsive. Launcher and Smart Answers must be enabled. Items require Launcher only; Keyboard & Open Nook may be off.
 - `settings`: `{id,title?}` creates a native grouped pane from the plugin's top-level scalar settings schema.
 - `menuBar`: `{id,title?,symbol?}` creates an SF Symbol status button; receives menuBar `{id}`.
 - `notchActivity`: `{id}` names available activities; publish active text with activity.set/clear.
@@ -229,6 +235,7 @@ no claim is made about deliberately escaped daemons.
    Do not push/merge/publish merely because testing passed. Maintainers review source and binary provenance before merge.
 
 Defaults are marked default:true in store.json/catalog. First successful online launch installs missing defaults;
-daily/Settings checks update unedited Store packages. Same grants update silently; expanded grants ask first in
+daily/Settings checks update unedited Store packages while Plugin Store is enabled. Turning that feature off
+cancels its requests/update timer. Preinstall does not enable a default-off plugin such as Mouse. Same grants update silently; expanded grants ask first in
 app. Existing installs/bundled v1 plugins work offline. Data/settings survive updates/uninstall; old packages go
 to Trash. Developer copies never auto-update. Don't bundle migrated native features back into Nook.

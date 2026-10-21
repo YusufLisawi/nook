@@ -31,7 +31,7 @@ enum OpenNookShortcut {
     }
 
     static func matches(key: Int64, modifiers: CGEventFlags) -> Bool {
-        guard let current else { return false }
+        guard Features.shared.enabled("keyboard"), let current else { return false }
         return current.keyCode == key && current.modifiers == modifiers.rawValue
     }
 }

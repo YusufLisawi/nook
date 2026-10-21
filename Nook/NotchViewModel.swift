@@ -38,10 +38,12 @@ final class NotchViewModel: ObservableObject {
             guard tab != oldValue else { return }
             TabNavigationStore.shared.remember(tab)
             showingSettings = false
+            web.visibilityChanged()
             web.emit("show", tab)
         }
     }
     @Published var geometry: NotchGeometry
+    @Published var panelVisible = true
     @Published var isHovering = false
     @Published var isDropTargeted = false
     @Published var pinned = false
@@ -71,18 +73,14 @@ final class NotchViewModel: ObservableObject {
     init(geometry: NotchGeometry) {
         self.geometry = geometry
         let s = services
-        Publishers.CombineLatest4(s.media.$track, s.timers.$isRunning, s.dictation.$phase, s.$pluginActivity)
-            .map { track, timerRunning, dictation, plugin -> Activity? in
-                if dictation != .idle { return .dictation(dictation) }
-                if let plugin { return .plugin(plugin) }
-                if timerRunning, Prefs.bool(Prefs.showTimer) { return .timer }
-                if track?.isPlaying == true, Prefs.bool(Prefs.showMusic) { return .music }
-                return nil
-            }
-            .removeDuplicates()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] activity in withAnimation(Self.spring) { self?.activity = activity } }
-            .store(in: &bag)
+        bindFeatureActivity()
+        NotificationCenter.default.publisher(for: .nookFeaturesChanged).sink { [weak self] _ in
+            guard let self else { return }
+            self.bindFeatureActivity()
+            if !Features.shared.enabled("keyboard") { self.keyboard.isPresented = false }
+            self.reconcileTabNavigation()
+            self.objectWillChange.send()
+        }.store(in: &bag)
         s.plugins.$tabs.sink { [weak self] _ in
             self?.objectWillChange.send()
             DispatchQueue.main.async { self?.reconcileTabNavigation() }
@@ -97,14 +95,49 @@ final class NotchViewModel: ObservableObject {
         }.store(in: &bag)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .receive(on: RunLoop.main).sink { [weak self] _ in self?.reconcileTabNavigation() }.store(in: &bag)
-        s.timers.onFinish = { [weak self] in self?.open(tab: "timers") }
+
+    }
+
+    private var featureBag = Set<AnyCancellable>()
+    private func bindFeatureActivity() {
+        featureBag.removeAll()
+        let f = Features.shared
+        if f.enabled("media") {
+            services.media.objectWillChange.sink { [weak self] in
+                DispatchQueue.main.async { self?.updateActivity() }
+            }.store(in: &featureBag)
+        }
+        if f.enabled("timers") {
+            services.timers.objectWillChange.sink { [weak self] in
+                DispatchQueue.main.async { self?.updateActivity() }
+            }.store(in: &featureBag)
+            services.timers.onFinish = { [weak self] in self?.open(tab: "timers") }
+        }
+        if f.enabled("dictation") {
+            services.dictation.objectWillChange.sink { [weak self] in
+                DispatchQueue.main.async { self?.updateActivity() }
+            }.store(in: &featureBag)
+        }
+        services.$pluginActivity.sink { [weak self] _ in DispatchQueue.main.async { self?.updateActivity() } }.store(in: &featureBag)
+        updateActivity()
+    }
+    private func updateActivity() {
+        let f = Features.shared
+        let next: Activity?
+        if f.enabled("dictation"), services.dictation.phase != .idle { next = .dictation(services.dictation.phase) }
+        else if let plugin = services.pluginActivity, f.tabEnabled(plugin.pluginID) { next = .plugin(plugin) }
+        else if f.enabled("timers"), services.timers.isRunning, Prefs.bool(Prefs.showTimer) { next = .timer }
+        else if f.enabled("media"), services.media.track?.isPlaying == true, Prefs.bool(Prefs.showMusic) { next = .music }
+        else { next = nil }
+        if activity != next { withAnimation(Self.spring) { activity = next } }
+        else if next != nil { objectWillChange.send() }
     }
 
     var isOpen: Bool { state == .open }
 
     var enabledTabs: [TabItem] {
         let off = Prefs.disabledTabSet
-        return services.plugins.orderedTabs.filter { !off.contains($0.id) }
+        return services.plugins.orderedTabs.filter { !off.contains($0.id) && Features.shared.tabEnabled($0.id) }
     }
 
     var currentTab: TabItem? { enabledTabs.first { $0.id == tab } }
@@ -163,7 +196,10 @@ final class NotchViewModel: ObservableObject {
     }
 
     func open(tab: String? = nil) {
-        if !isOpen { PluginHostAPI.shared.captureBeforeOpen(self); WindowManager.shared.captureBeforeNotchOpen(self) }
+        if !isOpen {
+            PluginHostAPI.shared.captureBeforeOpen(self)
+            if Features.shared.enabled("windows") { WindowManager.shared.captureBeforeNotchOpen(self) }
+        }
         if let tab { self.tab = tab }
         if !isEnabled(self.tab) { self.tab = enabledTabs.first?.id ?? "home" }
         guard !isOpen else {
@@ -189,6 +225,7 @@ final class NotchViewModel: ObservableObject {
         }
         pendingReveal = reveal
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: reveal)
+        web.visibilityChanged()
         if !launcherPresented { web.emit("open", self.tab) }
     }
 
@@ -232,6 +269,7 @@ final class NotchViewModel: ObservableObject {
             }
         }
         web.emit("close", tab)
+        web.visibilityChanged()
         onClose?()
     }
 }

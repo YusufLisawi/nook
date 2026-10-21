@@ -25,10 +25,27 @@ final class MediaController: ObservableObject {
     private let queue = DispatchQueue(label: "nook.media", qos: .userInitiated)
     private var timer: Timer?
     private var artworkKey = ""
+    private var artworkTask: URLSessionDataTask?
+    private var pollWork: DispatchWorkItem?
 
+    private var active = false
+    private var polling = false
+    private var observers: [NSObjectProtocol] = []
     func start() {
+        guard !active else { return }; active = true
+        for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.poll() })
+        }
         poll()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.poll() }
+    }
+
+    func stop() {
+        active = false
+        pollWork?.cancel(); pollWork = nil
+        artworkTask?.cancel(); artworkTask = nil
+        timer?.invalidate(); timer = nil
+        observers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }; observers = []
+        track = nil; artwork = nil; artworkKey = ""
     }
 
     func playPause() { send("playpause") }
@@ -36,24 +53,37 @@ final class MediaController: ObservableObject {
     func previous() { send("previous track") }
 
     private func poll() {
+        guard active, !polling else { return }
         let running = Self.players.filter { !NSRunningApplication.runningApplications(withBundleIdentifier: $0).isEmpty }
         guard !running.isEmpty else {
+            timer?.invalidate(); timer = nil
             if track != nil { track = nil; artwork = nil; artworkKey = "" }
             return
         }
-        queue.async { [weak self] in
+        if timer == nil {
+            timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.poll() }
+            timer?.tolerance = 1
+        }
+        polling = true
+        let work = DispatchWorkItem { [weak self] in
             let tracks = running.compactMap(Self.query)
             let best = tracks.first(where: \.isPlaying) ?? tracks.first
-            DispatchQueue.main.async { self?.apply(best) }
+            DispatchQueue.main.async { self?.polling = false; if self?.active == true { self?.apply(best) } }
         }
+        pollWork = work; queue.async(execute: work)
     }
 
     private func apply(_ new: Track?) {
+        if var previous = track, let new, !new.isPlaying {
+            previous.polledAt = new.polledAt
+            if previous == new { return }
+        }
         track = new
         guard let new else { artwork = nil; artworkKey = ""; return }
         let key = "\(new.bundleID)|\(new.title)|\(new.album)"
         guard key != artworkKey else { return }
         artworkKey = key
+        artworkTask?.cancel(); artworkTask = nil
         loadArtwork(for: new, key: key)
     }
 
@@ -89,18 +119,27 @@ final class MediaController: ObservableObject {
 
     private func loadArtwork(for track: Track, key: String) {
         queue.async { [weak self] in
-            var image: NSImage?
+            guard self != nil else { return }
             if track.bundleID == "com.spotify.client" {
-                if let s = Self.run("tell application id \"com.spotify.client\" to get artwork url of current track")?.stringValue,
-                   let url = URL(string: s), let data = try? Data(contentsOf: url) {
-                    image = NSImage(data: data)
+                let raw = Self.run("tell application id \"com.spotify.client\" to get artwork url of current track")?.stringValue
+                guard let raw, let url = URL(string: raw) else { return }
+                DispatchQueue.main.async {
+                    guard let self, self.active, self.artworkKey == key else { return }
+                    self.artworkTask = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+                        let image = data.flatMap(NSImage.init(data:))
+                        DispatchQueue.main.async {
+                            guard let self, self.active, self.artworkKey == key else { return }
+                            self.artwork = image; self.artworkTask = nil
+                        }
+                    }
+                    self.artworkTask?.resume()
                 }
-            } else if let data = Self.run("tell application id \"com.apple.Music\" to get raw data of artwork 1 of current track")?.data {
-                image = NSImage(data: data)
-            }
-            DispatchQueue.main.async {
-                guard let self, self.artworkKey == key else { return }
-                self.artwork = image
+            } else {
+                let image = (Self.run("tell application id \"com.apple.Music\" to get raw data of artwork 1 of current track")?.data).flatMap(NSImage.init(data:))
+                DispatchQueue.main.async {
+                    guard let self, self.active, self.artworkKey == key else { return }
+                    self.artwork = image
+                }
             }
         }
     }

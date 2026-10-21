@@ -78,7 +78,7 @@ final class WindowShortcuts: ObservableObject {
     }
 
     func holdWarning(_ hotkey: TabHotkey) -> String? {
-        guard let hold = Services.shared.dictation.hotkeys.hold, hold.keyCode == nil,
+        guard let hold = Services.shared.hotkeys.hold, hold.keyCode == nil,
               CGEventFlags(rawValue: hotkey.modifiers).isSuperset(of: hold.flags) else { return nil }
         return "Pressing this shortcut cancels the \(hold.display) dictation hold."
     }

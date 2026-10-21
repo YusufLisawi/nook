@@ -5,6 +5,7 @@ final class PluginHostAPI {
     static let shared = PluginHostAPI()
     private final class WeakModel { weak var value: NotchViewModel?; init(_ value: NotchViewModel) { self.value = value } }
     private var models: [WeakModel] = []
+    private var requests: [String: PluginWork] = [:]
     private var clipboardTimers: [String: Timer] = [:]
     private var shells: [String: [UUID: PluginShellCommand]] = [:]
     private var aiTasks: [String: [UUID: Task<Void, Never>]] = [:]
@@ -13,7 +14,7 @@ final class PluginHostAPI {
 
     func register(_ vm: NotchViewModel) { models.removeAll { $0.value == nil }; models.append(WeakModel(vm)) }
     func captureBeforeOpen(_ vm: NotchViewModel) {
-        guard PluginEngine.shared.manifests.values.contains(where: { $0.requested.contains("accessibility") && PluginPermissions.shared.approved($0) && !Prefs.disabledTabSet.contains($0.id) }) else { return }
+        guard PluginEngine.shared.manifests.values.contains(where: { $0.requested.contains("accessibility") && PluginPermissions.shared.approved($0) && Features.shared.tabEnabled($0.id) }) else { return }
         if selectionContexts.count >= 16 { selectionContexts.removeAll() }
         selectionContexts[ObjectIdentifier(vm)] = AICommandContext.capture()
     }
@@ -22,6 +23,7 @@ final class PluginHostAPI {
     }
     func stop(_ id: String) {
         clipboardTimers.removeValue(forKey: id)?.invalidate()
+        requests.removeValue(forKey: id)?.cancel()
         shells.removeValue(forKey: id)?.values.forEach { $0.cancel() }
         aiTasks.removeValue(forKey: id)?.values.forEach { $0.cancel() }
     }
@@ -53,6 +55,7 @@ final class PluginHostAPI {
         let str = { (key: String) in p[key] as? String ?? "" }
         let ok = { reply(NSNull(), nil) }
         switch method {
+        case "features.list": reply(Features.shared.payload, nil)
         case "storage.get": reply(PluginStorage(id).get(str("key")) ?? NSNull(), nil)
         case "storage.set": PluginStorage(id).set(str("key"), p["value"]); ok()
         case "storage.all": reply(PluginStorage(id).all(), nil)
@@ -114,7 +117,7 @@ final class PluginHostAPI {
             }
         case "fetch", "network.fetch":
             guard let url = URL(string: str("url")), ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return reply(nil, "Network fetch requires an HTTP(S) URL.") }
-            HTTP.fetch(url.absoluteString, options: p["options"] as? [String: Any] ?? [:], completion: reply)
+            HTTP.fetch(url.absoluteString, options: p["options"] as? [String: Any] ?? [:], work: requests[id, default: PluginWork()], completion: reply)
         case "network.open":
             guard let url = URL(string: str("url")), ["https", "http", "mailto"].contains(url.scheme?.lowercased() ?? "") else { return reply(nil, "Expected an HTTP(S) or mailto URL.") }
             NSWorkspace.shared.open(url); ok()
@@ -146,7 +149,7 @@ final class PluginHostAPI {
                 Task { @MainActor in
                     context.application?.activate()
                     try? await Task.sleep(nanoseconds: 100_000_000)
-                    guard PluginPermissions.shared.approved(manifest), !Prefs.disabledTabSet.contains(id), AXIsProcessTrusted() else { return reply(nil, "Plugin access was revoked.") }
+                    guard PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id), AXIsProcessTrusted() else { return reply(nil, "Plugin access was revoked.") }
                     guard context.restoreTarget() else { return reply(nil, "The original text target changed or is unavailable. Focus it and reopen Nook.") }
                     if method == "selection.get" { reply(await SelectionGrabber.selectedText(), nil) }
                     else { SelectionGrabber.paste(str("text"), keepOnClipboard: p["keepOnClipboard"] as? Bool ?? false); ok() }

@@ -7,24 +7,34 @@ private struct PluginConsentDeclined: LocalizedError {
 /// No catalog reachability requirement at startup: existing/bundled plugins keep working offline.
 @MainActor final class PluginAutomaticUpdates {
     static let shared = PluginAutomaticUpdates()
-    private let client = PluginStoreClient()
+    private var client: PluginStoreClient?
     private var timer: Timer?
     private var checking = false
     private var lastAttempt = Date.distantPast
 
-    static func start() {
-        Task { @MainActor in
-            await shared.check()
-            shared.timer = Timer.scheduledTimer(withTimeInterval: 86_400, repeats: true) { _ in Task { @MainActor in await shared.check() } }
+    static func start() { shared.reconcile() }
+    func reconcile() {
+        guard Features.shared.enabled("pluginStore") else {
+            timer?.invalidate(); timer = nil
+            client?.cancelRequests(); client = nil
+            return
         }
+        if client == nil { client = PluginStoreClient(); lastAttempt = .distantPast }
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 86_400, repeats: true) { _ in Task { @MainActor in await self.check() } }
+        Task { @MainActor in await check() }
     }
     static func approve(_ json: [String: Any], _ directory: URL) async throws {
+        guard Features.shared.enabled("pluginStore") else { throw CancellationError() }
         let manifest = try PluginManifestV2(json: json, directory: directory)
         guard manifest.apiVersion == 2 else { return }
         guard await PluginPermissions.shared.review(manifest) else { throw PluginConsentDeclined() }
+        guard Features.shared.enabled("pluginStore") else { throw CancellationError() }
     }
     func check(settingsOpened: Bool = false) async {
-        guard !checking, Date().timeIntervalSince(lastAttempt) > (settingsOpened ? 30 : 86_000) else { return }
+        guard Features.shared.enabled("pluginStore"), !checking, Date().timeIntervalSince(lastAttempt) > (settingsOpened ? 30 : 86_000) else { return }
+        if client == nil { client = PluginStoreClient() }
+        guard let client else { return }
         checking = true; lastAttempt = Date()
         defer { checking = false }
         do {

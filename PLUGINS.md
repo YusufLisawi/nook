@@ -378,3 +378,21 @@ Plugin reloads, editable-copy creation, and reverting to the Trash run in the ba
 Plugin options apply immediately to the running plugin. Settings and command JSON writes coalesce for up to 150 ms
 on a utility queue and flush when Nook quits normally. Use the Settings UI or bridge to edit options; direct edits
 to cached settings/secret files are read on the next app launch.
+
+## Cleaner — `nook.cleaner`
+
+```js
+await nook.cleaner.clean('caches', 60); // → { bytes, moved, skipped, protectedCount, failed }
+```
+
+Moves eligible immediate children to the system Trash with `FileManager.trashItem`, without listing `~/.Trash`.
+Categories are fixed: `caches`, `logs`, `derived`, `devices`, `simulators`, `packages`, `downloads`.
+The optional days argument (default 60, clamped to 7–365) applies only to Downloads: regular files older than
+that modification age, never folders. No arbitrary paths; symlink roots/components and immediate symlink items
+are skipped. Apple and package caches are excluded from `caches`. Calls run serially off the main thread.
+`bytes` estimates allocated bytes moved. Protected/unreadable candidates stay in place and increment `skipped`
+and `protectedCount`; other move failures increment `failed`. A directory with an unreadable descendant is one
+skipped candidate and stays intact. The bundled Cleaner displays partial results and a single Full Disk Access hint.
+Trash size is unknown; confirmed emptying uses Finder AppleScript via `nook.shell` and may request Automation
+permission to control Finder. Finder empties all Trash, including mounted volumes. Homebrew keeps its own
+confirmed `brew cleanup -s` operation. Neither action is part of this bridge API.

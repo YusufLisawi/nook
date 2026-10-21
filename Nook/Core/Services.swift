@@ -25,6 +25,7 @@ final class Services: ObservableObject {
     @Published var pluginActivity: PluginActivity?
 
     @MainActor func start() {
+        CleanerBridge.register()
         AgentService.register()
         WindowManager.shared.start()
         ClipsFeature.start()

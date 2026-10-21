@@ -122,6 +122,8 @@
       const connect = document.createElement('button');
       connect.type = 'button';
       connect.className = 'connect-row';
+      connect.dataset.nkItem = proxy.id;
+      connect.addEventListener('nk:alt', () => startRename(proxy));
       connect.disabled = !!pending;
       connect.title = 'Click to connect · double-click to rename';
       connect.setAttribute('aria-label', `${active ? 'Connected to' : 'Connect to'} ${proxy.name}`);

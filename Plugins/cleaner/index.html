@@ -34,7 +34,7 @@
 
     <section class="nk-card nk-tight nk-col nk-fill content">
       <div id="loading" class="nk-empty" role="status"><span class="nk-spinner"></span><span>Loading your last scan…</span></div>
-      <div id="categories" class="nk-list nk-scroll nk-fill" aria-label="Cleanup categories" hidden></div>
+      <div id="categories" class="nk-list nk-scroll nk-fill nk-roving" aria-label="Cleanup categories" hidden></div>
       <div id="empty" class="nk-empty" hidden><svg class="icon"><use href="#i-sparkles"/></svg><b>All clear</b><span>No eligible files found. Scan again later.</span></div>
     </section>
 
@@ -42,6 +42,7 @@
 
     <footer id="footer" class="nk-row-flex">
       <span id="selected" class="nk-small nk-muted nk-fill">Choose what to clean</span>
+      <span class="nk-shortcuts">↑↓ Choose  ↩ Select  ⌘K Actions</span>
       <button id="clean" type="button" class="nk-btn nk-primary" disabled><svg class="icon"><use href="#i-sparkles"/></svg><span id="clean-label">Clean</span></button>
     </footer>
 
@@ -53,5 +54,6 @@
   </main>
   <script src="shell.js"></script>
   <script src="main.js"></script>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

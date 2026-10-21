@@ -17,11 +17,12 @@
     <section class="todos">
       <form id="add" class="add" autocomplete="off">
         <svg class="icon"><use href="#i-plus"/></svg>
-        <input id="new" placeholder="Add a to-do" spellcheck="true">
+        <input id="new" data-nk-autofocus aria-label="Add a to-do" placeholder="Add a to-do" spellcheck="true" disabled>
       </form>
-      <ul id="list" class="list"></ul>
-      <div id="empty" class="empty">Nothing to do. Enjoy it.</div>
-      <footer class="foot"><span id="count"></span><button id="clear" type="button" hidden>Clear done</button></footer>
+      <div id="error" class="nk-error" role="status" hidden><span id="error-text" class="nk-fill"></span><button id="retry" class="nk-btn nk-ghost" type="button" hidden>Retry</button></div>
+      <ul id="list" class="list nk-roving"></ul>
+      <div id="empty" class="empty" role="status">Loading to-dos…</div>
+      <footer class="foot"><span id="count"></span><span class="nk-shortcuts">↩ Done  ⌘↩ Edit  ⌘K Actions</span><button id="clear" type="button" hidden>Clear done</button></footer>
     </section>
 
     <aside class="side">
@@ -33,7 +34,7 @@
       <div class="timer">
         <div class="timer-head"><svg class="icon"><use href="#i-timer"/></svg><span id="timer-text">Focus timer</span>
           <button id="timer-stop" class="stop" type="button" title="Stop timer" hidden><svg class="icon"><use href="#i-x"/></svg></button></div>
-        <div class="chips">
+        <div class="chips nk-roving" data-nk-orientation="horizontal">
           <button type="button" data-min="15">15m</button>
           <button type="button" data-min="30">30m</button>
           <button type="button" data-min="60">1h</button>
@@ -42,5 +43,6 @@
     </aside>
   </main>
   <script src="main.js"></script>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

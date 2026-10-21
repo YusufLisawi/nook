@@ -5,9 +5,12 @@ import WebKit
 
 /// Creates one WKWebView per web plugin for a notch and answers its `window.nook` calls.
 final class WebPluginHost: NSObject {
+    let keyboardID = UUID().uuidString
     weak var vm: NotchViewModel?
     private var views: [String: WKWebView] = [:]
     private var revision = 0
+
+    deinit { KeyboardActions.shared.remove(ownerID: keyboardID) }
 
     init(vm: NotchViewModel) {
         self.vm = vm
@@ -23,6 +26,7 @@ final class WebPluginHost: NSObject {
         let current = Services.shared.plugins.revision
         if current != revision {
             revision = current
+            KeyboardActions.shared.remove(ownerID: keyboardID)
             views.values.forEach { $0.reload() } // pick up edited files without losing the view
         }
         if let view = views[tab.id] { return view }
@@ -44,7 +48,7 @@ final class WebPluginHost: NSObject {
         let content = config.userContentController
         content.addScriptMessageHandler(BridgeHandler(host: self, pluginID: tab.id), contentWorld: .page, name: "nook")
         let info = (try? JSONSerialization.data(withJSONObject: ["id": tab.id, "name": tab.name])).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + WindowManager.shared.bridgeContext(for: vm), injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        content.addUserScript(WKUserScript(source: Self.bridgeJS(pluginInfo: info) + "\n" + BridgeRegistry.javascript + "\n" + WindowManager.shared.bridgeContext(for: vm) + "\n" + KeyboardWebSupport.script, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let view = DropWebView(frame: .zero, configuration: config)
         view.onFiles = { [weak self] event, payload in self?.emit(event, payload, to: tab.id) }
         view.setValue(false, forKey: "drawsBackground")
@@ -117,7 +121,8 @@ final class WebPluginHost: NSObject {
         case let f where f.hasPrefix("audio."): s.audio.handle(String(f.dropFirst(6)), args: args, reply: reply)
         case let f where f.hasPrefix("dictation."): s.dictation.handle(String(f.dropFirst(10)), args: args, reply: reply)
         default:
-            if !BridgeRegistry.handle(fn, args: args, pluginID: pluginID, reply: reply) { reply(nil, "Unknown nook call: \(fn)") }
+            let scopedArgs: [Any] = fn == "actions.register" ? Array(args.prefix(1)) + [keyboardID] : args
+            if !BridgeRegistry.handle(fn, args: scopedArgs, pluginID: pluginID, reply: reply) { reply(nil, "Unknown nook call: \(fn)") }
         }
     }
 

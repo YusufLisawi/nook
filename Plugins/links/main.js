@@ -397,6 +397,7 @@
       const row = node('div', `nk-item folder-row${view === entry.key ? ' nk-selected' : ''}`);
       row.dataset.view = entry.key;
       const control = button('', 'folder-view nk-fill', () => setView(entry.key));
+      control.dataset.nkItem = entry.key;
       control.disabled = busy();
       control.setAttribute('aria-current', view === entry.key ? 'page' : 'false');
       control.title = `${entry.name} · ${entry.count}`;
@@ -457,6 +458,8 @@
       if (event.shiftKey || event.metaKey || selected.size) selectLink(link.id, event.shiftKey);
       else openLink(currentLink(link.id));
     });
+    open.dataset.nkItem = link.id;
+    open.addEventListener('nk:alt', () => copyLink(currentLink(link.id)));
     open.title = link.url;
     open.setAttribute('aria-label', `Open ${link.title || link.url}`);
     open.onfocus = () => { highlighted = link.id; updateSelectionUI(); };
@@ -519,7 +522,7 @@
     }
     const previousScroll = content.querySelector('.nk-scroll')?.scrollTop || 0;
     const focused = document.activeElement?.closest('.link-row')?.dataset.id;
-    const list = node('div', 'nk-list nk-scroll nk-fill');
+    const list = node('div', 'nk-roving nk-list nk-scroll nk-fill');
     for (const section of sections()) {
       const heading = node('div', 'nk-label nk-row-flex group-heading');
       if (section.site) heading.append(favicon(section.links[0]));
@@ -657,7 +660,7 @@
     const heading = node('div', 'nk-row-flex review-heading');
     heading.append(node('span', 'nk-title nk-fill nk-ellipsis', sorting ? `Review ${review.length} folder suggestions` : `AI suggests removing ${review.length} ${review.length === 1 ? 'link' : 'links'}`));
     const scroll = content.querySelector('.nk-scroll')?.scrollTop || 0;
-    const list = node('div', 'nk-list nk-scroll nk-fill');
+    const list = node('div', 'nk-roving nk-list nk-scroll nk-fill');
     const groups = new Map();
     for (const item of review) {
       const key = sorting ? D.folderKey(item.folder.name) : '';
@@ -1002,6 +1005,7 @@
       return;
     }
     if (command) return;
+    if (target.closest('[data-nk-item]') && !event.shiftKey) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       if (!visible.length) return;
       event.preventDefault();

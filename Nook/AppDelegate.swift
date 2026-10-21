@@ -14,10 +14,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Services.shared.start()
         rebuildNotches()
         Services.shared.dictation.hotkeys.onShortcut = { [weak self] key, mods in
+            if OpenNookShortcut.matches(key: key, modifiers: mods) {
+                DispatchQueue.main.async { self?.notchUnderMouse()?.openWithKeyboard() }
+                return true
+            }
+            if NSApp.keyWindow is NotchPanel { return false } // local notch shortcuts take precedence
             if Services.shared.commands.handleShortcut(key: key, modifiers: mods) { return true } // AI command hotkeys
             if WindowManager.shared.handleShortcut(key: key, modifiers: mods) { return true }
             guard let self, let tab = TabHotkeys.tab(forKey: key, modifiers: mods) else { return false }
-            DispatchQueue.main.async { self.notchUnderMouse()?.viewModel.toggle(tab: tab) }
+            DispatchQueue.main.async { self.notchUnderMouse()?.toggleWithKeyboard(tab: tab) }
             return true
         }
         Services.shared.commands.closeNotches = { [weak self] in self?.controllers.forEach { $0.viewModel.close() } }
@@ -133,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
-    @objc private func openNotch() { notchUnderMouse()?.viewModel.open() }
+    @objc private func openNotch() { notchUnderMouse()?.openWithKeyboard() }
 
     private func notchUnderMouse() -> NotchController? {
         let mouse = NSEvent.mouseLocation

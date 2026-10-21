@@ -40,7 +40,7 @@ struct NowPlayingCard: View {
                         }
                     }
                     HStack(spacing: 14) {
-                        IconButton("backward.fill") { media.previous() }
+                        IconButton("backward.fill", initialTab: "media") { media.previous() }
                         IconButton(track.isPlaying ? "pause.fill" : "play.fill", size: 16) { media.playPause() }
                         IconButton("forward.fill") { media.next() }
                     }
@@ -69,6 +69,8 @@ struct ShelfTab: View {
                         Text("\(shelf.items.count) item\(shelf.items.count == 1 ? "" : "s")").font(.system(size: 11)).foregroundStyle(.secondary)
                         Spacer()
                         Button("Clear") { shelf.clear() }.buttonStyle(.plain).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                            .keyboardFocusRing(initialTab: "shelf")
+                            .onKeyPress(.return) { shelf.clear(); return .handled }
                     }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
@@ -99,6 +101,15 @@ struct ShelfCell: View {
         .contentShape(Rectangle())
         .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
         .onTapGesture(count: 2) { NSWorkspace.shared.open(url) }
+        .keyboardFocusRing()
+        .onKeyPress(.delete) { shelf.remove(url); return .handled }
+        .accessibilityLabel(url.lastPathComponent)
+        .accessibilityHint("Return opens; Delete removes from Shelf; Command Return reveals in Finder")
+        .onKeyPress(.return, phases: .down) { press in
+            if press.modifiers.contains(.command) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            else { NSWorkspace.shared.open(url) }
+            return .handled
+        }
         .contextMenu {
             Button("Open") { NSWorkspace.shared.open(url) }
             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
@@ -115,6 +126,7 @@ struct ScratchTab: View {
 
     var body: some View {
         TextEditor(text: $text)
+            .keyboardInitialFocus(tab: "scratch")
             .font(.system(size: 13))
             .scrollContentBackground(.hidden)
             .overlay(alignment: .topLeading) {
@@ -157,6 +169,8 @@ struct TimersTab: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .keyboardFocusRing(initialTab: "timers")
+                .onKeyPress(.return) { timers.toggle(); return .handled }
             }
 
             if timers.mode == .stopwatch {
@@ -208,6 +222,8 @@ struct TimersTab: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .keyboardFocusRing()
+                .onKeyPress(.return) { timers.mode = mode; return .handled }
             }
         }
     }
@@ -266,6 +282,14 @@ struct TimeRuler: View {
                     .onEnded { _ in withAnimation(.snappy(duration: 0.3)) { pinnedStart = nil } }
             )
             .opacity(editable ? 1 : 0.95)
+            .keyboardFocusRing()
+            .accessibilityLabel("Timer duration")
+            .accessibilityValue("\(minutes) minutes")
+            .onMoveCommand { direction in
+                guard editable else { return }
+                let delta = direction == .left || direction == .down ? -1 : 1
+                onChange(min(range.upperBound, max(range.lowerBound, minutes + delta)))
+            }
             .animation(.snappy(duration: 0.25), value: minutes)
         }
     }
@@ -297,6 +321,7 @@ private struct PomodoroOption: View {
                     .foregroundStyle(.orange)
             }
             .menuStyle(.borderlessButton)
+            .keyboardFocusRing()
             .menuIndicator(.hidden)
             .fixedSize()
         }

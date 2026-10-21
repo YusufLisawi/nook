@@ -95,10 +95,25 @@ Wrap **every** `nook.*` call in try/catch; a failed call is a state, not a crash
 ## 8. Interaction
 
 - Hover-to-open means the user's pointer is already there: the primary action goes where the eye lands (top-right or the input row).
-- Keyboard: focus the main input on `nook.on('show')`. Enter submits, Esc is Nook's (closes the notch). ⌘A/C/V/X/Z work in inputs.
+- Keyboard: mark the main input `data-nk-autofocus`. Enter submits, Esc is Nook's (closes the palette/settings/notch). ⌘A/C/V/X/Z work in inputs. See Keyboard below.
 - Destructive actions: inline confirm ("Delete? Yes / No") — no modals, no `confirm()`.
 - Don't steal the notch: never call `nook.notch.pin(true)` unless the user started something that needs it, and unpin after.
 - Drag & drop: listen to `dragenter`/`drop` events (real file paths) — highlight the drop zone with a dashed `--border` outline.
+
+### Keyboard
+
+- Every action needs a keyboard path. Prefer native HTML buttons/inputs with meaningful accessible labels.
+  Keep the kit's strong `:focus-visible` accent outline; reveal row actions on `:focus-within` as well as hover.
+- Lists and command pills opt in with `.nk-roving`; mark their primary items `[data-nk-item="stable-id"]`.
+  ↑↓ move between items (←→ with `data-nk-orientation="horizontal"`), Home/End jump, Enter activates.
+  Listen for bubbling `nk:alt` for ⌘Enter. Nested controls are still reachable by Tab; inputs and sliders keep
+  their own arrow keys. Skip hidden/disabled items and preserve identity when repainting lists.
+- Put `data-nk-autofocus` on the main input or primary control. The host focuses it on keyboard entry;
+  `nook.keyboard.focus()` requests it explicitly. Keep editors' caret and selection intact on regular updates.
+- Register named actions with `nook.actions.register([...])` for the ⌘K palette; handle `nook.on('action', id)`
+  and optionally `actionAlternate`. Shortcuts are local to the selected tab, never system-wide.
+- Nook owns ⌘K, ⌘1…9, ⌃Tab/⌃⇧Tab, ⌘[/⌘] and Esc. Don't override them. Use a quiet `.nk-shortcuts` footer
+  for the relevant hints, such as `←→ Choose  ↩ Run  ⌘↩ Edit  ⌘K Actions`. Include only actions that exist.
 
 ## 9. Customisation
 

@@ -47,7 +47,7 @@
     </div>
     <div class="workspace nk-fill">
       <aside class="sidebar nk-col" aria-label="Link folders">
-        <nav id="folders" class="nk-list nk-scroll nk-fill" aria-label="Views and folders"></nav>
+        <nav id="folders" class="nk-list nk-scroll nk-fill nk-roving" aria-label="Views and folders"></nav>
         <form id="folder-form" class="folder-form nk-row-flex" hidden>
           <input id="folder-name" class="nk-input nk-fill" placeholder="Folder name" aria-label="Folder name" maxlength="40" autocomplete="off">
           <button class="nk-icon-btn" type="submit" title="Save folder" aria-label="Save folder"><svg class="icon"><use href="#i-check"/></svg></button>
@@ -70,6 +70,7 @@
         </div>
       </section>
     </div>
+    <footer class="nk-shortcuts">↑↓ Choose  ↩ Open  ⌘↩ Copy  ⌘K Actions</footer>
     <div id="toast" class="nk-card nk-tight nk-row-flex" role="status" aria-live="polite" hidden>
       <span id="toast-text" class="nk-small nk-fill"></span><span class="nk-muted">·</span>
       <button id="undo" class="nk-btn nk-ghost" type="button">Undo</button>
@@ -79,5 +80,6 @@
   </main>
   <script src="store.js"></script>
   <script src="main.js"></script>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

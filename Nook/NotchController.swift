@@ -7,6 +7,7 @@ final class NotchController {
 
     let viewModel: NotchViewModel
     private var panel: NotchPanel?
+    private var keyboard: NotchKeyboardController?
     private var timer: Timer?
     private var lastHover = false
     private var dragChangeCount = NSPasteboard(name: .drag).changeCount
@@ -27,7 +28,7 @@ final class NotchController {
 
     func start() {
         rebuild()
-        viewModel.onClose = { [weak self] in self?.dropKeyFocus() }
+        viewModel.onClose = { [weak self] in self?.keyboard?.didClose(); self?.dropKeyFocus() }
         let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
             guard let self, self.viewModel.isOpen, !self.viewModel.pinned, !self.viewModel.liveRect.contains(NSEvent.mouseLocation),
                   self.viewModel.holdRect?.contains(NSEvent.mouseLocation) != true else { return }
@@ -47,6 +48,7 @@ final class NotchController {
         monitors.forEach(NSEvent.removeMonitor)
         viewModel.close()
         panel?.orderOut(nil)
+        keyboard = nil
         panel = nil
     }
 
@@ -65,12 +67,25 @@ final class NotchController {
             return
         }
         let panel = NotchPanel(rect: frame)
-        panel.onEscape = { [weak self] in self?.viewModel.close() }
+        let keyboard = NotchKeyboardController(panel: panel, vm: viewModel)
+        self.keyboard = keyboard
+        viewModel.keyboardRun = { [weak keyboard] entry, alternate in keyboard?.run(entry, alternate: alternate) }
+        panel.onEscape = { [weak keyboard] in keyboard?.escape() }
         let host = NSHostingView(rootView: NotchRootView(vm: viewModel))
         host.frame = CGRect(origin: .zero, size: size)
         panel.contentView = host
         panel.orderFrontRegardless()
         self.panel = panel
+    }
+
+    func openWithKeyboard() {
+        hiddenForFullscreen = false
+        keyboard?.open()
+    }
+
+    func toggleWithKeyboard(tab: String) {
+        if viewModel.isOpen && viewModel.tab == tab { viewModel.close() }
+        else { viewModel.open(tab: tab); openWithKeyboard() }
     }
 
     private func tick() {
@@ -144,7 +159,7 @@ final class NotchController {
 
     private func updateFullscreenVisibility() {
         guard let panel else { return }
-        let hide = Prefs.bool(Prefs.hideInFullscreen) && Self.frontAppIsFullscreen(on: viewModel.geometry.screen)
+        let hide = !viewModel.keyboard.engaged && Prefs.bool(Prefs.hideInFullscreen) && Self.frontAppIsFullscreen(on: viewModel.geometry.screen)
         guard hide != hiddenForFullscreen else { return }
         hiddenForFullscreen = hide
         if hide {

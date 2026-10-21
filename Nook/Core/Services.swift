@@ -30,6 +30,7 @@ final class Services: ObservableObject {
         ClipsFeature.start()
         PluginStore.register()
         FileSearchService.shared.register()
+        KeyboardActions.shared.start()
         plugins.start()
         media.start()
         proxy.restoreOnLaunch()

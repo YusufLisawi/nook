@@ -24,6 +24,10 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | React to Nook | `nook.on('open'|'close'|'show'|'proxy'|'dictation'|…)` |
 | Get a global shortcut | the user assigns one per tab in Settings → Tabs & plugins |
 | Move and resize app windows | `nook.windows.state/apply` — layouts, relative display moves, adjacent desktop moves; per-action global shortcuts in Settings → Window Management |
+
+| Open and navigate by keyboard | General → Open Nook (default ⌥⇧⌘Space); ⌘1…9, ⌃Tab/⌃⇧Tab or ⌘[/⌘]; Esc returns focus |
+| Join the command palette | `nook.actions.register([{id,title,subtitle?,shortcut?}])`; ⌘K searches loaded plugins' actions, tabs and AI Commands; events `action` / `actionAlternate` |
+| Provide list and pill navigation | injected `.nk-roving` / `[data-nk-item]`, arrows, Enter and `nk:alt` for ⌘Enter; focus rings and `data-nk-autofocus` |
 | Be driven from outside | `nook open|toggle <id>` / `nook://open/<id>` URLs (scripts, Raycast, Shortcuts) |
 | Override a built-in tab | ship a plugin with the same `id` (e.g. `home`) |
 | Browse/install community plugins | Native Settings → Plugin Store; `nook search`, `install`, `update`, `uninstall`; `nook://install/<id>` opens details |
@@ -43,7 +47,7 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
 | Run when Nook is quit | Web views die with the app. Use `nook.shell` to start a LaunchAgent if you truly need a daemon |
 | Native drag **out** of the web view to Finder | Drop-in works; drag-out uses the native Shelf tab |
 | New permissions (Calendar, Contacts, Location, Bluetooth…) | Needs Info.plist + Swift. Workaround: `shell` to a CLI/`osascript` that already has access |
-| Expose new native APIs | Add a case in `WebPluginHost.handle` + rebuild (then every plugin gets it) |
+| Expose new native APIs | Register a namespace in `BridgeRegistry` + rebuild (then every plugin gets it) |
 
 ## ⚠️ Things to know
 
@@ -122,3 +126,8 @@ fallback filesystem crawl. Broad searches cap candidate enumeration at 20,000, a
 Warm cached candidates return immediately; cold index latency depends on Spotlight and mounted volumes, so a universal
 sub-100 ms guarantee is not possible. Live queries stop on plugin close, replacement, or inactivity expiry.
 See [PLUGINS.md](../PLUGINS.md#file-search-nookfiles) for the bridge contract and lifecycle.
+
+- **Keyboard:** the global Open Nook shortcut uses the existing Accessibility event tap. Plugins' action
+  shortcuts only work inside their selected tab. macOS symbolic shortcuts are checked for the default;
+  private shortcuts in other apps cannot be discovered. Actions appear once a plugin has loaded on that
+  display; disabled tabs are excluded. ⌘Enter sends the optional `actionAlternate` event.

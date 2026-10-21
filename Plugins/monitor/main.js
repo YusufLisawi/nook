@@ -180,6 +180,8 @@
       const rows = processes.map(process => {
         const row = document.createElement('div');
         row.className = 'process-row';
+        row.dataset.nkItem = process.command;
+        row.setAttribute('role', 'group');
         const name = document.createElement('span');
         name.className = 'process-name';
         name.textContent = process.name;

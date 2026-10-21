@@ -262,6 +262,54 @@ Queries without a heartbeat expire after 120 seconds; the bundled tab restarts e
 The bundled tab uses ↑↓, Enter, ⌘Enter, Space, ⌘C, ⌘⇧C, and ⌘K. Shift-Space inserts a space into a filename query;
 Tab moves through the scope/kind filters and controls. Space/Esc dismiss native Quick Look.
 
+## Keyboard and command palette
+
+Open Nook from anywhere with **⌥⇧⌘Space** (General → Open Nook changes or disables it). Nook avoids
+⌘Space (Spotlight) and ⌥⌘Space ([Finder search](https://support.apple.com/en-ie/guide/mac-help/mh26783/mac));
+if the default conflicts with an enabled macOS symbolic shortcut, it tries ⌃⇧⌘Space, then ⌃⌥⇧⌘Space.
+The notch under the pointer becomes key, focuses the current tab, and stays open during keyboard use.
+Esc closes the palette first, then in-notch settings, then the notch, returning focus to the previous app.
+**⌘1…⌘9** select tabs in dock order; **⌃Tab / ⌃⇧Tab** and **⌘] / ⌘[** cycle tabs. **⌘K** searches
+tabs, enabled AI Commands and actions registered by loaded plugins on this display. ↑↓ select; Enter runs;
+⌘Enter opens tab settings, edits AI Commands in Settings, or sends a plugin's alternate action.
+
+```js
+try {
+  await nook.actions.register([
+    { id: 'new-note', title: 'New note', subtitle: 'Create an empty note', shortcut: '⌘N' },
+  ]);
+} catch (error) { /* show an inline .nk-error */ }
+nook.on('action', id => { if (id === 'new-note') createNote(); });
+nook.on('actionAlternate', id => { /* optional ⌘Enter behavior */ });
+```
+
+`register` replaces this plugin's action list for this display; `register([])` clears it. Actions are removed on
+plugin reload or when the display's host is destroyed. Register again after loading. Each call allows up to
+100 actions with unique nonempty ids (≤128 characters) and titles (≤160); optional subtitles and shortcuts
+are capped at 240 and 40 characters. Disabled tabs' actions are hidden. Selecting an action opens its tab and
+delivers the event after focus, so the action can move the caret. Registration is async and rejects invalid data.
+`shortcut` also binds a **local** shortcut while that plugin is selected. Use symbols (`⌘F`) or names
+(`Cmd+Shift+F`); include Command, Control or Option. Keys are matched against macOS's characters ignoring
+modifiers (`Space` and `Enter` are supported). Nook's navigation shortcuts take precedence; no global plugin
+shortcut is installed. Other apps' private shortcuts cannot be detected automatically.
+
+The injected UI kit includes visible focus rings, Tab navigation through usable controls, and a roving helper:
+
+```html
+<div class="nk-roving" data-nk-orientation="horizontal" aria-label="Commands">
+  <button data-nk-item="run">Run</button>
+  <button data-nk-item="edit">Edit</button>
+</div>
+```
+
+Use stable `data-nk-item` values so focus survives row updates. ↑↓ navigate by default; horizontal groups use
+←→. Home/End jump to the ends; navigation wraps and skips hidden/disabled items. One item per group is a Tab
+stop; nested buttons and inputs remain reachable. Enter clicks the item; ⌘Enter dispatches a bubbling
+`nk:alt` event on it. Handle that event for a row's alternate action. Inputs, editors, select controls and
+sliders retain their own arrows/Enter. Mark a preferred initial control `data-nk-autofocus`, or call
+`nook.keyboard.focus()` to request the first available control (including content that loads asynchronously).
+The host requests this on keyboard entry and tab changes; plugins need no focus timer.
+
 ## Developer tools
 
 ```bash

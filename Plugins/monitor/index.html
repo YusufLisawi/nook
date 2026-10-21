@@ -17,36 +17,36 @@
     <symbol id="icon-warning" viewBox="0 0 16 16"><path d="m8 2 6 11H2Z"/><path d="M8 6v3m0 2v.1"/></symbol>
   </defs></svg>
   <main class="monitor" aria-label="System monitor">
-    <section class="metrics" aria-label="System usage">
-      <article class="metric" id="cpu-tile">
+    <section class="metrics nk-roving" data-nk-orientation="horizontal" aria-label="System usage">
+      <article class="metric" role="group" data-nk-item="metric-0" id="cpu-tile">
         <div class="ring" id="cpu-ring" role="img" aria-label="CPU usage loading">
           <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
           <span class="ring-label" id="cpu-percent">—</span>
         </div>
         <div class="metric-copy"><h2>CPU</h2><strong id="cpu-value">—</strong><span id="cpu-detail">Reading usage</span></div>
       </article>
-      <article class="metric">
+      <article class="metric" role="group" data-nk-item="metric-1">
         <div class="ring" id="memory-ring" role="img" aria-label="Memory usage loading">
           <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
           <span class="ring-label" id="memory-percent">—</span>
         </div>
         <div class="metric-copy"><h2>Memory</h2><strong id="memory-value">—</strong><span id="memory-detail">GB used / total</span></div>
       </article>
-      <article class="metric">
+      <article class="metric" role="group" data-nk-item="metric-2">
         <div class="ring" id="disk-ring" role="img" aria-label="Disk usage loading">
           <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
           <span class="ring-label" id="disk-percent">—</span>
         </div>
         <div class="metric-copy"><h2>Disk</h2><strong id="disk-value">—</strong><span>GB free</span></div>
       </article>
-      <article class="metric" id="battery-tile">
+      <article class="metric" role="group" data-nk-item="metric-3" id="battery-tile">
         <div class="ring" id="battery-ring" role="img" aria-label="Battery level loading">
           <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="19"/><circle class="ring-value" cx="24" cy="24" r="19" transform="rotate(-90 24 24)"/></svg>
           <span class="ring-label" id="battery-percent">—</span>
         </div>
         <div class="metric-copy"><h2>Battery <svg id="charging-icon" class="icon bolt" hidden aria-label="Charging"><use href="#icon-bolt"/></svg></h2><strong id="battery-value">—</strong><span id="battery-detail">Power status</span></div>
       </article>
-      <article class="metric" id="uptime-tile" hidden>
+      <article class="metric" role="group" data-nk-item="metric-4" id="uptime-tile" hidden>
         <div class="uptime-icon"><svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg></div>
         <div class="metric-copy"><h2>Uptime</h2><strong id="uptime-value">—</strong><span>Since last restart</span></div>
       </article>
@@ -61,10 +61,12 @@
       </article>
       <article class="processes card">
         <div class="process-heading"><h2>Top processes</h2><span>CPU</span><span>Memory</span></div>
-        <div class="process-list" id="process-list" aria-label="Five processes using the most CPU"></div>
+        <div class="process-list nk-roving" id="process-list" aria-label="Five processes using the most CPU"></div>
         <p class="process-notice" id="process-notice" role="status">Reading processes…</p>
       </article>
     </section>
+    <footer class="nk-shortcuts">←→ Metrics  ↑↓ Processes  ⌘K Actions</footer>
   </main>
+  <script src="keyboard.js" defer></script>
 </body>
 </html>

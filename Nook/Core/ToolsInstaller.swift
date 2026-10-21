@@ -1,5 +1,4 @@
 import AppKit
-import SwiftUI
 
 /// Installs the `nook` CLI (→ ~/.local/bin/nook) and the Nook agent skill (→ ~/.agents/skills/nook, linked into
 /// Claude Code, Codex and any other agent that has a skills folder). Runs once per app version, or from Settings.
@@ -99,62 +98,5 @@ enum ToolsInstaller {
         let current = (try? String(contentsOf: profile, encoding: .utf8)) ?? ""
         guard !current.contains("$HOME/.local/bin") else { return }
         try? (current + line).write(to: profile, atomically: true, encoding: .utf8)
-    }
-}
-
-/// Settings → Command line & AI agents.
-struct ToolsSection: View {
-    @AppStorage(ToolsInstaller.autoKey) private var auto = true
-    @State private var cli = ToolsInstaller.cliInstalled
-    @State private var onPath = true
-    @State private var log: [String] = []
-
-    var body: some View {
-        Section {
-            LabeledContent("nook command") {
-                HStack(spacing: 6) {
-                    status(cli && onPath, cli ? (onPath ? "Installed" : "Installed — not on PATH") : "Not installed")
-                    if cli, !onPath {
-                        Button("Add to PATH") {
-                            ToolsInstaller.addToPath()
-                            onPath = true
-                        }
-                    }
-                }
-            }
-            ForEach(ToolsInstaller.agents.filter { $0.always || FileManager.default.fileExists(atPath: $0.dir.path) }, id: \.name) { agent in
-                LabeledContent("Skill for \(agent.name)") {
-                    status(ToolsInstaller.skillInstalled(in: agent.dir), ToolsInstaller.skillInstalled(in: agent.dir) ? "Installed" : "Not installed")
-                }
-            }
-            Toggle("Keep them installed and updated", isOn: $auto)
-            HStack {
-                Button(cli ? "Reinstall" : "Install") {
-                    log = ToolsInstaller.install()
-                    refresh()
-                }
-                if !log.isEmpty { Text(log.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
-            }
-        } header: {
-            Text("Command line & AI agents")
-        } footer: {
-            Text("`nook new`, `nook open`, `nook logs`… and a skill so Claude Code / Codex can build Nook plugins for you. Try: “make a nook plugin that shows my GitHub PRs”.")
-                .font(.caption)
-        }
-        .task { refresh() }
-    }
-
-    private func refresh() {
-        cli = ToolsInstaller.cliInstalled
-        DispatchQueue.global().async {
-            let path = ToolsInstaller.cliOnPath
-            DispatchQueue.main.async { onPath = path }
-        }
-    }
-
-    private func status(_ ok: Bool, _ text: String) -> some View {
-        Label(text, systemImage: ok ? "checkmark.circle.fill" : "exclamationmark.circle")
-            .foregroundStyle(ok ? .green : .orange)
-            .font(.system(size: 12))
     }
 }

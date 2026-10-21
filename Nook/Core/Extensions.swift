@@ -42,15 +42,21 @@ struct SettingsExtension: Identifiable {
     let symbol: String
     let tint: Color
     let order: Int
+    let keywords: [String]
     let view: () -> AnyView
 }
 
 enum SettingsRegistry {
     private(set) static var panes: [SettingsExtension] = []
 
-    static func register<V: View>(id: String, title: String, symbol: String, tint: Color, order: Int, @ViewBuilder view: @escaping () -> V) {
+    static func register<V: View>(id: String, title: String, symbol: String, tint: Color, order: Int, keywords: [String] = [], @ViewBuilder view: @escaping () -> V) {
         panes.removeAll { $0.id == id }
-        panes.append(SettingsExtension(id: id, title: title, symbol: symbol, tint: tint, order: order, view: { AnyView(view()) }))
-        panes.sort { $0.order < $1.order }
+        panes.append(SettingsExtension(id: id, title: title, symbol: symbol, tint: tint, order: order, keywords: keywords, view: { AnyView(view()) }))
+        panes.sort { ($0.order, $0.id) < ($1.order, $1.id) }
+        NotificationCenter.default.post(name: .nookSettingsRegistryChanged, object: nil)
     }
+}
+
+extension Notification.Name {
+    static let nookSettingsRegistryChanged = Notification.Name("nookSettingsRegistryChanged")
 }

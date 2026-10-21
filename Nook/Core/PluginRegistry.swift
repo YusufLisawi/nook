@@ -106,6 +106,13 @@ final class PluginRegistry: ObservableObject {
         setOrder(ids)
     }
 
+    /// Settings list uses the same persisted order as dragging icons in the notch dock.
+    func move(from source: IndexSet, to destination: Int) {
+        var ids = orderedTabs.map(\.id)
+        ids.move(fromOffsets: source, toOffset: destination)
+        setOrder(ids)
+    }
+
     func resetOrder() { setOrder([]) }
 
     private func setOrder(_ ids: [String]) {

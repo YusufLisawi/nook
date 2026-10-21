@@ -128,3 +128,29 @@ nook api | guide | limits
 - ⌘A / ⌘C / ⌘V / ⌘X / ⌘Z work in plugin inputs (routed by the notch panel).
 - What plugins can't do (and workarounds): **docs/LIMITS.md** (`nook limits`).
 
+
+## Native Settings and shortcuts
+
+Settings → **Tabs & Plugins** shows each tab’s height, shortcut, manifest options, and Edit Code / Revert controls inline.
+Drag rows to reorder the notch dock; the row menu also offers Move Up / Move Down. **Keyboard Shortcuts** collects
+tab, AI command, dictation, and native extension assignments and identifies duplicate key combinations.
+
+Native features can add searchable panes and expose existing shortcut storage without editing Settings switches:
+
+```swift
+SettingsRegistry.register(id: "windows", title: "Window Management", symbol: "macwindow",
+                          tint: .teal, order: 35, keywords: ["move", "resize", "snap"]) {
+    WindowsPane() // a native grouped Form
+}
+ShortcutRegistry.register(id: "windows.center", title: "Center Window", group: "Window Management",
+                          get: { WindowShortcuts.center },
+                          set: { WindowShortcuts.center = $0 })
+```
+
+Register on the main thread during service startup. Pane and shortcut ids must be stable and unique; registering the
+same id replaces it. `keywords` and shortcut `group` are optional. Shortcut accessors use `TabHotkey?`; `nil` clears
+an assignment. The feature still owns persistence and execution. Registration adds native Settings controls;
+it does not grant web plugins new key-tap access or add a JavaScript bridge API.
+
+The sidebar searches pane titles and setting keywords. Settings remembers the selected pane and window frame,
+and `nook://settings/shortcuts` / `nook://settings/about` open the new built-in panes.

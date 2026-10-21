@@ -49,3 +49,15 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
 - **One plugin, every screen:** with "All screens" on, each notch has its own web view of your plugin (state is shared only via `nook.storage`).
 - **Debugging:** `nook logs <id> -f` (console + uncaught errors), or Safari → Develop → [your Mac] → Nook to inspect a plugin's DOM.
 - **Size:** the content area is the hard constraint. Design for 650 × 210 first.
+
+## Native Settings
+
+- Settings has searchable native panes, including panes registered through `SettingsRegistry` with optional keywords.
+- Tabs & Plugins uses a master–detail editor for height, hotkey, manifest options, and code customization. Reordering
+  writes `PluginRegistry.customOrder`, the same order used by the notch dock. Reverting a plugin uses the Trash.
+- Keyboard Shortcuts lists tab shortcuts, AI command hotkeys, dictation gestures, and shortcuts exposed by native
+  features through `ShortcutRegistry`. Recorders detect duplicate Nook assignments, including existing conflicts.
+  macOS and other apps’ shortcut assignments are not inspectable here; Accessibility is still required globally.
+- About shows the app version/build, project links, MIT license, and the shared Sparkle update action.
+- The last pane and window frame persist in preferences. The Settings hosting controller pre-warms in a hidden window
+  shortly after launch, without activating the app or opening a second instance.

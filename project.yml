@@ -37,6 +37,7 @@ targets:
       - path: PLUGINS.md
         buildPhase: resources
     dependencies:
+      - sdk: AppIntents.framework # Xcode metadata extraction expects this system framework.
       - package: Sparkle
       - target: nook-cli
         embed: true

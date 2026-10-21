@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.11.0</title>
+  <pubDate>Wed, 21 Oct 2026 20:46:28 GMT</pubDate>
+  <sparkle:version>29</sparkle:version>
+  <sparkle:shortVersionString>1.11.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Plugin engine v2: plugins can ship their own native helper program (any language), with permissions you approve</li><li>Default plugins install from the Store and update on their own — Mouse is the first one moved out of the app</li><li>nook new &lt;id&gt; --native swift|rust|node|python · nook dev &lt;path&gt;</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.11.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="fRUO5SoT7Ch7BfdNivfPrM6AOqoNIGiOuD9lnzz9yuFHCWWGnOPmFAG0ni764xjs+31JIphFpwZ/1yTKJxkfAw==" length="12778286"/>
+</item>
+<item>
   <title>Nook 1.10.0</title>
   <pubDate>Wed, 21 Oct 2026 20:18:43 GMT</pubDate>
   <sparkle:version>28</sparkle:version>

@@ -17,7 +17,7 @@ final class PluginPermissions: ObservableObject {
 
     static let labels: [String: String] = [
         "files": "Read and change files in folders you choose", "clipboard": "Read, change and watch the clipboard",
-        "accessibility": "Read selected text and control other apps", "microphone": "Use your microphone",
+        "accessibility": "Read selected text and control other apps", "microphone": "Use your microphone", "audioCapture": "Capture and route application audio",
         "network": "Connect to the internet", "shell": "Run commands as your user", "ai": "Use your AI accounts and send prompts",
         "background": "Run while the plugin is enabled", "hotkeys": "Register global keyboard shortcuts",
         "notifications": "Send notifications", "launcher": "Add launcher items and answers",
@@ -67,6 +67,11 @@ final class PluginPermissions: ObservableObject {
         return true
     }
 
+    func adoptLegacy(_ manifest: PluginManifestV2) {
+        guard grants[manifest.id] == nil else { return }
+        grants[manifest.id] = PluginPermissionGrant(permissions:manifest.requested,native:true,fileScopes:[])
+        save()
+    }
     func revoke(_ id: String) {
         grants.removeValue(forKey: id); deniedThisSession.insert(id); save()
         Features.shared.setTab(id, false)

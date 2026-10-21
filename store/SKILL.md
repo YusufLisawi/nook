@@ -257,3 +257,45 @@ to Trash. Developer copies never auto-update. Don't bundle migrated native featu
 - Helpers migrate old data read-only into `NOOK_DATA_DIR`. Use private copies, reject symlinked cache/history roots,
   keep subsequent edits, and retain the old data. `file-search`, `clips`, `windows`, `launcher` are default:false and
   remain disabled until explicitly enabled. Each has its tests adjacent to the package. Build before validating.
+
+## Daily tools, on-demand helpers and host-owned audio
+
+`commands`, `agents`, `dictation`, `mixer` are `default:true` v2 packages. Feature code lives in their helpers;
+never import it back into Nook. Build each `build.sh`, then update the first-party migration pins with
+`python3 tests/migrate2/update-pins.py`, regenerate the Store catalog and rebuild the app. Exact pins apply only
+to first migration; normal capability-expanded updates still require consent. Keep legacy data read-only and
+copy once to `NOOK_DATA_DIR`, reject links, preserve later edits, use private modes and Trash for deletions.
+
+- `native.warmup:true` initializes/migrates/registers shortcuts once. `host.runtime.keepAlive {enabled:true}` leases
+  ongoing work; clear when it ends. Hidden unleased helpers exit after 30 seconds; host shortcuts wake them.
+- `contributes.settings:[{id,title,entry:"settings.html"}]` embeds a local plugin page in native Settings with the
+  kit/bridge. Omit entry for native grouped schema fields. Editors must handle load/empty/error, keyboard and saving.
+- `host.hotkeys.register/replace` accepts `mode:"hold"|"toggle"`, optional keyCode for modifier-only gestures;
+  `hotkey {id,phase:"pressed"|"released"|"cancelled",context?}` delivers lifecycle events. Only one hold/toggle each
+  globally. `hotkeys.record {id,modifierOnly?}` is an explicit native recorder; Esc cancels/Delete clears.
+- `selection.capture {context?}` returns `{app,clipboard}` and retains the target. `selection.get` reads it;
+  `selection.paste {text,after?,keepOnClipboard?}` restores target/range. Requires accessibility (capture also needs clipboard); use only after a
+  user action, never automated live-input tests. Empty context means the currently focused app.
+- `microphone.devices/start/stop` requires microphone. Start `{deviceUID?,path}` writes a fresh 16 kHz PCM16 mono
+  WAV only inside plugin data; stop closes it and returns `{duration,peak}`. A peak of 0 means digital silence.
+- `audioCapture.start {processes,outputUID}` returns an opaque handle; level/update/state/stop require that handle
+  and audioCapture permission. Gain is 0–2; state reports sawSignal. The host owns taps, not mixer policy.
+- Both capture APIs deliberately run in signed Nook, preserving its TCC identity instead of relying on child
+  responsibility attribution. Keep Info.plist usage strings/entitlements. Never request capture from the helper.
+  Disable/crash releases owned capture; page eviction must preserve leased work. Verify signed TCC on one Nook.
+- `activity.set {text,symbol?,color?,startedAt?,priority?}` can show elapsed time; Nook capture supplies the live level meter.
+- `ai.complete` delegates to Commands; requestID correlates caller-only aiDelta events. Requires ai; ordinary
+  helper calls time out at 15 seconds, provider completion at 150. Provider auth/model access still applies.
+- `secrets.*` uses Keychain. Only verified first-party account consumers receive the migrated shared Groq/OpenAI
+  account vault; IDs alone do not grant it. New/developer plugins use their own namespace.
+- `actions.register {items,group?}` merges named scopes for command-palette actions independently of Launcher;
+  `launcher.items` still requires Launcher enabled. `settings.chooseDirectory {}` returns a native picker result.
+
+Tests for these packages sit under each package's tests/. Shared inert stdio/migration fixtures are in
+`tests/migrate2`; UI harnesses use mocked window.nook under /tmp. Never launch Nook, record audio, capture app audio,
+or post real input during these tests. Report warm-helper measurements separately from the unlaunched app's idle
+CPU/memory; do not claim a live before/after measurement that was not performed.
+
+Agents' local SDK chunks session replies and tool notifications up to 32 MiB/transfer (four outstanding,
+expiring references), retaining the engine's 1 MiB frame limit. Keep that SDK when modifying its UI; persisted
+history is not truncated. Its adjacent transport test covers large UTF-8 chats and reordered notification chunks.

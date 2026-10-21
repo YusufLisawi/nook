@@ -1,0 +1,11 @@
+{
+  "description": "Hold or toggle voice capture with ChatGPT and Groq transcription.",
+  "author": "YusufLisawi",
+  "version": "2.0.0",
+  "default": true,
+  "tags": [
+    "dictation",
+    "native"
+  ],
+  "screenshots": []
+}

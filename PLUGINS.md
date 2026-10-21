@@ -645,3 +645,56 @@ Monitor and a visible calling tab. Home checks capabilities before invoking stat
 `host.files.scopes {}` / `nook.host.call('files.scopes')` returns the plugin's approved folder paths (`files`
 permission). Helpers can consult this before starting watchers or traversing protected paths. It does not add a
 grant, request TCC, or sandbox native code. Change approval through Settings → Tabs & Plugins → Permissions & Trust.
+
+## Daily-tool migration (v2)
+
+AI Commands (`commands`), Agents (`agents`), Dictation (`dictation`) and Mixer (`mixer`) are separate
+`default:true` Store packages. Their native helpers own prompts/providers, Codex sessions/tools/history,
+transcription/cleanup/retry, and mixer device/preferences/app-volume policy. They are no longer app services.
+Existing definitions/history/audio/preferences are copied once into `Data/<id>`; later edits stay there.
+Legacy files remain untouched. Old explicit feature/tab disables and saved shortcuts are respected.
+The host adopts only the exact SHA-256-pinned first-party migration packages with verified Store receipts;
+other/native/edited packages use normal consent. Revocation is never automatically undone.
+
+New generic host contracts (JavaScript `nook.host.call(method, params)`, helper `host.<method>`):
+
+| Method | Contract | Capability |
+| --- | --- | --- |
+| `hotkeys.register` | Existing keyed shortcuts also accept `mode:"hold"` or `"toggle"`. `keyCode` may be omitted for modifier-only gestures. Events are `hotkey {id,phase:"pressed"|"released"|"cancelled",context?}`; ordinary Carbon shortcuts emit a press. Hold cancellation preserves normal modifier+key shortcuts. | `hotkeys` |
+| `hotkeys.replace` | `{items:[register-shaped objects]}` atomically replaces this plugin's shortcuts, restoring prior registrations if a replacement conflicts. One active hold and one toggle gesture are supported across plugins. | `hotkeys` |
+| `hotkeys.record` | `{id,modifierOnly?:false}` records through a native local recorder after an explicit editor click; 15-second timeout, Esc cancels, Delete clears. Conflicts reject. No synthesized input. | `hotkeys` |
+| `selection.capture` | `{context?}` snapshots the external text target and returns `{app,clipboard}`. `selection.get {context?}` preserves that target for the next paste. Empty context explicitly captures the currently focused app; an opaque notch context uses its before-open snapshot. | `accessibility` + `clipboard` |
+| `selection.paste` | Adds `after?:false` and `keepOnClipboard?:false`; restores original target/range, supports replace or append, and retains rich clipboard snapshot/restore. Refuses a vanished/changed target. | `accessibility` |
+| `microphone.devices` | `{}` → `[{id,name}]`, without recording or prompting. | `microphone` |
+| `microphone.start` | `{deviceUID?,path}` starts a **fresh Nook-owned capture session**, 16 kHz mono PCM16 WAV at a new path inside this plugin's private data. Chosen mic falls back to default. One recording at a time. | `microphone` |
+| `microphone.stop` | `{}` → `{duration,peak}`; closes WAV before replying. Digital silence has peak 0. Disable/crash releases capture. PCM is spooled directly to private plugin data instead of base64 RPC frames. | `microphone` |
+| `audioCapture.start` | `{processes:[CoreAudioObjectID],outputUID}` → `{handle}`; creates a private process tap/aggregate/IOProc owned by Nook. No mixer discovery/preferences live in the host. Maximum 32 handles, 128 processes each. | `audioCapture` |
+| `audioCapture.level/update/state/stop` | `{handle,gain?,muted?,processes?}`; gain 0–2, update returns success, state returns `{sawSignal}`. Handles are scoped to the calling plugin and released on disable/crash. | `audioCapture` |
+| `runtime.keepAlive` | `{enabled}` retains an on-demand helper while work is live. Clear after completion. Closing/evicting a page does not stop an active leased capture. | approval |
+| `activity.set` | Adds `priority` (0–100, default 0; ties use most recent) and `startedAt` (Unix seconds); the closed notch shows elapsed time. A Nook-owned microphone also supplies its level meter at 20 Hz only while recording. | approval |
+| `settings.chooseDirectory` | `{}` opens a native folder picker after a user action, returns a path or null. It is a selection, not an OS grant. | approval |
+| `actions.register` | Adds optional `{group}` beside `items`; groups merge (100 actions total) so a helper's saved commands and its web UI actions coexist. Command-palette actions work with Launcher disabled. | `launcher` |
+
+`ai.complete {prompt,provider?,model?,effort?,requestID?}` delegates to the Commands provider helper;
+Codex partial results emit `aiDelta {requestID,text}` to the caller. No provider implementation is linked into
+Nook's AI router. The long provider RPC has a 150-second ceiling; ordinary helper RPC retains its 15-second limit.
+The Commands package must be installed, enabled and approved. `secrets.*` remains namespaced Keychain storage;
+verified first-party Commands/Dictation migration packages share the host's Groq/OpenAI account vault. Existing
+`.secrets` values are read-only migration input; new writes use Keychain. Custom/developer packages never obtain
+shared account credentials merely by choosing these IDs.
+
+`contributes.settings` supports `{id,title?,entry:"settings.html"}`. Nook renders that local page inside native
+Settings with the same injected kit, gated bridge and helper lifecycle as its notch page. Omit `entry` for the
+existing grouped SwiftUI scalar form. Settings links resolve to the contributed editor. `native.warmup:true`
+starts an approved helper once for migration/shortcut registration; after 30 seconds hidden and unleased, its
+process exits while host hotkeys, settings and palette registrations remain. Hotkeys/actions/UI calls wake it.
+The capture APIs deliberately keep TCC requests in signed Nook; no helper opens a microphone or process tap.
+Helpers are unsandboxed; capability gates do not confine native code. Signed single-instance TCC verification
+remains necessary; terminal tests do not prove app TCC attribution.
+
+Native palette actions deliver `beforeAction {context}` before their action event, preserving the originating
+notch's text target across helper cold starts and multiple displays. Invalid explicit text contexts fail closed.
+
+The Agents package SDK transparently chunks large session replies/tool notifications (32 MiB per transfer,
+four outstanding, 60-second helper reference expiry). This is package-local transport; generic engine frames
+remain capped at 1 MiB. Persisted sessions are not truncated.

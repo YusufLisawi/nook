@@ -1,0 +1,34 @@
+{
+  "id": "dictation",
+  "name": "Dictation",
+  "symbol": "waveform",
+  "entry": "index.html",
+  "order": 20,
+  "height": 220,
+  "apiVersion": 2,
+  "version": "2.0.0",
+  "native": {
+    "command": "bin/helper",
+    "background": false,
+    "warmup": true
+  },
+  "permissions": [
+    "microphone",
+    "network",
+    "secrets",
+    "clipboard",
+    "accessibility",
+    "hotkeys",
+    "notifications",
+    "launcher"
+  ],
+  "contributes": {
+    "settings": [
+      {
+        "id": "editor",
+        "title": "Dictation",
+        "entry": "settings.html"
+      }
+    ]
+  }
+}

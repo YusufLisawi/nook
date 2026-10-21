@@ -6,7 +6,7 @@ const root = process.argv[2];
 const flush = () => new Promise(resolve => setImmediate(resolve));
 (async () => {
   for (const id of ['monitor', 'home', 'mixer']) {
-    const folder = path.join(root, 'Plugins', id);
+    const folder = path.join(root, id === 'mixer' ? 'store/plugins' : 'Plugins', id);
     const dom = new JSDOM(fs.readFileSync(path.join(folder, 'index.html'), 'utf8'), { runScripts: 'outside-only', pretendToBeVisual: true });
     const w = dom.window, listeners = {}, intervals = new Map();
     let serial = 0, calls = 0;

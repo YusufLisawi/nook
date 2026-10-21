@@ -12,9 +12,10 @@ struct PluginManifestV2 {
     struct Native {
         let command: String?
         let run: [String]?
+        let warmup: Bool
         let background: Bool
     }
-    static let permissions: Set<String> = ["files", "clipboard", "accessibility", "microphone", "network", "shell", "ai", "background", "hotkeys", "notifications", "launcher", "windows", "secrets"]
+    static let permissions: Set<String> = ["files", "clipboard", "accessibility", "microphone", "network", "shell", "ai", "background", "hotkeys", "notifications", "launcher", "windows", "secrets", "audioCapture"]
     static let contributionNames: Set<String> = ["hotkeys", "launcherItems", "answerProviders", "searchProviders", "settings", "menuBar", "notchActivity", "urlHandlers", "backgroundJobs"]
     let id: String
     let name: String
@@ -29,6 +30,13 @@ struct PluginManifestV2 {
         guard data.count <= 1_000_000,
               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw PluginEngineError("Invalid plugin.json") }
         try self.init(json: json, directory: directory)
+        for row in contributes["settings"] ?? [] {
+            if let entry = row["entry"] as? String {
+                let page = try containedURL(entry)
+                let info = try page.resourceValues(forKeys:[.isRegularFileKey])
+                guard info.isRegularFile == true else { throw PluginEngineError("Settings entry must be a local page.") }
+            }
+        }
     }
 
     init(json: [String: Any], directory: URL) throws {
@@ -68,7 +76,8 @@ struct PluginManifestV2 {
                       Self.safeRelative(run[1]), !run[1].hasPrefix("-") else { throw PluginEngineError("native.run must be [interpreter, relative-script, arguments…].") }
             }
             if let b = spec["background"], !(b is NSNumber && CFGetTypeID(b as! NSNumber) == CFBooleanGetTypeID()) { throw PluginEngineError("native.background must be a boolean.") }
-            native = Native(command: command, run: run, background: spec["background"] as? Bool ?? false)
+            if let warmup = spec["warmup"], !(warmup is NSNumber && CFGetTypeID(warmup as! NSNumber) == CFBooleanGetTypeID()) { throw PluginEngineError("native.warmup must be a boolean.") }
+            native = Native(command: command, run: run, warmup: spec["warmup"] as? Bool ?? false, background: spec["background"] as? Bool ?? false)
             if native?.background == true, !permissions.contains("background") { throw PluginEngineError("A background helper must declare background permission.") }
         } else { native = nil }
         if (json["settings"] as? [[String: Any]] ?? []).contains(where: { $0["type"] as? String == "shortcut" }), !permissions.contains("hotkeys") { throw PluginEngineError("Shortcut settings require hotkeys permission.") }
@@ -86,6 +95,8 @@ struct PluginManifestV2 {
                     case "hotkeys":
                         guard let code = item["keyCode"] as? NSNumber, CFGetTypeID(code) != CFBooleanGetTypeID(), code.doubleValue == Double(code.intValue), (0...127).contains(code.intValue),
                               let flags = item["modifiers"] as? NSNumber, CFGetTypeID(flags) != CFBooleanGetTypeID(), flags.doubleValue == Double(flags.uint64Value), flags.uint64Value & 0x1C0000 != 0 else { throw PluginEngineError("Hotkeys need keyCode (0–127) and Command/Control/Option CGEventFlags modifiers.") }
+                    case "settings":
+                        if let entry = item["entry"] as? String, !Self.safeRelative(entry) { throw PluginEngineError("Settings entry must stay inside the plugin.") }
                     case "launcherItems": guard nonempty("title") else { throw PluginEngineError("Launcher items need a title.") }
                     case "searchProviders": guard nonempty("method"), nonempty("actionMethod"), json["native"] != nil else { throw PluginEngineError("Search providers need method, actionMethod and a native helper.") }
                     case "answerProviders": guard nonempty("prefix"), nonempty("method"), json["native"] != nil else { throw PluginEngineError("Answer providers need prefix, method and a native helper.") }
@@ -162,9 +173,10 @@ enum PluginCapabilityPolicy {
     /// Nil means the call is unknown, not unprivileged. Unknown v2 calls fail closed.
     static func required(_ method: String) -> Set<String>? {
         let method = method.hasPrefix("host.") ? String(method.dropFirst(5)) : method
+        if method == "selection.capture" { return ["accessibility", "clipboard"] }
         let family = method.split(separator: ".").first.map(String.init) ?? method
         switch family {
-        case "native", "notch", "activity", "storage", "settings", "log", "keyboard", "features": return []
+        case "runtime", "native", "notch", "activity", "storage", "settings", "log", "keyboard", "features": return []
         case "actions": return ["launcher"]
         case "clipboard": return ["clipboard"]
         case "files": return ["files"]
@@ -177,6 +189,8 @@ enum PluginCapabilityPolicy {
         case "secrets": return ["secrets"]
         case "windows": return ["windows"]
         case "launcher": return ["launcher"]
+        case "microphone": return ["microphone"]
+        case "audioCapture": return ["audioCapture"]
         case "jobs": return ["background"]
         case "open": return ["files"]
         default: return nil

@@ -41,7 +41,7 @@ struct NotchRootView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 guard !vm.isOpen else { return }
-                if case .dictation(.failed) = vm.activity { vm.open(tab: "dictation") } else { vm.open() }
+                if case let .plugin(activity) = vm.activity { vm.open(tab: activity.pluginID) } else { vm.open() }
             }
             .onDrop(of: [.fileURL], isTargeted: $vm.isDropTargeted) { providers in
                 guard Features.shared.tabEnabled("shelf") else { return false }
@@ -61,18 +61,21 @@ struct CollapsedView: View {
     @ObservedObject var vm: NotchViewModel
     private var media: MediaController { vm.services.media }
     private var timers: TimerService { vm.services.timers }
-    private var dictation: DictationService { vm.services.dictation }
 
     var body: some View {
         let height = vm.geometry.notch.height
         HStack {
             switch vm.activity {
-            case let .dictation(phase):
-                dictationSides(phase, height: height)
             case let .plugin(activity):
                 Image(systemName: activity.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color))
                 Spacer()
-                Text(activity.text).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color)).lineLimit(1)
+                if let level = activity.level { LevelBars(level: level).frame(width: 22, height: height * 0.5) }
+                if let started = activity.startedAt {
+                    TimelineView(.periodic(from:.now,by:0.5)) { context in
+                        let seconds = max(0,Int(context.date.timeIntervalSince(started)))
+                        Text(String(format:"%d:%02d",seconds / 60, seconds % 60)).font(.system(size:12,weight:.semibold)).monospacedDigit().foregroundStyle(Color(css:activity.color))
+                    }
+                } else { Text(activity.text).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(css: activity.color)).lineLimit(1) }
             case .music:
                 Artwork(image: media.artwork, size: height - 10)
                 Spacer()
@@ -89,36 +92,6 @@ struct CollapsedView: View {
         .frame(height: height)
     }
 
-    @ViewBuilder
-    private func dictationSides(_ phase: DictationService.Phase, height: CGFloat) -> some View {
-        switch phase {
-        case .recording:
-            Circle().fill(Color.red).frame(width: 8, height: 8)
-                .shadow(color: .red.opacity(0.8), radius: 4)
-            Spacer()
-            // How long you've been talking (replaces the level meter).
-            TimelineView(.periodic(from: .now, by: 0.5)) { context in
-                let seconds = Int(context.date.timeIntervalSince(dictation.recordingStartedAt ?? context.date))
-                Text(String(format: "%d:%02d", seconds / 60, seconds % 60))
-                    .font(.system(size: 12, weight: .semibold)).monospacedDigit()
-                    .foregroundStyle(.red)
-            }
-        case .transcribing:
-            Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            Spacer()
-            ProgressView().controlSize(.mini).tint(.white)
-        case .done:
-            Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            Spacer()
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-        case .failed:
-            Image(systemName: "waveform").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
-            Spacer()
-            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
-        case .idle:
-            EmptyView()
-        }
-    }
 }
 
 /// Live mic bars: centre bars move most.

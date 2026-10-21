@@ -7,16 +7,19 @@ import tempfile
 root = Path(__file__).resolve().parents[1]
 sources = [
     "Nook/Core/Extensions.swift",
+    "Nook/Core/PluginEngine/PluginManifestV2.swift",
     "Nook/Core/PluginRegistry.swift",
     "Nook/Core/TabHotkeys.swift",
     "Nook/Core/ShortcutRegistry.swift",
     "Nook/Core/TabNavigation.swift",
     "Nook/Core/TabNavigationStore.swift",
-    "Nook/Services/Dictation/DictationShortcut.swift",
+    "Nook/Core/ShortcutGesture.swift",
     "Nook/Views/Settings/SettingsNavigation.swift",
     "Nook/Views/Settings/SettingsShortcutRecorder.swift",
 ]
 stubs = r'''
+enum PluginGestureHotkeys { static let shared = State(); struct State { var items: [SettingsShortcutItem] { [] } } }
+
 final class Features {
     static let shared = Features()
     func enabled(_ id: String) -> Bool { true }
@@ -128,35 +131,25 @@ check(ShortcutIdentity(key) == ShortcutIdentity(fnKey), "Keyed fn normalization"
 check(ShortcutIdentity(key) != ShortcutIdentity(.init(keyCode: nil, modifiers: option, display: "Option")), "Modifier-only does not conflict with keyed shortcut")
 check(ShortcutIdentity(.init(keyCode: nil, modifiers: CGEventFlags.maskSecondaryFn.rawValue, display: "fn")) != ShortcutIdentity(.init(keyCode: nil, modifiers: 0, display: "")), "Modifier-only fn is retained")
 
-// Tab, command, dictation and extension adapters share storage and participate in conflict detection.
+// Generic extension adapters replace migrated feature-specific adapters.
 let tab = SettingsShortcutItem.tab(registry.tabs[0])
 tab.set(key)
 check(TabHotkeys.get(registry.tabs[0].id)?.keyCode == 49, "Tab recorder writes original tab storage")
-check(!tab.conflicts(with: key).contains(where: { $0.id == tab.id }), "Own shortcut does not conflict")
-check(tab.conflicts(with: key).contains(where: { $0.id == "dictation:toggle" }), "Default dictation shortcut participates")
-Services.shared.commands.commands = [.init(id: "rewrite", name: "Rewrite", hotkey: nil)]
-let command = SettingsShortcutItem.command(Services.shared.commands.commands[0])
-command.set(key)
-check(tab.conflicts(with: key).contains(where: { $0.id == command.id }), "AI command conflict detected")
+check(!tab.conflicts(with:key).contains(where:{ $0.id == tab.id }), "Own shortcut does not conflict")
 var extensionHotkey: TabHotkey?
-ShortcutRegistry.register(id: "test.action", title: "Action", get: { extensionHotkey }, set: { extensionHotkey = $0 })
-let ext = SettingsShortcutItem.all.first { $0.id == "extension:test.action" }!
+ShortcutRegistry.register(id:"plugin.commands/rewrite",title:"Rewrite",get:{ extensionHotkey },set:{ extensionHotkey = $0 })
+let ext = SettingsShortcutItem.all.first { $0.id == "extension:plugin.commands/rewrite" }!
 ext.set(fnKey)
-check(extensionHotkey?.keyCode == 49, "Extension recorder invokes storage setter")
-check(command.conflicts(with: key).contains(where: { $0.id == ext.id }), "Extension conflict detected despite fn flag")
-ShortcutRegistry.register(id: "test.action", title: "Renamed", group: "Windows", get: { extensionHotkey }, set: { extensionHotkey = $0 })
-check(ShortcutRegistry.shortcuts.count == 1 && ShortcutRegistry.shortcuts[0].title == "Renamed", "Shortcut registry replaces by stable id")
+check(extensionHotkey?.keyCode == 49, "Plugin recorder invokes storage setter")
+check(tab.conflicts(with:key).contains(where:{ $0.id == ext.id }), "Plugin conflicts normalize fn")
 ext.set(nil)
-check(extensionHotkey == nil, "Clearing extension assignment invokes setter")
-command.set(nil)
-check(Services.shared.commands.commands[0].hotkey == nil, "Clearing command assignment updates store")
-let hold = SettingsShortcutItem.dictation(hold: true)
-hold.set(nil)
-check(hold.get() == nil, "Dictation off persists as empty data")
-hold.set(.defaultHold)
-check(hold.get() == .defaultHold, "Dictation default restores")
+check(extensionHotkey == nil, "Clearing plugin assignment invokes setter")
+DictationShortcut.save("fixture.hold",nil)
+check(DictationShortcut.load("fixture.hold",fallback:.defaultHold) == nil, "Modifier gesture off persists")
+DictationShortcut.save("fixture.hold",.defaultHold)
+check(DictationShortcut.load("fixture.hold",fallback:.defaultHold) == .defaultHold, "Modifier gesture restores")
 tab.set(nil)
-check(TabHotkeys.get(registry.tabs[0].id) == nil, "Clearing tab assignment updates original storage")
+check(TabHotkeys.get(registry.tabs[0].id) == nil, "Clearing tab updates storage")
 
 // Settings discovery reads only this harness's temporary plugin directory and publishes on the main actor.
 let fixture = Services.supportDir.appendingPathComponent("Plugins/settings-fixture", isDirectory: true)

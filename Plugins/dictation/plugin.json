@@ -1,8 +1,0 @@
-{
-  "id": "dictation",
-  "name": "Dictation",
-  "symbol": "waveform",
-  "entry": "index.html",
-  "order": 20,
-  "height": 220
-}

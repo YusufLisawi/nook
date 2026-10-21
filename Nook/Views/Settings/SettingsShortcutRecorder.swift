@@ -17,21 +17,6 @@ struct SettingsShortcutItem: Identifiable {
              set: { TabHotkeys.set(tab.id, $0.flatMap(convert)) })
     }
 
-    static func command(_ command: AICommands.Command) -> Self {
-        Self(id: "command:\(command.id)", title: command.name, group: "AI Commands",
-             get: { Services.shared.commands.commands.first { $0.id == command.id }?.hotkey.map(convert) },
-             set: { Services.shared.commands.setHotkey(command.id, $0.flatMap(convert)) })
-    }
-
-    static func dictation(hold: Bool) -> Self {
-        let key = hold ? DictationService.Keys.holdShortcut : DictationService.Keys.toggleShortcut
-        let fallback: DictationShortcut = hold ? .defaultHold : .defaultToggle
-        return Self(id: hold ? "dictation:hold" : "dictation:toggle", title: hold ? "Hold to Talk" : "Toggle Recording",
-                    group: "Dictation", allowsModifierOnly: true, defaultShortcut: fallback,
-                    get: { DictationShortcut.load(key, fallback: fallback) },
-                    set: { DictationShortcut.save(key, $0); Services.shared.dictation.reloadShortcuts() })
-    }
-
     static func group(_ group: TabGroup) -> Self {
         Self(id: "group:\(group.id)", title: group.name, group: "Tab Groups",
              get: { TabNavigationStore.shared.group(group.id)?.hotkey.map(convert) },
@@ -47,10 +32,9 @@ struct SettingsShortcutItem: Identifiable {
 
     static var all: [Self] {
         Services.shared.plugins.orderedTabs.filter { Features.shared.tabEnabled($0.id) }.map(Self.tab)
-        + (Features.shared.enabled("commands") ? Services.shared.commands.commands.map(Self.command) : [])
-        + (Features.shared.enabled("dictation") ? [Self.dictation(hold: true), Self.dictation(hold: false)] : [])
         + TabNavigationStore.shared.groups.filter { $0.members.contains(where: Features.shared.tabEnabled) }.map(Self.group)
         + ShortcutRegistry.shortcuts.map(Self.registration)
+        + PluginGestureHotkeys.shared.items
     }
 
     func conflicts(with shortcut: DictationShortcut, excluding ids: Set<String> = []) -> [Self] {

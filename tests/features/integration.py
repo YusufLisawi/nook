@@ -19,4 +19,4 @@ assert 'LauncherApplicationIndex' not in launcher and 'FileSearchService' not in
 for folder in ['Files', 'Clips', 'Windows', 'Launcher']:
     assert not list(Path('Nook/Services', folder).glob('*.swift')), folder
 assert 'Services/Files/FileNameIndex.c' not in Path('project.yml').read_text()
-assert 'var hold: DictationShortcut? = .defaultHold' not in Path('Nook/Services/Dictation/HotkeyMonitor.swift').read_text()
+assert 'var hold: DictationShortcut? = .defaultHold' not in Path('Nook/Core/HotkeyMonitor.swift').read_text()

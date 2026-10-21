@@ -28,7 +28,9 @@ private struct PluginConsentDeclined: LocalizedError {
         guard Features.shared.enabled("pluginStore") else { throw CancellationError() }
         let manifest = try PluginManifestV2(json: json, directory: directory)
         guard manifest.apiVersion == 2 else { return }
-        guard await PluginPermissions.shared.review(manifest) else { throw PluginConsentDeclined() }
+        if !PluginDailyMigration.adopt(manifest) {
+            guard await PluginPermissions.shared.review(manifest) else { throw PluginConsentDeclined() }
+        }
         guard Features.shared.enabled("pluginStore") else { throw CancellationError() }
     }
     func check(settingsOpened: Bool = false) async {
@@ -46,11 +48,12 @@ private struct PluginConsentDeclined: LocalizedError {
             var defaultsSucceeded = true
             for entry in catalog.plugins {
                 let current = installed[entry.id]
-                let preinstall = !bootstrapped && entry.default == true && current == nil && !declinedDefaults.contains(entry.id)
+                let preinstall = (!bootstrapped || PluginDailyMigration.needsInstall(entry.id)) && entry.default == true && current == nil && !declinedDefaults.contains(entry.id)
                 let update = current?.receipt != nil && current?.receipt?.sha != entry.sha
                 guard preinstall || update else { continue }
                 do {
                     try await client.install(entry, update: update, approve: Self.approve)
+                    PluginDailyMigration.installed(entry.id)
                     Services.shared.plugins.reload(); Services.shared.plugins.touch()
                 } catch {
                     if preinstall {

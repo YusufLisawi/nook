@@ -291,3 +291,35 @@ timeouts stop the process group, and disabling/revoking cancels them. In-flight 
   physical footprint and captures top/footprint/sample. Timer stack matches are sample evidence, not a registered-timer
   count. A single-instance, multi-display hover/fullscreen/permission pass and before/after idle measurements remain lead
   review steps; this change was built and tested without launching Nook.
+
+## Store daily tools and permission ownership
+
+Commands, Agents, Dictation and Mixer now ship as default-enabled v2 Store packages. Their definitions/history,
+provider/transcription/session/mixer policy and editors live outside the app binary. First-party migration copies
+`ai-commands.json`, `agents.json`, `AgentSessions/`, `Dictation/` and matching defaults into private plugin data,
+preserving subsequent edits and explicit disables. Legacy data is retained. Host account secrets now use Keychain;
+legacy plaintext files are migration input only. The exact first-party packages are SHA-256 pinned for migration
+consent; updated or developer code does not silently inherit trust merely from a matching ID.
+
+Nook retains generic selection/paste, shortcut gestures, microphone PCM-to-WAV capture and opaque Core Audio tap
+handles so its existing Accessibility/Microphone/Audio Capture identity is preserved. Capture is released on helper
+crash, revoke or disable; hiding a page keeps explicitly leased work alive. Microphone buffers never cross JSON-RPC;
+only a private WAV path, duration and silence peak do. The closed notch displays elapsed recording time and level.
+Default-device choice, preferred devices and process grouping remain Mixer helper policy. One hold and one toggle
+plugin gesture may be active globally. Fresh sessions and digital-silence failures retain Dictation's safeguards.
+
+Approved helpers warm once, then exit 30 seconds after their last hidden idle period. Hotkeys remain in the host,
+so Commands and Dictation need no idle helper. Active Agents turns, recordings/transcriptions and non-unity Mixer
+levels or preferred-device enforcement retain their helper. Mixer uses event listeners when preferences require
+it; its 5-second tap reconciliation timer exists only with saved non-unity levels. Dictation audio retention runs
+at helper activation/settings changes instead of retaining an hourly idle timer.
+
+An initial Store connection is required after adopting this app version; migrated packages are not bundled back
+into Nook. Existing v2 packages keep working offline after installation. Custom v1 overrides using removed feature
+namespaces must migrate to their v2 helper API. The web Settings editor preserves controls/data but uses the
+injected UI kit within the native Settings window; it is not arbitrary SwiftUI view injection. Live focus/TCC,
+provider authentication/network and real audio routing still need the lead's single-instance Mac test.
+
+Agents uses plugin-side chunking for saved chats and tool updates up to 32 MiB per transfer (four concurrent
+transfers, expiring references). The engine retains its 1 MiB per-frame limit. Larger histories remain saved,
+but must be split into a new chat for this UI. No history is truncated to fit the transport.

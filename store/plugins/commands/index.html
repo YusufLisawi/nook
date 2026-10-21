@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="nk-root">
+    <div id="connect" class="connect nk-card nk-tint-accent" hidden>
+      <div class="nk-fill">
+        <div class="nk-title">Connect your ChatGPT subscription</div>
+        <div class="nk-small nk-muted">AI Commands run through your Codex login — no API key.</div>
+      </div>
+      <button id="setup" class="nk-btn nk-primary">Set up</button>
+    </div>
+
+    <div id="loading" class="nk-empty" role="status"><span class="nk-spinner"></span><span>Loading commands…</span></div>
+    <section id="deck" class="deck nk-fill nk-roving" data-nk-orientation="horizontal" aria-label="AI Commands"></section>
+    <div id="empty" class="nk-empty" hidden><b>No commands yet</b><span>Create them in Settings → AI Commands.</span></div>
+    <div id="error" class="nk-error" hidden></div>
+
+    <footer class="foot">
+      <span id="hint" class="nk-small nk-muted">←→ Choose  ↩ Run  ⌘↩ Edit  ⌘K Actions</span>
+      <button id="edit" class="nk-btn nk-ghost">Edit in Settings</button>
+    </footer>
+
+    <section id="result" class="result nk-card" hidden>
+      <header class="nk-row-flex">
+        <span id="r-name" class="nk-title nk-ellipsis nk-fill"></span>
+        <span id="r-status" class="nk-pill"></span>
+      </header>
+      <div id="r-text" class="r-text nk-scroll nk-fill"></div>
+      <footer class="nk-row-flex">
+        <button id="r-copy" class="nk-btn">Copy</button>
+        <button id="r-retry" class="nk-btn nk-ghost">Retry</button>
+        <span class="nk-fill"></span>
+        <button id="r-close" class="nk-btn">Close</button>
+      </footer>
+    </section>
+  </main>
+  <script src="sdk.js"></script>
+<script src="main.js"></script>
+  <script src="keyboard.js" defer></script>
+</body>
+</html>

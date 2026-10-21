@@ -1,0 +1,33 @@
+{
+  "id": "commands",
+  "name": "AI Commands",
+  "symbol": "wand.and.stars",
+  "entry": "index.html",
+  "order": 15,
+  "height": 120,
+  "apiVersion": 2,
+  "version": "2.0.0",
+  "native": {
+    "command": "bin/helper",
+    "background": false,
+    "warmup": true
+  },
+  "permissions": [
+    "ai",
+    "network",
+    "secrets",
+    "clipboard",
+    "accessibility",
+    "hotkeys",
+    "launcher"
+  ],
+  "contributes": {
+    "settings": [
+      {
+        "id": "editor",
+        "title": "AI Commands",
+        "entry": "settings.html"
+      }
+    ]
+  }
+}

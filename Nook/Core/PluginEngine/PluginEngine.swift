@@ -10,6 +10,10 @@ final class PluginEngine {
     private var bag = Set<AnyCancellable>()
     private var revisions: [String: Date] = [:]
     private var started = false
+    private var demanded = Set<String>()
+    private var busy = Set<String>()
+    private var warmed = Set<String>()
+    private var idleStops: [String: DispatchWorkItem] = [:]
     private var registryRevision = -1
 
     @MainActor static func start() {
@@ -35,6 +39,9 @@ final class PluginEngine {
         NotificationCenter.default.publisher(for: .nookPluginEvent).receive(on: RunLoop.main).sink { note in
             guard let event = note.userInfo?["event"] as? String, !event.hasPrefix("native:") else { return }
             let target = note.userInfo?["plugin"] as? String
+            if let target, ["hotkey","action","actionAlternate","beforeAction"].contains(event), engine.manifests[target] != nil {
+                engine.wake(target)
+            }
             for (id, helper) in engine.helpers where target == nil || target == id {
                 helper.notify("host.event", ["event": event, "data": note.userInfo?["payload"] ?? NSNull()])
             }
@@ -55,6 +62,7 @@ final class PluginEngine {
             do {
                 let manifest = try PluginManifestV2(directory: dir)
                 guard manifest.apiVersion == 2 else { continue }
+                if !PluginPermissions.shared.approved(manifest) { _ = PluginDailyMigration.adopt(manifest) }
                 current[tab.id] = manifest
                 let stamp = (try? dir.appendingPathComponent("plugin.json").resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
                 if revisions[tab.id] != stamp { stop(tab.id); revisions[tab.id] = stamp }
@@ -72,6 +80,7 @@ final class PluginEngine {
                 continue
             }
             PluginContributions.shared.install(manifest)
+            if manifest.native?.warmup == true, warmed.insert(id).inserted { wake(id) }
             if shouldRun(id), helpers[id] == nil { launch(manifest) }
         }
         PluginContributions.shared.reconcile(active: Set(manifests.values.filter { Features.shared.tabEnabled($0.id) && PluginPermissions.shared.approved($0) }.map(\.id)))
@@ -80,7 +89,7 @@ final class PluginEngine {
     private func shouldRun(_ id: String) -> Bool {
         guard let manifest = manifests[id], let native = manifest.native,
               Features.shared.tabEnabled(id), PluginPermissions.shared.approved(manifest) else { return false }
-        return native.background || visible.values.contains(id)
+        return native.background || visible.values.contains(id) || demanded.contains(id) || busy.contains(id)
     }
 
     private func launch(_ manifest: PluginManifestV2) {
@@ -88,32 +97,58 @@ final class PluginEngine {
         let helper = PluginHelperProcess(manifest: manifest, dataDirectory: Self.dataDirectory(id), host: { method, params, reply in
             DispatchQueue.main.async { self.hostCall(id: id, method: method, params: params, vm: nil, reply: reply) }
         }, event: { event, payload in
-            DispatchQueue.main.async { PluginEvents.emit("native:" + event, payload, to: id) }
+            DispatchQueue.main.async {
+                if event == "stopped" { PluginHostAPI.shared.stop(id); if Services.shared.pluginActivity?.pluginID == id { Services.shared.pluginActivity = nil } }
+                PluginEvents.emit("native:" + event,payload,to:id)
+            }
         }, log: { PluginLog.write(id, level: "helper", message: $0) })
         helpers[id] = helper; helper.start()
     }
 
     func stop(_ id: String) {
+        idleStops.removeValue(forKey:id)?.cancel(); demanded.remove(id); busy.remove(id); warmed.remove(id)
         helpers.removeValue(forKey: id)?.stop()
         PluginContributions.shared.remove(id)
         PluginHostAPI.shared.stop(id)
         if Services.shared.pluginActivity?.pluginID == id { Services.shared.pluginActivity = nil }
+    }
+    func wake(_ id: String) {
+        guard let manifest = manifests[id], manifest.native != nil, Features.shared.tabEnabled(id), PluginPermissions.shared.approved(manifest) else { return }
+        demanded.insert(id)
+        if helpers[id] == nil { launch(manifest) }
+        keepAlive(id,enabled:busy.contains(id))
+    }
+    func keepAlive(_ id: String, enabled: Bool) {
+        idleStops.removeValue(forKey:id)?.cancel()
+        if enabled { busy.insert(id); return }
+        busy.remove(id)
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.busy.contains(id), !self.visible.values.contains(id), self.manifests[id]?.native?.background != true else { return }
+            self.demanded.remove(id)
+            // Suspend the process, retaining host-owned declarative shortcuts/settings.
+            self.helpers.removeValue(forKey:id)?.stop()
+            PluginHostAPI.shared.stop(id)
+        }
+        idleStops[id] = work; DispatchQueue.main.asyncAfter(deadline:.now()+30,execute:work)
     }
     func shutdown() { Array(manifests.keys).forEach(stop) }
     static func dataDirectory(_ id: String) -> URL { Services.supportDir.appendingPathComponent("Data/\(id)", isDirectory: true) }
 
     func setVisible(owner: String, plugin: String?) {
         guard visible[owner] != plugin else { return }
+        let previous = visible[owner]
         visible[owner] = plugin
+        if let previous { keepAlive(previous,enabled:busy.contains(previous)) }
         reconcile()
     }
     func releasePage(_ id: String) {
+        guard !busy.contains(id) else { return }
         if manifests[id]?.native?.background != true,
            !Features.shared.tabEnabled(id) || !visible.values.contains(id) {
             PluginHostAPI.shared.stop(id)
         }
     }
-    func removeOwner(_ owner: String) { visible.removeValue(forKey: owner); reconcile() }
+    func removeOwner(_ owner: String) { let previous = visible.removeValue(forKey: owner); if let previous { keepAlive(previous,enabled:busy.contains(previous)) }; reconcile() }
 
     /// The web host calls this BEFORE its legacy switch, so v2 cannot escape the capability gate.
     func intercept(id: String, directory: URL?, method: String, args: [Any], vm: NotchViewModel?, reply: @escaping PluginHelperProcess.Reply) -> Bool {
@@ -132,6 +167,7 @@ final class PluginEngine {
             hostCall(id: id, method: args.first as? String ?? "", params: args.dropFirst().first ?? [:], vm: vm, reply: reply)
         } else if method == "native.call" {
             guard let manifest = manifests[id], PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id) else { return reply(nil, "Plugin access is not approved or the plugin is disabled.") }
+            wake(id)
             reconcile()
             guard let helper = helpers[id] else { return reply(nil, "Helper unavailable. Open this plugin’s tab or enable background mode.") }
             var parameters = args.dropFirst().first as? [String: Any] ?? [:]

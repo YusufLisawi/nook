@@ -4,13 +4,16 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const root = process.cwd();
+const only = process.argv[2];
+const selected = list => only ? list.filter(name => name === only) : list;
+const pluginDir = name => path.join(root, ['commands','dictation','mixer','agents'].includes(name) ? 'store/plugins' : 'Plugins', name);
 const rejections = []; process.on('unhandledRejection', error => rejections.push(error));
 const wait = () => new Promise(resolve => setTimeout(resolve, 20));
 const snap = () => ({ output: { devices: [{uid:'out',name:'Speakers',volume:.5,isDefault:true,muted:false}] }, input: {devices: [{uid:'mic1',name:'Mic 1',volume:.6,isDefault:true}, {uid:'mic2',name:'Mic 2',volume:.5,isDefault:false}]}, apps: [{id:'one',name:'One',volume:.5,playing:true,muted:false},{id:'two',name:'Two',volume:1,playing:true,muted:false}], needsPermission:false });
 const hist = () => [{id:'d1',status:'done',text:'First transcript',date:new Date().toISOString(),duration:4},{id:'d2',status:'done',text:'Second transcript',date:new Date().toISOString(),duration:5},{id:'d3',status:'failed',error:'Offline',date:new Date().toISOString(),duration:0}];
 const proxies = () => ({proxies:[{id:'p1',name:'One',host:'localhost',port:8000},{id:'p2',name:'Two',host:'localhost',port:8001}],activeId:null});
 async function create(name, empty=false, fail=false) {
- const html=fs.readFileSync(path.join(root,'Plugins',name,'index.html'),'utf8');
+ const html=fs.readFileSync(path.join(pluginDir(name),'index.html'),'utf8');
  const errors=[], calls=[], events={}, registrations=[];
  const vc=new VirtualConsole(); vc.on('jsdomError',e=>errors.push(e.message));
  const dom=new JSDOM(html,{runScripts:'outside-only',pretendToBeVisual:true,url:'https://nook.test/',virtualConsole:vc});
@@ -34,10 +37,13 @@ async function create(name, empty=false, fail=false) {
   timer:{state:record('timer.state',{running:false}),start:record('timer.start',{running:true,mode:'timer',text:'15:00'}),stop:record('timer.stop',{})},
   system:record('system',{cpu:{usage:.1,cores:8},memory:{used:8e9,total:16e9},disk:{used:5e11,total:1e12,free:5e11},network:{downBps:10,upBps:10},battery:null,load:[1,2,3],thermal:'nominal',uptime:100}),
   shell:record('shell',{code:0,stdout: name==='monitor'?'%CPU RSS COMM\n12.0 12345 Test\n5.0 54321 Other\n':'/tmp/mock-home\n',stderr:''})};
+ const aliases = {commands:w.nook.commands,dictation:w.nook.dictation,audio:w.nook.audio};
+ w.nook._emit = (event,data) => { for (const cb of events[event] || []) cb(data); };
+ w.nook.native = {on:(e,cb)=>(events['native:'+e]??=[]).push(cb),call:async(method,p={})=> { const [ns,fn]=method.split('.'); if (!aliases[ns]?.[fn]) throw Error('Unknown mock '+method); return aliases[ns][fn](...(p.args || [])); }};
  const style=d.createElement('style'); style.textContent=fs.readFileSync(path.join(root,'NookUI/nook-ui.css'),'utf8');d.head.append(style);
  w.eval(fs.readFileSync(path.join(root,'NookUI/nook-keyboard.js'),'utf8'));
  w.addEventListener('error',e=>errors.push(e.message));
- for(const script of d.querySelectorAll('script[src]')) vm.runInContext(fs.readFileSync(path.join(root,'Plugins',name,script.getAttribute('src')),'utf8'),dom.getInternalVMContext());
+ for(const script of d.querySelectorAll('script[src]')) vm.runInContext(fs.readFileSync(path.join(pluginDir(name),script.getAttribute('src')),'utf8'),dom.getInternalVMContext());
  await wait(); await wait();
  const fire=(el,key,props={})=>el.dispatchEvent(new w.KeyboardEvent('keydown',{key,bubbles:true,cancelable:true,...props}));
  const emit=async(e,p)=>{for(const cb of events[e]??[]) await cb(p);await wait();};
@@ -59,10 +65,10 @@ async function rovingUnit() {
 }
 (async()=>{
  await rovingUnit();
- for(const name of ['commands','links','notes','home','mixer','cleaner','dictation','proxy','teleprompter','monitor']) {
+ for(const name of selected(['commands','links','notes','home','mixer','cleaner','dictation','proxy','teleprompter','monitor'])) {
   const t=await create(name);const {w,d,fire,calls}=t;
   assert.equal(t.errors.length,0,name+': '+t.errors.join('\n'));assert.ok(t.registrations[0]?.length,name+' actions');
-  const definitions=JSON.parse(fs.readFileSync(path.join(root,'Plugins',name,'keyboard.js'),'utf8').match(/const definitions = (\[[\s\S]*?\]);/)[1]);
+  const definitions=JSON.parse(fs.readFileSync(path.join(pluginDir(name),'keyboard.js'),'utf8').match(/const definitions = (\[[\s\S]*?\]);/)[1]);
   for(const action of definitions) assert.ok(d.querySelector(action.selector),`${name}: action target ${action.id}`);
   for(const action of t.registrations[0]){assert.ok(action.id&&action.title);assert.ok(Object.values(action).every(v=>v!==undefined));}
   const rows=[...d.querySelectorAll('[data-nk-item]')].filter(el=>el.getClientRects().length&&!el.disabled&&el.getAttribute('aria-disabled')!=='true');
@@ -78,10 +84,10 @@ async function rovingUnit() {
   if(name==='teleprompter'){const script=d.querySelector('#script');script.focus();fire(script,'Enter',{metaKey:true});await wait();assert.equal(d.querySelector('#play-view').hidden,false);}
   if(name==='monitor'){rows[0].focus();fire(rows[0],'ArrowRight');assert.equal(d.activeElement,rows[1]);assert.equal(rows[0].getAttribute('role'),'group');}
   if(['links','notes','home','dictation','monitor'].includes(name)) { const action={links:['search-links','search'],notes:['search-notes','search'],home:['add-todo','new'],dictation:['search-history','search'],monitor:['inspect-metrics','cpu-tile']}[name]; await t.emit('action',action[0]);assert.equal(d.activeElement.id,action[1]);await t.emit('actionAlternate',action[0]);assert.equal(d.activeElement.id,action[1]); }
-  if(name==='commands') { await t.emit('action','edit-commands');assert.ok(calls.some(c=>c[0]==='open'&&c[1]==='nook://settings/commands')); }
+  if(name==='commands') { await t.emit('action','edit-commands');assert.ok(calls.some(c=>c[0]==='settings.open')); }
   console.log('PASS '+name+' mocked bridge + actions + keyboard');t.dom.window.dispatchEvent(new w.Event('pagehide'));t.dom.window.close();
  }
- for(const name of ['commands','links','notes','home','mixer','cleaner','dictation','proxy','teleprompter','monitor']) {
+ for(const name of selected(['commands','links','notes','home','mixer','cleaner','dictation','proxy','teleprompter','monitor'])) {
   for(const fail of [false,true]) {
    const start=rejections.length; const t=await create(name,true,fail);
    assert.equal(t.errors.length,0,`${name} ${fail?'error':'empty'}: ${t.errors.join('; ')}`);

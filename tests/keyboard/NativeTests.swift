@@ -26,7 +26,7 @@ import AppKit
         register([["id": "disabled", "title": "Hidden action"]], plugin: "disabled")
         Services.shared.plugins.tabs = [.init(id: "home", name: "Home", height: 210), .init(id: "notes", name: "Notes", height: 210)]
         let vm = NotchViewModel(geometry: NotchGeometry())
-        Services.shared.commands.commands = [AICommands.Command(id: "ai", name: "Summarize"), AICommands.Command(id: "off", name: "Disabled", enabled: false)]
+        register([["id":"ai", "title":"Summarize"]], owner: "plugin-engine", plugin: "notes")
         let state = vm.keyboard
         precondition(state.results.count == 5) // 2 tabs, 1 AI command, 2 actions on this display
         precondition(!state.results.contains { $0.title == "Search notes" || $0.title == "Hidden action" || $0.title == "Disabled" })

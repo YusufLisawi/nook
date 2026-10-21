@@ -89,7 +89,7 @@ struct AIPane: View {
             }
             Section {
                 SecureField("Groq API key", text: $groqKey)
-                    .onChange(of: groqKey) { _, key in if keysLoaded { Secrets.set(DictationService.Keys.groqSecret, key.trimmingCharacters(in: .whitespaces)) } }
+                    .onChange(of: groqKey) { _, key in if keysLoaded { Secrets.set("groq_api_key", key.trimmingCharacters(in: .whitespaces)) } }
                 SecureField("OpenAI API key", text: $openAIKey)
                     .onChange(of: openAIKey) { _, key in if keysLoaded { Secrets.set(AIBrain.openAISecret, key.trimmingCharacters(in: .whitespaces)) } }
             } header: {
@@ -103,7 +103,7 @@ struct AIPane: View {
         .task {
             async let status: Void = connection.refresh()
             let keys = await Task.detached(priority: .utility) {
-                (Secrets.get(DictationService.Keys.groqSecret) ?? "", Secrets.get(AIBrain.openAISecret) ?? "")
+                (Secrets.get("groq_api_key") ?? "", Secrets.get(AIBrain.openAISecret) ?? "")
             }.value
             groqKey = keys.0
             openAIKey = keys.1

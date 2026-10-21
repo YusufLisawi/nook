@@ -57,7 +57,7 @@ final class PluginHelperProcess: @unchecked Sendable {
             do { _ = try PluginRPCFramer.encode(message) } catch { return reply(nil, error.localizedDescription) }
             self.pending[id] = reply
             self.send(message)
-            self.queue.asyncAfter(deadline: .now() + 15) {
+            self.queue.asyncAfter(deadline: .now() + (method == "ai.complete" ? 150 : 15)) {
                 if let reply = self.pending.removeValue(forKey: id) { reply(nil, "Helper request timed out after 15 seconds.") }
             }
         }
@@ -77,8 +77,9 @@ final class PluginHelperProcess: @unchecked Sendable {
             task.currentDirectoryURL = manifest.directory
             // Do not leak the app's API keys or arbitrary injected environment into plugins.
             let parent = ProcessInfo.processInfo.environment
-            var env = Dictionary(uniqueKeysWithValues: ["HOME", "USER", "LOGNAME", "TMPDIR", "LANG"].compactMap { key in parent[key].map { (key, $0) } })
+            var env = Dictionary(uniqueKeysWithValues: ["HOME", "USER", "LOGNAME", "TMPDIR", "LANG", "CODEX_HOME"].compactMap { key in parent[key].map { (key, $0) } })
             env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+            env["NOOK_HOST_PID"] = String(ProcessInfo.processInfo.processIdentifier)
             env["NOOK_PLUGIN_ID"] = manifest.id; env["NOOK_PLUGIN_DIR"] = manifest.directory.path; env["NOOK_DATA_DIR"] = dataDirectory.path
             task.environment = env
             task.standardInput = stdin; task.standardOutput = stdout; task.standardError = stderr
@@ -101,6 +102,7 @@ final class PluginHelperProcess: @unchecked Sendable {
                 self?.queue.async { [weak self] in
                     guard let self, self.generation == token else { return }
                     self.log("Helper exited (\(task.terminationStatus)).")
+                    self.event("stopped", ["status":task.terminationStatus])
                     if self.launcher != nil {
                         let pid = task.processIdentifier
                         kill(-pid, SIGTERM)

@@ -28,3 +28,11 @@ test('search contributions and native shortcut settings require their capabiliti
   assert.ok(validateV2({...base,settings:[{key:'shortcut.open',label:'Open',type:'shortcut'}]},files).length);
   assert.deepEqual(validateV2({...base,permissions:['hotkeys'],settings:[{key:'shortcut.open',label:'Open',type:'shortcut'}]},files),[]);
 });
+
+test('daily helper warmup, Settings pages and audio capture declarations', () => {
+  const spec = {...base,native:{command:'bin/helper',warmup:true},permissions:['microphone','audioCapture'],contributes:{settings:[{id:'editor',entry:'settings.html'}]}};
+  assert.deepEqual(validateV2(spec,[...files,{path:'settings.html',executable:false}]),[]);
+  assert.ok(validateV2({...spec,native:{command:'bin/helper',warmup:1}},files).length);
+  assert.ok(validateV2({...spec,contributes:{settings:[{id:'editor',entry:'../outside.html'}]}},files).length);
+  assert.ok(validateV2(spec,files).length);
+});

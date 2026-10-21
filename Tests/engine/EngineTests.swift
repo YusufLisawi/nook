@@ -45,7 +45,7 @@ private final class Locked<T>: @unchecked Sendable {
         let grant = PluginPermissionGrant(permissions: m.requested, native: false, fileScopes: [])
         try PluginCapabilityPolicy.check("host.clipboard.read", manifest: m, grant: grant)
         try PluginCapabilityPolicy.check("fetch", manifest: m, grant: grant)
-        for method in ["shell", "ai.complete", "files.read", "selection.paste", "secrets.get", "commands.run", "proxy.connect", "unlisted"] {
+        for method in ["shell", "ai.complete", "files.read", "selection.paste", "secrets.get", "commands.run", "proxy.connect", "microphone.start", "audioCapture.start", "unlisted"] {
             try rejects { try PluginCapabilityPolicy.check(method, manifest: m, grant: grant) }
         }
         let revoked = PluginPermissionGrant(permissions: [], native: false, fileScopes: [])
@@ -62,6 +62,8 @@ private final class Locked<T>: @unchecked Sendable {
             ["native": ["command": "bin/helper", "run": ["node", "main.js"]]],
             ["native": ["command": "bin/helper", "background": true]],
             ["native": ["command": "bin/helper", "background": 1]],
+            ["native": ["command": "bin/helper", "warmup": 1]],
+            ["contributes": ["settings": [["id":"editor", "entry":"../outside.html"]]]],
             ["permissions": ["all"]], ["permissions": ["ai", "ai"]],
             ["entry": "../index.html"], ["contributes": ["unknown": []]],
             ["contributes": ["hotkeys": [["id": "x"]]]],

@@ -19,10 +19,13 @@ final class NotchViewModel: ObservableObject {
     static let dockHeight: CGFloat = 30
 
     @Published var state: NotchState = .closed
-    /// Whether the open notch's content is in the view tree. It is removed with animations off the moment the notch starts
-    /// closing: SwiftUI keeps a removed view (and anything backed by an NSView: web tabs, tooltips, drag handlers) alive until
+    /// Whether the open notch's content is in the view tree. Attach immediately for focus; remove without animation when
+    /// closing. SwiftUI keeps a removed view (and anything backed by an NSView: web tabs, tooltips, drag handlers) alive until
     /// the notch's size animation settles, which left the content hanging around as a ghost.
     @Published private(set) var showsContent = false
+    /// Attachment is immediate; only the visual reveal waits for the shape.
+    @Published private(set) var contentRevealed = false
+    var contentDidAttach: (() -> Void)?
     @Published var tab: String = "home" {
         willSet {
             if newValue != tab, launcherPresented {
@@ -169,10 +172,17 @@ final class NotchViewModel: ObservableObject {
         if Prefs.bool(Prefs.haptics) {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         }
-        withAnimation(Self.spring) { state = .open }
-// Content fades in once the notch has mostly grown, so it never pokes out of the shape.
         pendingReveal?.cancel()
-        let reveal = DispatchWorkItem { [weak self] in withAnimation(.easeOut(duration: 0.18)) { self?.showsContent = true } }
+        withAnimation(Self.spring) {
+            state = .open
+            showsContent = true
+            contentRevealed = keyboard.engaged
+        }
+        // Keep responders attached during the visual delay, including native tabs and launcher search.
+        let reveal = DispatchWorkItem { [weak self] in
+            guard let self, self.isOpen else { return }
+            withAnimation(.easeOut(duration: 0.18)) { self.contentRevealed = true }
+        }
         pendingReveal = reveal
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: reveal)
         if !launcherPresented { web.emit("open", self.tab) }
@@ -210,9 +220,13 @@ final class NotchViewModel: ObservableObject {
         withAnimation(Self.spring) { state = .closed }
         // A separate update pass: when it shared one with the animated resize, SwiftUI could leave the shape at its open size.
         DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isOpen else { return } // an immediate reopen owns the new content
             var instant = Transaction()
             instant.disablesAnimations = true
-            withTransaction(instant) { self?.showsContent = false }
+            withTransaction(instant) {
+                self.showsContent = false
+                self.contentRevealed = false
+            }
         }
         web.emit("close", tab)
         onClose?()

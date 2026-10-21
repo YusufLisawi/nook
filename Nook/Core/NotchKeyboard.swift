@@ -86,13 +86,25 @@ final class NotchKeyboardController {
     private var tabSubscription: AnyCancellable?
     private var focusSubscription: AnyCancellable?
     private var focusRequest = 0
+    private var focusPending = false
+    private var bufferedKeys: [NSEvent] = []
 
     init(panel: NotchPanel, vm: NotchViewModel) {
         self.panel = panel
         self.vm = vm
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel, self.vm?.isOpen == true else { return event }
-            return self.handle(event) ? nil : event
+            if self.handle(event) { return nil }
+            if self.focusPending {
+                self.bufferedKeys.append(event)
+                return nil
+            }
+            return event
+        }
+        vm.contentDidAttach = { [weak self, weak vm] in
+            guard let self, vm?.keyboard.engaged == true else { return }
+            if vm?.launcherPresented == true { self.finishFocus() }
+            else { self.focusContent() }
         }
         tabSubscription = vm.$tab.dropFirst().sink { [weak self] _ in
             DispatchQueue.main.async {
@@ -112,6 +124,7 @@ final class NotchKeyboardController {
         if !panel.isKeyWindow {
             previousKeyWindow = NSApp.keyWindow.flatMap { $0 is NotchPanel ? nil : $0 }
         }
+        focusPending = true
         vm.keyboard.engaged = true
         vm.open()
         panel.ignoresMouseEvents = false
@@ -121,6 +134,8 @@ final class NotchKeyboardController {
 
     func didClose() {
         focusRequest += 1
+        focusPending = false
+        bufferedKeys.removeAll()
         vm?.keyboard.isPresented = false
         vm?.keyboard.engaged = false
         if panel?.isKeyWindow == true, let previousKeyWindow, previousKeyWindow.isVisible { previousKeyWindow.makeKey() }
@@ -137,6 +152,7 @@ final class NotchKeyboardController {
 
     private func focusContent(attempt: Int = 0, completion: (() -> Void)? = nil) {
         focusRequest += 1
+        if vm?.launcherPresented != true { focusPending = true }
         let request = focusRequest
         // Wait for the newly selected SwiftUI content to attach, without focusing a detached WKWebView.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) { [weak self] in
@@ -145,7 +161,10 @@ final class NotchKeyboardController {
             if !vm.showingSettings, let tab = vm.currentTab, let view = vm.web.view(for: tab) {
                 if view.window === panel {
                     panel.makeFirstResponder(view)
-                    view.evaluateJavaScript("window.nook?.keyboard?.focus()") { _, _ in completion?() }
+                    view.evaluateJavaScript("window.nook?.keyboard?.focus()") { [weak self] _, _ in
+                        self?.finishFocus()
+                        completion?()
+                    }
                 } else if attempt < 5 {
                     self.focusContent(attempt: attempt + 1, completion: completion)
                 }
@@ -155,9 +174,22 @@ final class NotchKeyboardController {
                 if !vm.showingSettings {
                     NotificationCenter.default.post(name: .nookKeyboardFocus, object: panel, userInfo: ["tab": vm.tab, "owner": vm.web.keyboardID])
                 }
-                completion?()
+                // Native FocusState changes in the notification commit on the next update pass.
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.focusRequest == request else { return }
+                    self.finishFocus()
+                    completion?()
+                }
             }
         }
+    }
+
+    private func finishFocus() {
+        guard let vm, vm.isOpen, panel?.isKeyWindow == true else { return }
+        focusPending = false
+        let keys = bufferedKeys
+        bufferedKeys.removeAll()
+        for event in keys where vm.isOpen { NSApp.sendEvent(event) }
     }
 
     private func dismissPalette() {

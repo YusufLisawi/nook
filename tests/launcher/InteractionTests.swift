@@ -23,6 +23,8 @@ struct InteractionTests {
         state.present(); vm.open()
         check(AICommandContext.captures == 1, "Capture context on open")
         check(vm.launcherPresented && vm.keyboard.engaged, "Open launcher as a keyboard notch mode")
+        check(vm.showsContent && vm.contentRevealed, "Keyboard launch attaches and reveals without the 180 ms delay")
+        check(!vm.web.events.contains { $0.0 == "open" }, "Launcher never emits a tab open event")
         check(vm.contentSize.width == 720 && vm.contentSize.height <= 560, "Launcher fits existing panel")
         vm.hoverEnded()
         check(vm.isOpen, "Pointer leaving doesn't close launcher")
@@ -99,6 +101,17 @@ struct InteractionTests {
         check(state.answer == "Reply: Explain this literal $(query)" && !state.thinking, "Native Quick AI streams the literal query through the AI pipeline")
         state.escape(); check(state.chatQuery == nil && vm.isOpen, "Escape backs out of Quick AI to search")
         state.escape(); state.escape()
+        vm.keyboard.engaged = false
+        vm.open()
+        check(vm.showsContent && !vm.contentRevealed, "Hover entry attaches responders before visual reveal")
+        vm.close()
+        drain()
+        check(!vm.showsContent, "Close detaches native and web content on the next pass")
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        check(!vm.showsContent && !vm.contentRevealed, "Cancelled reveal cannot resurrect closed content")
+        vm.open(); vm.close(); vm.keyboard.engaged = true; vm.open(); drain()
+        check(vm.showsContent && vm.contentRevealed, "Immediate reopen survives the prior close cleanup")
+        vm.close(); drain()
         print("Passed \(checks) launcher mode, keyboard, source, confirmation, persistence and lifecycle checks without launching Nook")
     }
 }

@@ -18,9 +18,14 @@ struct NotchRootView: View {
                 Group {
                     if vm.showsContent {
                         Group {
-                            if vm.launcherPresented { LauncherView(vm: vm) }
-                            else { ExpandedView(vm: vm) }
-                        }.transition(.opacity)
+                            if vm.launcherPresented { LauncherView(vm: vm).transition(.opacity) }
+                            else {
+                                ExpandedView(vm: vm).transition(.opacity)
+                                    .onAppear { vm.contentDidAttach?() }
+                            }
+                        }
+                        .opacity(vm.contentRevealed ? 1 : 0)
+                        .transition(.opacity)
                     } else if !vm.isOpen {
                         CollapsedView(vm: vm).transition(.opacity)
                     }

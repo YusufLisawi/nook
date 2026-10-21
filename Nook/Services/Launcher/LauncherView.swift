@@ -36,7 +36,11 @@ struct LauncherView: View {
         }
         .foregroundStyle(.white)
         .focusEffectDisabled()
-        .onAppear { searching = true }
+        .onAppear {
+            searching = true
+            // FocusState commits after attachment; release any early typing on the next pass.
+            DispatchQueue.main.async { vm.contentDidAttach?() }
+        }
         .onChange(of: state.chatQuery) { _, value in if value == nil { searching = true } }
         .onChange(of: state.error) { _, _ in state.resize() }
         .onChange(of: focusedResult) { _, id in

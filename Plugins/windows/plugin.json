@@ -1,0 +1,11 @@
+{
+  "id": "windows",
+  "name": "Windows",
+  "symbol": "macwindow",
+  "entry": "index.html",
+  "order": 48,
+  "height": 260,
+  "settings": [
+    { "key": "closeAfterAction", "label": "Close after applying", "type": "toggle", "default": true, "help": "Desktop moves always close the notch while moving the window." }
+  ]
+}

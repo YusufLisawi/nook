@@ -22,6 +22,7 @@ They load at runtime: **no Xcode, no rebuild, no restart.**
 | Keep running in the background | the web view stays alive while Nook runs (timers, polling, sockets keep going) |
 | React to Nook | `nook.on('open'|'close'|'show'|'proxy'|'dictation'|…)` |
 | Get a global shortcut | the user assigns one per tab in Settings → Tabs & plugins |
+| Move and resize app windows | `nook.windows.state/apply` — layouts, relative display moves, adjacent desktop moves; per-action global shortcuts in Settings → Window Management |
 | Be driven from outside | `nook open|toggle <id>` / `nook://open/<id>` URLs (scripts, Raycast, Shortcuts) |
 | Override a built-in tab | ship a plugin with the same `id` (e.g. `home`) |
 
@@ -57,3 +58,24 @@ Because `nook.shell` exists, **most "native" ideas are still plugins**: control 
   diffs and may include earlier edits. Histories are local, unencrypted JSON with private file permissions; there is no
   automatic retention limit. Nook cancels local process groups/descendants; remote tools or already-detached daemons
   may continue work. Quitting interrupts active chats; saved Codex sessions can be resumed after reopening.
+
+
+## Window management limits
+
+Window actions require Accessibility and an app that exposes a movable/resizable focused AX window. Layouts use each
+display's `visibleFrame`, leaving the menu bar and Dock available. App minimum sizes and fixed-size windows can prevent
+a layout; Nook reports the constraint and retains a Restore frame. Stage Manager's recent-app strip is not separately
+reserved. Maximize is a frame resize, not native full screen. Restore is in-memory geometry history, not Space history.
+
+Desktop moves use a title-bar drag plus the configured macOS Mission Control shortcut, with Space membership verified
+afterward. This works without changing SIP and follows the window to the adjacent desktop; it does not create desktops
+or wrap. Leave full screen/Split View, disable an app's All Desktops assignment, and release shortcut keys before moving.
+Custom title bars, a disabled Mission Control shortcut, third-party shortcut interception, user pointer movement, or macOS
+animation/behavior changes can prevent a move. When Nook cannot safely identify a title bar or confirm the result, it
+reports an error and releases the drag; check Mission Control if the desktop changed but the window did not.
+
+Read-only SkyLight/AX symbols identify Spaces and window membership. They are resolved at runtime and can disappear
+in a future macOS release, in which case desktop moves fall back to an explanatory error and manual Mission Control.
+Nook does not use private Space mutation APIs, SIP exemptions, code injection, or helpers. Hands-on macOS 26 testing
+remains necessary for each app's title bar. Other applications' global shortcuts cannot be enumerated; Settings blocks
+conflicts within Nook and known/enabled macOS keyboard shortcuts. ⌃⌥ plus a key cancels the default dictation hold.

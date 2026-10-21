@@ -154,6 +154,35 @@ The bundled plugin pins after sending and unpins when leaving, changing chats/ta
 in the background and show the agent name with `sparkles` on the closed notch. Shortcuts: **⌘K** switch, **⌘N** new chat,
 **Enter/⌘Enter** send, **Shift+Enter** newline, **Esc/⌘.** stop; Esc closes when idle. Tool cards support Tab and Enter/Space.
 
+## Window management
+
+```js
+await nook.windows.state();       // {trusted, target: appName|null, busy, message, lastError,
+                                  //  actions: [{id, title, group, shortcut, conflict}]}
+await nook.windows.apply('nextDisplay'); // → updated state; rejects with a useful reason on failure
+await nook.windows.openPrivacy(); // opens macOS Accessibility settings
+await nook.windows.openSettings();// opens Nook Settings → Window Management
+```
+
+`apply` targets the exact focused window captured **before the notch opened**, even after the plugin gains keyboard
+focus. Each notch keeps its own target, including pinned notches on separate displays. Opening that notch again captures
+a new target; `state` never changes it. Accessibility permission is required.
+Global shortcuts instead use the currently focused window, and are configured per action in native Settings (none assigned by default).
+
+Action IDs: `previousDisplay`, `nextDisplay`, `previousDesktop`, `nextDesktop`; `leftHalf`, `rightHalf`, `topHalf`,
+`bottomHalf`; `topLeftQuarter`, `topRightQuarter`, `bottomLeftQuarter`, `bottomRightQuarter`; `firstThird`, `centerThird`,
+`lastThird`, `firstTwoThirds`, `lastTwoThirds`; `maximize`, `almostMaximize`, `maximizeHeight`, `maximizeWidth`, `center`, `restore`.
+Display order is left-to-right, then top-to-bottom, and wraps. Relative size/position scale to the destination's usable area.
+Almost Maximize defaults to 90% on each axis; native Settings adjusts it. Restore keeps the frame from before a series of
+Nook layouts; a manual move starts a new series. History is in memory, bounded to 64 windows.
+
+Desktop actions close all notches and follow the window to the adjacent desktop on its display. They require an accessible
+title bar and enabled macOS Mission Control left/right Space shortcuts (custom key combinations are respected).
+No desktop wrap, full-screen/Split View destinations, or All Desktops windows. See `docs/LIMITS.md` for compatibility limits.
+`nook.on('windows', () => …)` signals shortcut edits and busy-state changes; call `state()` to reload your notch's state.
+`nook.on('windowsError', message => …)` reports failures.
+`lastError` retains the last failure until a successful action, including when a desktop move closed the panel.
+
 ## Developer tools
 
 ```bash

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="nk-root">
+    <header class="nk-row-flex">
+      <span id="target" class="nk-small nk-muted nk-fill nk-ellipsis">Finding window…</span>
+      <button id="settings" class="nk-btn nk-ghost" type="button">Shortcuts…</button>
+    </header>
+    <input id="search" class="nk-input" type="search" placeholder="Find an action…" aria-label="Find a window action" autocomplete="off" spellcheck="false">
+    <div id="error" class="nk-error" role="alert" hidden></div>
+    <section class="nk-card nk-tight nk-fill nk-col">
+      <div id="loading" class="nk-empty" role="status"><span class="nk-spinner"></span><span>Loading actions…</span></div>
+      <div id="empty" class="nk-empty" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>
+        <b id="emptyTitle">No window selected</b>
+        <span id="emptyMessage">Focus a window, then reopen the notch.</span>
+        <button id="privacy" class="nk-btn" type="button" hidden>Open Accessibility Settings</button>
+        <button id="retry" class="nk-btn nk-ghost" type="button">Retry</button>
+      </div>
+      <div id="actions" class="nk-scroll nk-fill" aria-label="Window actions" hidden></div>
+    </section>
+    <footer id="hint" class="nk-small nk-muted" role="status" aria-live="polite">Arrows to choose · Enter to apply · Esc to close</footer>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

@@ -50,14 +50,14 @@ struct TabDock: View {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
                     HStack(spacing: 4) {
-                        ForEach(vm.dockItems) { item in dockButton(item) }
+                        ForEach(vm.dockItems) { item in dockButton(item, width: itemWidth(in: geometry.size.width)) }
                     }
                     .padding(.horizontal, 6).padding(.vertical, 2)
                     .background(Capsule().fill(.white.opacity(0.05)))
                     .frame(minWidth: geometry.size.width)
                     .onDrop(of: [.plainText], isTargeted: nil) { _ in dragging = nil; return true }
                 }
-                .scrollIndicators(.hidden)
+                .scrollIndicators(.never) // .hidden still shows with "Always show scroll bars"
                 .onChange(of: vm.currentDockID) { _, id in
                     withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .center) }
                 }
@@ -66,7 +66,13 @@ struct TabDock: View {
         .frame(height: NotchViewModel.dockHeight)
     }
 
-    private func dockButton(_ item: DockItem) -> some View {
+    /// Shrink icons so every dock item fits before falling back to scrolling.
+    private func itemWidth(in width: CGFloat) -> CGFloat {
+        let count = CGFloat(max(vm.dockItems.count, 1))
+        return min(34, max(24, (width - 12) / count - 4))
+    }
+
+    private func dockButton(_ item: DockItem, width: CGFloat) -> some View {
         let group = item.groupID.flatMap { navigation.group($0) }
         let plugin = vm.enabledTabs.first { $0.id == item.pluginIDs.first }
         let name = group?.name ?? plugin?.name ?? "Plugin"
@@ -75,7 +81,7 @@ struct TabDock: View {
         return Button { vm.selectDockItem(item) } label: {
             Image(systemName: group?.symbol ?? plugin?.symbol ?? "puzzlepiece.extension")
                 .font(.system(size: 13, weight: .semibold))
-                .frame(width: 34, height: 26)
+                .frame(width: width, height: 26)
                 .background(Capsule().fill(.white.opacity(selected ? 0.16 : 0)))
                 .foregroundStyle(selected ? .white : .secondary)
                 .opacity(dragging == item.id ? 0.35 : 1)

@@ -106,4 +106,6 @@
 :is(button, a, select, summary, [tabindex], [data-nk-item]):focus-visible { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .07) !important; }
 :is(input, textarea, [contenteditable]):focus-visible { box-shadow: none !important; }
 .nk-switch:focus-within span { box-shadow: 0 0 0 3px rgba(255, 255, 255, .12); }
-.nk-shortcuts { flex: none; color: var(--muted); font: 10px -apple-system, sans-serif; white-space: nowrap; }
+/* Shortcut hint footers are hidden everywhere (the user doesn't want them); keys still work. */
+.nk-shortcuts, .shortcut-hint { display: none !important; }
+.nk-shortcuts-unused { flex: none; color: var(--muted); font: 10px -apple-system, sans-serif; white-space: nowrap; }

@@ -40,7 +40,7 @@
     "name": "AI Commands",
     "description": "Saved AI prompts for selections with your existing shortcuts and providers.",
     "author": "YusufLisawi",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "symbol": "wand.and.stars",
     "tags": [
       "commands",
@@ -48,17 +48,17 @@
     ],
     "screenshots": [],
     "path": "plugins/commands",
-    "sha": "4c08366713936c959f45dd4d76d2d1e3d1eccff9",
-    "sha256": "bd6e9b479509d4166a0b7324b598bd6bc787555c8f9b389b6308c3025882bec3",
+    "sha": "0286ca74a59e20ab7a3ad21e62960827395abc00",
+    "sha256": "a7d5634707f02900f88649670c09d897ab30d4d0c2f45c6b2c15649d496f4af5",
     "default": true,
-    "updatedAt": "2026-10-21T22:19:25Z"
+    "updatedAt": "2026-10-21T22:28:27Z"
   },
   {
     "id": "dictation",
     "name": "Dictation",
     "description": "Hold or toggle voice capture with ChatGPT and Groq transcription.",
     "author": "YusufLisawi",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "symbol": "waveform",
     "tags": [
       "dictation",
@@ -66,10 +66,10 @@
     ],
     "screenshots": [],
     "path": "plugins/dictation",
-    "sha": "29578ab517ceaead780a3b1754df785c113bf843",
-    "sha256": "63c2be0f99eb1e7f2d08dc05b06212db0235d4820d1d74dde38cf0c36b1db3f4",
+    "sha": "38f9c1b334b25dea3b5f3057e5c49ed80017ce27",
+    "sha256": "f3e0b97063cb656c9590a5bd9a6dfee4c6bac574451411af613147da72652f50",
     "default": true,
-    "updatedAt": "2026-10-21T22:28:27Z"
+    "updatedAt": "2026-10-21T23:01:20Z"
   },
   {
     "id": "file-search",
@@ -112,7 +112,7 @@
     "name": "Mixer",
     "description": "Audio devices and per-app volume with Nook-owned capture taps.",
     "author": "YusufLisawi",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "symbol": "slider.vertical.3",
     "tags": [
       "mixer",
@@ -120,10 +120,10 @@
     ],
     "screenshots": [],
     "path": "plugins/mixer",
-    "sha": "73c5a43236a22619775c94341554272f0dee30e6",
-    "sha256": "20574a925baf7c49cb02c1e5ecfcfc74833d6443e56cfbeaebdddea6d3f349fc",
+    "sha": "e61be45f0f88ea123123abf228fb9dee2ae2fec3",
+    "sha256": "adb811714cd492ee68b33f912cf0f59254699c64b43db02fccc30453298a1cf0",
     "default": true,
-    "updatedAt": "2026-10-21T22:19:25Z"
+    "updatedAt": "2026-10-21T22:28:27Z"
   },
   {
     "id": "mouse",

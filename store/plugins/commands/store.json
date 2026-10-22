@@ -1,7 +1,7 @@
 {
   "description": "Saved AI prompts for selections with your existing shortcuts and providers.",
   "author": "YusufLisawi",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "default": true,
   "tags": [
     "commands",

@@ -20,13 +20,15 @@ struct NotchRootView: View {
                 Group {
                     if vm.showsContent {
                         Group {
-                            if vm.launcherPresented { LauncherView(vm: vm).transition(.opacity) }
+                            if vm.launcherPresented { LauncherView(vm: vm).transition(.identity) }
                             else {
-                                ExpandedView(vm: vm).transition(.opacity)
+                                ExpandedView(vm: vm).transition(.identity)
                                     .onAppear { vm.contentDidAttach?() }
                             }
                         }
-                        .transition(.opacity)
+                        // No fade on open: an opacity transition renders outside the clip. The content is simply there,
+                        // revealed by the springing shape like a mask.
+                        .transition(.identity)
                     } else if !vm.isOpen, vm.panelVisible {
                         CollapsedView(vm: vm).transition(.opacity)
                     }

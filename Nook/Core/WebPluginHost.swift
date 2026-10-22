@@ -57,7 +57,8 @@ final class WebPluginHost: NSObject {
         FeatureVisibility.set(owner: keyboardID, plugin: vm?.isOpen == true && vm?.launcherPresented == false ? vm?.tab : nil)
         for id in Array(views.keys) {
             let visible = vm?.isOpen == true && vm?.tab == id && vm?.launcherPresented == false
-            if visible { evictions.removeValue(forKey: id)?.cancel() }
+            // The current tab stays loaded while the notch is closed so reopening shows it instantly; others unload.
+            if visible || vm?.tab == id { evictions.removeValue(forKey: id)?.cancel() }
             else if evictions[id] == nil {
                 let work = DispatchWorkItem { [weak self] in self?.unload(id) }
                 evictions[id] = work

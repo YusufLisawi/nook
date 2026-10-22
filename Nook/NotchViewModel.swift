@@ -205,18 +205,12 @@ final class NotchViewModel: ObservableObject {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         }
         pendingReveal?.cancel()
+        // Content is attached immediately and revealed by the growing shape (it's clipped to it, like a mask) —
+        // no empty black frame first. The current tab's web view is kept warm (WebPluginHost), so it's already drawn.
         withAnimation(Self.spring) {
             state = .open
-            if keyboard.engaged { showsContent = true }
+            showsContent = true
         }
-        // Keep the contributor's delayed attachment for hover (NSViews can ignore fades during a resize).
-        // Keyboard opens bypass it so initial native focus and launcher search are ready for the first key.
-        let reveal = DispatchWorkItem { [weak self] in
-            guard let self, self.isOpen else { return }
-            withAnimation(.easeOut(duration: 0.18)) { self.showsContent = true }
-        }
-        pendingReveal = reveal
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: reveal)
         web.visibilityChanged()
         if !launcherPresented { web.emit("open", self.tab) }
     }

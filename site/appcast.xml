@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.13.0</title>
+  <pubDate>Thu, 22 Oct 2026 09:55:04 GMT</pubDate>
+  <sparkle:version>31</sparkle:version>
+  <sparkle:shortVersionString>1.13.0</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>AI Commands, Agents, Dictation and Mixer are now plugins from the Store — fixes and new features arrive without app updates</li><li>Dictation: classic red-dot + timer look, pastes into any app again</li><li>No more shortcut hint footers</li><li>App is ~13% smaller</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.13.0/Nook.dmg" type="application/octet-stream" sparkle:edSignature="QijcieboCQVma3XW/xU52Ga6KwDPyEQ+crKRnFK3Pp+Jigqpocze5zxQeA0hgJA5Krqwa2tC7hZVlhKO+9aFDA==" length="9934539"/>
+</item>
+<item>
   <title>Nook 1.12.0</title>
   <pubDate>Wed, 21 Oct 2026 21:39:51 GMT</pubDate>
   <sparkle:version>30</sparkle:version>

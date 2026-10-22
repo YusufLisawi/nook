@@ -13,7 +13,7 @@ async function setup(failFirst = false) {
   let failed = failFirst;
   let state = {
     config: { enabled: false, smoothness: 'regular', speed: 1, acceleration: 0.5, reverse: false,
-      filterChatter: false, horizontalModifier: 'shift', preciseModifier: 'none', quickModifier: 'none', buttons: {} },
+      filterChatter: false, scrollStyle: 'trackpad', horizontalModifier: 'shift', preciseModifier: 'none', quickModifier: 'none', buttons: {} },
     trusted: true, running: false, learning: false, error: null,
     actions: [{ id: 'none', label: 'Default' }, { id: 'copy', label: 'Copy' }, { id: 'back', label: 'Back' }],
   };
@@ -50,6 +50,10 @@ async function setup(failFirst = false) {
   const chatter = x.$('scroll').querySelector('[data-key="filterChatter"]');
   chatter.checked = true; chatter.dispatchEvent(new x.w.Event('change')); await tick();
   assert.equal(x.state.config.filterChatter, true);
+  const style = x.$('scroll').querySelector('[data-key="scrollStyle"]');
+  assert.equal(style.value, 'trackpad');
+  style.value = 'classic'; style.dispatchEvent(new x.w.Event('change')); await tick();
+  assert.equal(x.state.config.scrollStyle, 'classic');
   const enabled = x.$('enabled');
   enabled.checked = true; enabled.dispatchEvent(new x.w.Event('change')); await tick();
   assert.equal(x.state.config.enabled, true);

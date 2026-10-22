@@ -129,6 +129,9 @@ The state result’s `error` reports event-tap failures. While enabled or learni
 two seconds and retried automatically. `mouse` notices cover startup, failure, recovery and learning; reload state
 after a notice. Each mutation returns the updated state. No native Settings pane is added.
 
+`scrollStyle` is `trackpad` (default) or `classic`: trackpad style sends smoothed scrolling as a swipe-like gesture followed by
+momentum, which pages that snap to items (YouTube Shorts, CSS scroll-snap in browsers) wait for; classic sends plain pixel events.
+
 Rapid wheel reversals are preserved by default. `set({filterChatter:true})` opts into discarding opposite-direction
 ticks arriving within 100 ms of the last accepted tick; enable it only for a wheel that bounces. Disabling or ending
 learning stops new interception immediately and drains every suppressed button's release before removing the tap.

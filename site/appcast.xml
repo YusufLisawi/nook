@@ -4,6 +4,15 @@
 <title>Nook</title>
 <link>https://nook.motkan.com</link>
 <item>
+  <title>Nook 1.13.1</title>
+  <pubDate>Thu, 22 Oct 2026 10:13:58 GMT</pubDate>
+  <sparkle:version>32</sparkle:version>
+  <sparkle:shortVersionString>1.13.1</sparkle:shortVersionString>
+  <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+  <description><![CDATA[<li>Opening the notch shows its content right away, revealed by the notch shape — no empty black moment</li>]]></description>
+  <enclosure url="https://github.com/YusufLisawi/nook/releases/download/v1.13.1/Nook.dmg" type="application/octet-stream" sparkle:edSignature="wK0nepxXL5x0BCl/vgOYj+ONcgsvd5laEyM5RueQDYHJ93MT9CNc0m7Yfvgz3uCxUtXkwDVpL492G+ZvW1tNDw==" length="9933798"/>
+</item>
+<item>
   <title>Nook 1.13.0</title>
   <pubDate>Thu, 22 Oct 2026 09:55:04 GMT</pubDate>
   <sparkle:version>31</sparkle:version>

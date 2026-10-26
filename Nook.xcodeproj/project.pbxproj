@@ -50,6 +50,7 @@
 		56553422850AF1DA0CAEC4B9 /* NativeShortcutIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E373750DDA3CD9E54A3004 /* NativeShortcutIntegration.swift */; };
 		5D7BD9CE7C0E4203873211F7 /* PluginGestureHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6121FFA7F0FAE303B304A9E7 /* PluginGestureHotkeys.swift */; };
 		5DA3FCFBD38E89F24410B5BD /* LinkCatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305C12534BB0A21814E084F9 /* LinkCatcher.swift */; };
+		5DB904B42DA23FFFA80FA642 /* PluginLegacyPasteSafety.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7769395EE9C8F68B0AFBD621 /* PluginLegacyPasteSafety.swift */; };
 		605CF13F8F0DD1279D74FA8D /* KeyboardActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0D3096715CC7687F6FA829 /* KeyboardActions.swift */; };
 		60DC9714A4F1671F433E7C8D /* PluginDailyMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C814D4F562B3EC0613D7FBC3 /* PluginDailyMigration.swift */; };
 		621B2D2CAC8668ECB1273D8C /* KeyboardFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B76E90150FEC0C57FA76EAC /* KeyboardFocus.swift */; };
@@ -107,6 +108,7 @@
 		D77CE4D1532F0EE8E4EE838D /* ShortcutGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = D26067DC3D9B8FEB402FD526 /* ShortcutGesture.swift */; };
 		D7EF7CE343C3C42867D1A29E /* ShortcutsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A3AA8A0E74C693235971034 /* ShortcutsPane.swift */; };
 		D84CF3798DE550D9207E6B53 /* SelectionGrabber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89B6BF4777446ABC8556AACA /* SelectionGrabber.swift */; };
+		D8D01767337E0323EC7243A3 /* SelectionInsertion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C3B04E2953D3EF2AE4494EF /* SelectionInsertion.swift */; };
 		DB02C55D89FCEC481FE688BA /* SyntheticInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFF56963B1C4CE2B195F42A8 /* SyntheticInput.swift */; };
 		DE1CFDB1B42FA30F8E424C94 /* SettingsShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A9CB58AD389EFE253297561 /* SettingsShortcutRecorder.swift */; };
 		DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD70FF370E94556B10546FF6 /* ProxyService.swift */; };
@@ -157,6 +159,7 @@
 		0A33F966890CC6F544C6D730 /* ToolsInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsInstaller.swift; sourceTree = "<group>"; };
 		0AB0A480A5DF8010E2767325 /* KeyboardWebSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardWebSupport.swift; sourceTree = "<group>"; };
 		0BAFC88C0EFEF93CE909771F /* PluginNativeCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginNativeCommands.swift; sourceTree = "<group>"; };
+		0C3B04E2953D3EF2AE4494EF /* SelectionInsertion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionInsertion.swift; sourceTree = "<group>"; };
 		0E66B72D1A32339748D09361 /* PluginShellCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginShellCommand.swift; sourceTree = "<group>"; };
 		0ED7F0CE539625E9216FFC57 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		0F8092E1D468BB6C791C61CE /* UpdatesPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesPane.swift; sourceTree = "<group>"; };
@@ -213,6 +216,7 @@
 		7571D9D06CBA91960D5C4995 /* PluginSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettings.swift; sourceTree = "<group>"; };
 		7643CBF0A8E97CA82870A6D3 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 		76BBDEC530F256E45B8F3F1E /* PluginSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSearch.swift; sourceTree = "<group>"; };
+		7769395EE9C8F68B0AFBD621 /* PluginLegacyPasteSafety.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginLegacyPasteSafety.swift; sourceTree = "<group>"; };
 		7B23C0D57EAD7A3BBBDBA769 /* HotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyMonitor.swift; sourceTree = "<group>"; };
 		7DD82D1E727C9A32777C1DCC /* PluginPermissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginPermissions.swift; sourceTree = "<group>"; };
 		846892B63929E54F43C1FB22 /* PluginAutomaticUpdates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginAutomaticUpdates.swift; sourceTree = "<group>"; };
@@ -309,6 +313,7 @@
 				6121FFA7F0FAE303B304A9E7 /* PluginGestureHotkeys.swift */,
 				1CCDC075F2C1835FD3291889 /* PluginHelperProcess.swift */,
 				027F695D8D0A23DEC4C21FBB /* PluginHostAPI.swift */,
+				7769395EE9C8F68B0AFBD621 /* PluginLegacyPasteSafety.swift */,
 				AD2A3B0EA280F927F89B678B /* PluginManifestV2.swift */,
 				7DD82D1E727C9A32777C1DCC /* PluginPermissions.swift */,
 				5EFB7F2B8C73B9C65D3417A0 /* PluginRPC.swift */,
@@ -346,6 +351,7 @@
 				F708E9857E97B017F5E2ACCB /* ProcessTree.swift */,
 				8F2F42D6CB16AB9FF0D24C22 /* SelectionContext.swift */,
 				89B6BF4777446ABC8556AACA /* SelectionGrabber.swift */,
+				0C3B04E2953D3EF2AE4494EF /* SelectionInsertion.swift */,
 				0ED7F0CE539625E9216FFC57 /* Services.swift */,
 				BF358538A3CF77BEE37796A9 /* SettingsPersistence.swift */,
 				D26067DC3D9B8FEB402FD526 /* ShortcutGesture.swift */,
@@ -633,6 +639,7 @@
 				5D7BD9CE7C0E4203873211F7 /* PluginGestureHotkeys.swift in Sources */,
 				CE6EC513720044EA7A1CC206 /* PluginHelperProcess.swift in Sources */,
 				C94D974DC51AD1C05E08E3A6 /* PluginHostAPI.swift in Sources */,
+				5DB904B42DA23FFFA80FA642 /* PluginLegacyPasteSafety.swift in Sources */,
 				EF8EA6C90228B2ABD48CA26C /* PluginManifestV2.swift in Sources */,
 				1B45DE623808B5220A7BE159 /* PluginPermissions.swift in Sources */,
 				4C3A26B56BE75B0D1B6619BD /* PluginRPC.swift in Sources */,
@@ -657,6 +664,7 @@
 				DFDF3DB1000CFE8A8471DBB7 /* ProxyService.swift in Sources */,
 				975741832FB2216CC32E0CA8 /* SelectionContext.swift in Sources */,
 				D84CF3798DE550D9207E6B53 /* SelectionGrabber.swift in Sources */,
+				D8D01767337E0323EC7243A3 /* SelectionInsertion.swift in Sources */,
 				3EC534324EA0668F89733786 /* Services.swift in Sources */,
 				FF5CD86C9CA3697E8E616A5A /* SettingsNavigation.swift in Sources */,
 				82A19445DE077798C64BBA2E /* SettingsPersistence.swift in Sources */,

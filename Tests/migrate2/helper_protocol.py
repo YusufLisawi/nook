@@ -4,7 +4,7 @@ import base64, json, os, pathlib, plistlib, queue, shutil, subprocess, tempfile,
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 class Client:
     def __init__(self, executable, package, work, legacy, *, silent=False):
-        self.calls=[]; self.events=[]; self.results={}; self.silent=silent
+        self.calls=[]; self.events=[]; self.results={}; self.silent=silent; self.supports_insertion=True
         env={**os.environ,'NOOK_PLUGIN_ID':package,'NOOK_PLUGIN_DIR':str(ROOT/'store/plugins'/package),'NOOK_DATA_DIR':str(work),'NOOK_LEGACY_DIR':str(legacy)}
         self.proc=subprocess.Popen([str(executable),'--protocol-test'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,text=True,bufsize=1)
         self.lock=threading.Lock(); self.messages=queue.Queue()
@@ -25,9 +25,12 @@ class Client:
         method=m.get('method')
         if method and method.startswith('host.'):
             p=m.get('params',{}); self.calls.append((method,p)); value=None
+            if method=='host.selection.capabilities' and not self.supports_insertion:
+                self.send({'jsonrpc':'2.0','id':m['id'],'error':{'code':-32601,'message':'Unknown API'}});return
             if method=='host.settings.get': value={}
             elif method=='host.secrets.get': value='fixture-key'
             elif method=='host.selection.capture': value={'app':'Fixture Editor','clipboard':'original clipboard'}
+            elif method=='host.selection.capabilities': value={'insertion':True,'prefix':True,'preserveCapture':True} if self.supports_insertion else None
             elif method=='host.selection.get': value='selected text'
             elif method=='host.microphone.devices': value=[{'id':'fixture-mic','name':'Fixture mic'}]
             elif method=='host.microphone.start':
@@ -141,7 +144,27 @@ def run(package):
         c.wait(lambda:any(m=='host.microphone.start' for m,p in c.calls))
         c.event('hotkey',{'id':'hold','phase':'released'})
         c.wait(lambda:any(m=='host.selection.paste' and p['text']=='cleaned fixture' for m,p in c.calls))
+        paste=next(p for m,p in c.calls if m=='host.selection.paste' and p['text']=='cleaned fixture')
+        assert paste.get('insertion') is True and paste.get('prefix')==' ' and paste.get('keepOnClipboard') is True, 'Dictation must insert one space and the transcript without replacing existing text'
         assert c.rpc('dictation.history')[0]['status']=='done'
+        c.calls=[];c.rpc('dictation.paste',{'args':['old'],'__context':'fixture-notch-context'})
+        history_paste=next(p for m,p in c.calls if m=='host.selection.paste')
+        assert history_paste.get('insertion') is True and history_paste.get('prefix')==' ' and history_paste.get('text')=='old text' and history_paste.get('context')=='fixture-notch-context' and history_paste.get('preserveCapture') is True, 'History paste must also preserve existing text'
+        c.supports_insertion=False;c.calls=[]
+        try: c.rpc('dictation.paste',{'args':['old']});assert False, 'Old hosts must not paste with unsafe semantics'
+        except RuntimeError as error: assert 'Update Nook' in str(error)
+        assert not any(m=='host.selection.paste' for m,p in c.calls),'An old host must never receive an unsafe paste request'
+        c.calls=[];c.event('hotkey',{'id':'hold','phase':'pressed'})
+        c.wait(lambda:any(m=='host.microphone.start' for m,p in c.calls));c.event('hotkey',{'id':'hold','phase':'released'})
+        c.wait(lambda:c.rpc('dictation.history')[0]['status']=='failed')
+        failed=c.rpc('dictation.history')[0]
+        assert failed['text']=='cleaned fixture' and 'Update Nook' in failed['error'],'A failed insertion must retain the transcript for copying'
+        assert not any(m=='host.selection.paste' for m,p in c.calls),'Automatic dictation must not paste into an older host'
+        c.supports_insertion=True
+        c.calls=[];c.rpc('dictation.toggle',{'args':[],'__context':'fixture-notch-context'})
+        assert any(m=='host.selection.capture' and p.get('context')=='fixture-notch-context' for m,p in c.calls),'The notch toggle must capture the original app on that display'
+        c.rpc('dictation.toggle',{'args':[],'__context':'fixture-notch-context'})
+        c.wait(lambda:any(m=='host.selection.paste' for m,p in c.calls))
         c.silent=True;c.calls=[];c.event('hotkey',{'id':'toggle','phase':'pressed'})
         c.wait(lambda:any(m=='host.microphone.start' for m,p in c.calls));c.event('hotkey',{'id':'toggle','phase':'pressed'})
         c.wait(lambda:c.rpc('dictation.history')[0]['status']=='failed')

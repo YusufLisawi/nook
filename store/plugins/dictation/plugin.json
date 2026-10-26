@@ -6,7 +6,7 @@
   "order": 20,
   "height": 220,
   "apiVersion": 2,
-  "version": "2.0.2",
+  "version": "2.0.3",
   "native": {
     "command": "bin/helper",
     "background": false,

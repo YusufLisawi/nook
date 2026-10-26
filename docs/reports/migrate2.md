@@ -39,6 +39,17 @@ edits are in Features/Services, PluginEngine/HostAPI/Manifest/Contributions/Perm
 AppDelegate, NotchKeyboard/ViewModel/RootView and Settings shortcut/navigation integration. Documentation,
 Store validators/catalog, generated Xcode project and affected test runners are updated.
 
+## Dictation insertion follow-up
+
+Dictation 2.0.1 inserts one leading space and the transcript at the captured cursor, keeping existing field text.
+If a range was selected, insertion occurs at its end. The host retains the real cursor range separately from AI
+Commands' select-all fallback and verifies it through Accessibility before pasting. An unsupported/unverifiable
+range fails closed; the saved transcript remains visible and copyable. History paste follows the same rule.
+The plugin checks `selection.capabilities` first so updating it on an older host cannot trigger unsafe replacement.
+A small host migration guard also blocks unsafe paste requests from older Dictation helpers until they update.
+The notch button and history paste retain their originating display context; a history paste preserves an ongoing recording's captured target. The clipboard retains the unprefixed transcript. A helper shutdown race found in the engine suite is also fixed:
+stdin closure now runs on the same serial queue as pending writes. Manual testing remains necessary on the real Mac and apps.
+
 ## What stayed in the host, and why
 
 Generic selection/focus/paste and shortcut models/event tap moved from feature folders into Core. New host files
@@ -110,11 +121,11 @@ space when installed.
 
 | Measurement | Before | After |
 | --- | ---: | ---: |
-| Signed app executable (arm64) | 6,824,544 bytes (6.508 MiB) | 5,900,944 bytes (5.628 MiB) |
-| Executable reduction | | **923,600 bytes / 13.53%** |
-| App bundle allocation (`du -sk`) | 14,564 KiB | 13,524 KiB |
+| Signed app executable (arm64) | 6,824,544 bytes (6.508 MiB) | 5,920,832 bytes (5.647 MiB) |
+| Executable reduction | | **903,712 bytes / 13.24%** |
+| App bundle allocation (`du -sk`) | 14,564 KiB | 13,544 KiB |
 
-Release universal helpers, inert host mocks, 3-second settle then ps sample (CPU%, RSS KiB):
+Release universal helpers at the original migration commit b27cfa6, inert host mocks, 3-second settle then ps sample (CPU%, RSS KiB):
 
 | Helper | CPU | RSS |
 | --- | ---: | ---: |
@@ -131,7 +142,7 @@ in Activity Monitor after 45 seconds closed, then separately with a running Agen
 
 ## Verification
 
-- Required `xcodegen generate && xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build build`: **passes with zero errors and zero warnings** (`/tmp/nook-migrate2-final-build.log`).
+- Required `xcodegen generate && xcodebuild -project Nook.xcodeproj -scheme Nook -configuration Release -derivedDataPath build build`: **passes with zero errors and zero warnings** (`/tmp/nook-dictation-final-build.log`).
 - All four universal helper builds use Swift 5/macOS 14.2 and warnings as errors, with ad-hoc development signatures.
 - All four package tests/run.sh suites pass. Commands tests compile actual orchestration/runtime with deterministic
   provider substitutes; Dictation does likewise for transcription. Real stdio RPC uses inert selection, paste,
@@ -153,6 +164,11 @@ Logs: `/tmp/nook-migrate2-{final-build,engine-tests,store-tests,demand-tests,idl
 regenerating pins/catalog after edits: `python3 tests/migrate2/update-pins.py && node store/scripts/generate-index.mjs`.
 Pins must match the reviewed final package bytes; changing package source/tests/binary requires regeneration.
 
+Dictation insertion follow-up verification: the package suite covers original caret and selection ranges, Unicode,
+space-prefix behavior, old/new host combinations, saved transcript recovery and originating-notch context. The AI
+Commands protocol regression passes; the engine suite passes with queued-write/stop stress. Store tests pass (35).
+Logs: `/tmp/nook-dictation-{final-build,insert-tests,commands-regression,engine-final,store-tests}.log`.
+
 ## Lead verification on the real Mac
 
 Do not run a second Nook. Quit the installed instance before using the review build. This branch did not install
@@ -172,8 +188,12 @@ the lead's normal process before shipping the app. No publication command was ru
    provider/model/effort changes, error/retry, editor autosave/duplicate/reorder/delete, native shortcut conflict/Esc,
    Command-K activation with Launcher disabled and two displays. Close the original editor during a request: the
    answer must not paste into another app. Verify existing OS Accessibility permission is reused.
-3. **Dictation:** with Nook already microphone-authorized, hold the saved gesture (default ⌃⌥), speak >1 second and
-   release; verify fresh capture, elapsed time/level, transcription/cleanup and paste into the original editor.
+3. **Dictation:** in a disposable editor, type `Hello world` and place the caret after `Hello`. With Nook already
+   microphone-authorized, hold the saved gesture (default ⌃⌥), dictate `again` and release; verify `Hello again world`,
+   elapsed time/level, cleanup and the unprefixed clipboard transcript. Select existing text and verify a new
+   dictation appears after that selection without replacing it. Repeat from a history item's Paste action. Test
+   an app with no verifiable Accessibility text range: the transcript must stay visible/copyable in history and
+   no text should be replaced. Test app/plugin updates in both orders to confirm old combinations refuse unsafe paste.
    Try saved toggle (default ⌥Space), modifier+another-key cancellation, accidental short hold, two back-to-back
    recordings, mic changes and sleep/wake. Try ChatGPT and Groq, cleanup/vocabulary, disabled shortcuts, history
    copy/paste/remove/retry and unavailable recording errors. Disconnect/choose a silent mic: it must show the

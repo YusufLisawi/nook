@@ -51,14 +51,14 @@
     "sha": "0286ca74a59e20ab7a3ad21e62960827395abc00",
     "sha256": "a7d5634707f02900f88649670c09d897ab30d4d0c2f45c6b2c15649d496f4af5",
     "default": true,
-    "updatedAt": "2026-10-21T22:28:27Z"
+    "updatedAt": "2026-10-22T09:52:47Z"
   },
   {
     "id": "dictation",
     "name": "Dictation",
     "description": "Hold or toggle voice capture with ChatGPT and Groq transcription.",
     "author": "YusufLisawi",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "symbol": "waveform",
     "tags": [
       "dictation",
@@ -66,10 +66,10 @@
     ],
     "screenshots": [],
     "path": "plugins/dictation",
-    "sha": "38f9c1b334b25dea3b5f3057e5c49ed80017ce27",
-    "sha256": "f3e0b97063cb656c9590a5bd9a6dfee4c6bac574451411af613147da72652f50",
+    "sha": "393f2d3e142d4550803e45ce8d3ea2b6a5a9caef",
+    "sha256": "99902f2a9056b68f0448f9efccebd1cef8465c0f564fd0a7270841a68df1530e",
     "default": true,
-    "updatedAt": "2026-10-21T23:01:20Z"
+    "updatedAt": "2026-10-22T09:52:47Z"
   },
   {
     "id": "file-search",
@@ -123,7 +123,7 @@
     "sha": "e61be45f0f88ea123123abf228fb9dee2ae2fec3",
     "sha256": "adb811714cd492ee68b33f912cf0f59254699c64b43db02fccc30453298a1cf0",
     "default": true,
-    "updatedAt": "2026-10-21T22:28:27Z"
+    "updatedAt": "2026-10-22T09:52:47Z"
   },
   {
     "id": "mouse",

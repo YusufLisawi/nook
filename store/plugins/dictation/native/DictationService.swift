@@ -177,11 +177,18 @@ final class DictationService: ObservableObject {
 
   // MARK: Recording
 
-  func toggle() { phase == .recording ? finish() : begin() }
+  func toggle(context: String? = nil) { phase == .recording ? finish() : begin(context: context) }
 
-  func begin() {
+  func begin(context: String? = nil) {
     guard phase != .recording else { return }
-    _ = try? PluginRuntime.sync("selection.capture")
+    do {
+      var params: [String: Any] = [:]
+      if let context, !context.isEmpty { params["context"] = context }
+      _ = try PluginRuntime.sync("selection.capture", params)
+    } catch {
+      Notifier.post(title: "Nook can't capture the cursor", body: error.localizedDescription)
+      return flash(.failed)
+    }
     let id = UUID().uuidString
     let url = Self.dir.appendingPathComponent("\(id).wav")
     do {
@@ -345,9 +352,13 @@ final class DictationService: ObservableObject {
     NSSound(named: name)?.play()
   }
 
+  static let insertionError = "Update Nook to insert dictation safely. Your transcript is saved in history."
   static func copy(_ text: String) { PluginRuntime.host("clipboard.write", ["text": text]) }
   static func paste(_ text: String) throws {
-    _ = try PluginRuntime.sync("selection.paste", ["text": text, "keepOnClipboard": true])
+    guard let capabilities = try? PluginRuntime.sync("selection.capabilities") as? [String: Any],
+      capabilities["insertion"] as? Bool == true, capabilities["prefix"] as? Bool == true
+    else { throw HelperFailure(message: insertionError) }
+    _ = try PluginRuntime.sync("selection.paste", ["text": text, "keepOnClipboard": true, "insertion": true, "prefix": " "])
   }
 
   // MARK: Storage
@@ -373,14 +384,14 @@ final class DictationService: ObservableObject {
 
   // MARK: Bridge
 
-  func handle(_ fn: String, args: [Any], reply: @escaping (Any?, String?) -> Void) {
+  func handle(_ fn: String, args: [Any], context: String? = nil, reply: @escaping (Any?, String?) -> Void) {
     let id = args.first as? String ?? ""
     let text = { self.history.first { $0.id == id }?.text ?? "" }
     switch fn {
     case "history": reply(historyPayload(), nil)
     case "state": reply(statePayload(), nil)
     case "toggle":
-      toggle()
+      toggle(context: context)
       reply(statePayload(), nil)
     case "retry":
       update(id) {
@@ -395,9 +406,17 @@ final class DictationService: ObservableObject {
       reply(NSNull(), nil)
     case "paste":
       let t = text()
-      // Let the click land and focus return to the previous app before pasting.
-      PluginRuntime.host("selection.paste", ["text": t, "keepOnClipboard": true]) { value, error in
-        DispatchQueue.main.async { reply(value, error) }
+      guard !t.isEmpty else { reply(nil, "This dictation has no text to paste."); return }
+      PluginRuntime.host("selection.capabilities") { value, error in
+        guard error == nil, let capabilities = value as? [String: Any],
+          capabilities["insertion"] as? Bool == true, capabilities["prefix"] as? Bool == true,
+          capabilities["preserveCapture"] as? Bool == true
+        else { reply(nil, Self.insertionError); return }
+        var params: [String: Any] = ["text": t, "keepOnClipboard": true, "insertion": true, "prefix": " ", "preserveCapture": true]
+        if let context, !context.isEmpty { params["context"] = context }
+        PluginRuntime.host("selection.paste", params) { value, error in
+          reply(value, error)
+        }
       }
     case "remove":
       if let entry = history.first(where: { $0.id == id }) {

@@ -16,7 +16,7 @@ private final class Locked<T>: @unchecked Sendable {
 @main enum EngineTests {
     static func main() throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
-        try framing(); try permissions(root); try manifest(root); try supervisor(root); try releasedSupervisor(root); try shell()
+        try framing(); try permissions(root); try manifest(root); try supervisor(root); try releasedSupervisor(root); try stopWithQueuedWrites(root); try shell()
         print("PASS: Engine framing, permissions, v2 manifests, supervisor lifecycle/restarts/IPC.")
     }
     static func framing() throws {
@@ -45,7 +45,7 @@ private final class Locked<T>: @unchecked Sendable {
         let grant = PluginPermissionGrant(permissions: m.requested, native: false, fileScopes: [])
         try PluginCapabilityPolicy.check("host.clipboard.read", manifest: m, grant: grant)
         try PluginCapabilityPolicy.check("fetch", manifest: m, grant: grant)
-        for method in ["shell", "ai.complete", "files.read", "selection.paste", "secrets.get", "commands.run", "proxy.connect", "microphone.start", "audioCapture.start", "unlisted"] {
+        for method in ["shell", "ai.complete", "files.read", "selection.paste", "selection.capabilities", "secrets.get", "commands.run", "proxy.connect", "microphone.start", "audioCapture.start", "unlisted"] {
             try rejects { try PluginCapabilityPolicy.check(method, manifest: m, grant: grant) }
         }
         let revoked = PluginPermissionGrant(permissions: [], native: false, fileScopes: [])
@@ -163,6 +163,25 @@ private final class Locked<T>: @unchecked Sendable {
         stopped.run(command: "/bin/sleep 60", timeout: 60, launcher: launcher) { _ in stopDone.signal() }
         stopped.cancel()
         try expect(stopDone.wait(timeout: .now() + 5) == .success, "Plugin disable cancels owned shell work")
+    }
+
+    static func stopWithQueuedWrites(_ root: URL) throws {
+        let manifest = try PluginManifestV2(json: ["id": "write-race", "name": "Write race", "apiVersion": 2,
+            "native": ["run": ["python3", "helper.py"]]], directory: root)
+        for _ in 0..<12 {
+            let ready = DispatchSemaphore(value: 0), exited = DispatchSemaphore(value: 0)
+            let helper = PluginHelperProcess(manifest: manifest, dataDirectory: root.appendingPathComponent("write-race-data"),
+                host: { _, _, reply in reply(nil, nil) }, event: { event, _ in if event == "ready" { ready.signal() } },
+                log: { if $0.contains("exited") { exited.signal() } })
+            helper.start()
+            try expect(ready.wait(timeout: .now() + 5) == .success, "Write-race helper starts")
+            for index in 0..<80 {
+                helper.call("echo", params: ["index": index, "payload": String(repeating: "x", count: 65_536)]) { _, _ in }
+            }
+            helper.stop()
+            try expect(exited.wait(timeout: .now() + 5) == .success, "Stop closes the helper while writes are queued")
+        }
+        Thread.sleep(forTimeInterval: 1)
     }
 
     static func releasedSupervisor(_ root: URL) throws {

@@ -51,12 +51,12 @@ import AppKit
         let phase = info["phase"] as? String ?? "pressed"
         if key == "hold" {
           if phase == "pressed" {
-            service.begin()
+            service.begin(context: info["context"] as? String)
           } else {
             service.finish(cancel: phase == "cancelled")
           }
         }
-        if key == "toggle", phase == "pressed" { service.toggle() }
+        if key == "toggle", phase == "pressed" { service.toggle(context: info["context"] as? String) }
       }
     }
     PluginRuntime.custom = { method, p, reply in
@@ -74,7 +74,7 @@ import AppKit
         return true
       }
       guard method.hasPrefix("dictation.") else { return false }
-      service.handle(String(method.dropFirst(10)), args: p["args"] as? [Any] ?? [], reply: reply)
+      service.handle(String(method.dropFirst(10)), args: p["args"] as? [Any] ?? [], context: p["__context"] as? String, reply: reply)
       return true
     }
     PluginRuntime.onStop = { service.stop() }

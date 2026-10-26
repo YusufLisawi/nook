@@ -148,7 +148,7 @@
       const status = document.createElement('div');
       status.className = 'entry-status';
       const label = document.createElement('span');
-      label.textContent = entry.status === 'failed' ? 'Transcription failed' : 'Transcribing…';
+      label.textContent = entry.status === 'failed' ? (transcript ? 'Dictation needs attention' : 'Transcription failed') : 'Transcribing…';
       status.append(entry.status === 'failed' ? icon('warning') : spinner(), label);
       row.append(status);
       if (entry.status === 'failed') {
@@ -167,6 +167,12 @@
           renderHistory();
         });
         row.append(detail);
+        if (transcript) {
+          const saved = document.createElement('div');
+          saved.className = 'entry-text';
+          saved.textContent = transcript;
+          row.append(saved);
+        }
       }
     }
     const footer = document.createElement('div');
@@ -199,7 +205,10 @@
       const paste = rowButton(entry, 'paste', 'Paste', 'paste');
       if (!transcript) { copy.disabled = true; paste.disabled = true; }
       actions.append(copy, paste);
-    } else if (entry.status === 'failed') actions.append(rowButton(entry, 'retry', 'Retry', 'retry'));
+    } else if (entry.status === 'failed') {
+      if (transcript) actions.append(rowButton(entry, 'copy', 'Copy', 'copy'));
+      actions.append(rowButton(entry, 'retry', 'Retry', 'retry'));
+    }
     actions.append(rowButton(entry, 'remove', 'Delete', 'trash', true));
     footer.append(meta, actions);
     row.append(footer);
@@ -333,14 +342,14 @@
         await refreshHistory();
         if (action === 'retry') await refreshState();
       }
-    } catch (_) {
+    } catch (error) {
       const messages = {
         copy: 'Couldn’t copy this dictation. Try again.',
         paste: 'Couldn’t paste. Check Accessibility access in System Settings.',
         retry: 'Couldn’t retry. Check your API key and try again.',
         remove: 'Couldn’t delete this dictation. Try again.'
       };
-      rowErrors.set(id, messages[action] || 'Something went wrong. Try again.');
+      rowErrors.set(id, action === 'paste' && error?.message ? error.message : (messages[action] || 'Something went wrong. Try again.'));
     } finally {
       pendingRows.delete(id);
       if (!disposed) renderHistory();

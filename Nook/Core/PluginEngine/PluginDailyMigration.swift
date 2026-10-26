@@ -7,7 +7,7 @@ enum PluginDailyMigration {
   static let digests: [String: String] = [
     "commands": "bd6e9b479509d4166a0b7324b598bd6bc787555c8f9b389b6308c3025882bec3",
     "agents": "11733976069ce821274b12dbd24d456a7b483edd84f702d68933f0f7b2bda96f",
-    "dictation": "cd9f84f7e0f83fa50d1d47978f2c33ef20d093c403ae91ddd5b37eaf28fd7c35",
+    "dictation": "ced7ac3e72f2dcec15b8e8df3b28dcd1272f0b1e7e5b56c967ebfa1ce004ba48",
     "mixer": "20574a925baf7c49cb02c1e5ecfcfc74833d6443e56cfbeaebdddea6d3f349fc",
   ]
   static func captureLegacyInstall() {

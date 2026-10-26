@@ -323,3 +323,9 @@ provider authentication/network and real audio routing still need the lead's sin
 Agents uses plugin-side chunking for saved chats and tool updates up to 32 MiB per transfer (four concurrent
 transfers, expiring references). The engine retains its 1 MiB per-frame limit. Larger histories remain saved,
 but must be split into a new chat for this UI. No history is truncated to fit the transport.
+
+Dictation inserts a space and the transcript at the captured cursor. If text was selected, insertion follows the
+selection without replacing it. The target must expose a verifiable Accessibility text range; otherwise the
+transcript remains visible and copyable in history and Nook reports the failed insertion. A newer Dictation
+plugin refuses to paste through an older host that lacks the safe insertion API; updated hosts also block
+unsafe paste requests from older Dictation helpers until they update.

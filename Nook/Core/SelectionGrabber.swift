@@ -68,19 +68,19 @@ enum SelectionGrabber {
     }
 
     /// Put text in the frontmost app by pasting, then restore the user's clipboard.
-    static func paste(_ text: String, after: Bool = false, keepOnClipboard: Bool = false) {
+    static func paste(_ text: String, after: Bool = false, keepOnClipboard: Bool = false, prefix: String = "") {
         let board = NSPasteboard.general
         let saved = snapshot(board)
         LinkCatcher.ignoreClipboardUntil = Date().addingTimeInterval(1.5)
         board.clearContents()
         let item = NSPasteboardItem()
-        item.setString(after ? "\n\n" + text : text, forType: .string)
+        item.setString(SelectionInsertion.pasteboardText(text, after: after, prefix: prefix), forType: .string)
         item.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType")) // clipboard managers skip it
         board.writeObjects([item])
         if after { press(key: 124, flags: []) } // → collapses the selection to its end
         press(key: 9, flags: .maskCommand) // ⌘V
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            if keepOnClipboard { // leave the answer (not the "\n\n"-prefixed paste) as a normal clipboard item
+            if keepOnClipboard { // leave the unprefixed answer as a normal clipboard item
                 LinkCatcher.ignoreClipboardUntil = Date().addingTimeInterval(1.5)
                 board.clearContents()
                 board.setString(text, forType: .string)

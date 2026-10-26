@@ -177,10 +177,18 @@ final class PluginHelperProcess: @unchecked Sendable {
         } catch { log(error.localizedDescription) }
     }
 
+    /// The writer queue owns both writes and closure of stdin. Closing it on the state queue
+    /// can race an already queued write and raise an uncaught NSFileHandle exception.
+    private func closeInput() {
+        guard let handle = input else { return }
+        input = nil
+        writer.async { try? handle.close() }
+    }
+
     private func terminate() {
         guard let task = process else { return }
         // Closing stdin is also the protocol's clean shutdown signal. Helpers must stop on EOF.
-        try? input?.close(); input = nil
+        closeInput()
         guard task.isRunning else { return }
         let pid = task.processIdentifier
         let children = Self.descendants(pid)
@@ -196,8 +204,8 @@ final class PluginHelperProcess: @unchecked Sendable {
 
     private func cleanup() {
         output?.readabilityHandler = nil; errors?.readabilityHandler = nil
-        try? input?.close(); try? output?.close(); try? errors?.close()
-        input = nil; output = nil; errors = nil; process = nil; framer = PluginRPCFramer(); hostRequests = 0
+        closeInput(); try? output?.close(); try? errors?.close()
+        output = nil; errors = nil; process = nil; framer = PluginRPCFramer(); hostRequests = 0
         let callbacks = Array(pending.values); pending.removeAll()
         callbacks.forEach { $0(nil, "Helper stopped.") }
         let token = generation

@@ -274,7 +274,7 @@ copy once to `NOOK_DATA_DIR`, reject links, preserve later edits, use private mo
   `hotkey {id,phase:"pressed"|"released"|"cancelled",context?}` delivers lifecycle events. Only one hold/toggle each
   globally. `hotkeys.record {id,modifierOnly?}` is an explicit native recorder; Esc cancels/Delete clears.
 - `selection.capture {context?}` returns `{app,clipboard}` and retains the target. `selection.get` reads it;
-  `selection.paste {text,after?,keepOnClipboard?}` restores target/range. Requires accessibility (capture also needs clipboard); use only after a
+  `selection.paste {text,insertion?,prefix?,preserveCapture?,after?,keepOnClipboard?}` restores target/range. For insertion, first check `selection.capabilities` for `{insertion:true,prefix:true}`: the original caret is restored, selections collapse to their end, and unverifiable cursors fail without pasting. Prefix affects pasted text, not a retained clipboard. `preserveCapture:true` keeps a previously captured target for ongoing work. `after` and `insertion` cannot be combined. Requires accessibility (capture also needs clipboard); use only after a
   user action, never automated live-input tests. Empty context means the currently focused app.
 - `microphone.devices/start/stop` requires microphone. Start `{deviceUID?,path}` writes a fresh 16 kHz PCM16 mono
   WAV only inside plugin data; stop closes it and returns `{duration,peak}`. A peak of 0 means digital silence.
@@ -299,3 +299,6 @@ CPU/memory; do not claim a live before/after measurement that was not performed.
 Agents' local SDK chunks session replies and tool notifications up to 32 MiB/transfer (four outstanding,
 expiring references), retaining the engine's 1 MiB frame limit. Keep that SDK when modifying its UI; persisted
 history is not truncated. Its adjacent transport test covers large UTF-8 chats and reordered notification chunks.
+
+During the Dictation migration, hosts reject legacy Dictation paste requests without `insertion:true`; newer
+helpers check `selection.capabilities` before pasting. This prevents destructive mixed-version upgrades.

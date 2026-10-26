@@ -664,7 +664,8 @@ New generic host contracts (JavaScript `nook.host.call(method, params)`, helper 
 | `hotkeys.replace` | `{items:[register-shaped objects]}` atomically replaces this plugin's shortcuts, restoring prior registrations if a replacement conflicts. One active hold and one toggle gesture are supported across plugins. | `hotkeys` |
 | `hotkeys.record` | `{id,modifierOnly?:false}` records through a native local recorder after an explicit editor click; 15-second timeout, Esc cancels, Delete clears. Conflicts reject. No synthesized input. | `hotkeys` |
 | `selection.capture` | `{context?}` snapshots the external text target and returns `{app,clipboard}`. `selection.get {context?}` preserves that target for the next paste. Empty context explicitly captures the currently focused app; an opaque notch context uses its before-open snapshot. | `accessibility` + `clipboard` |
-| `selection.paste` | Adds `after?:false` and `keepOnClipboard?:false`; restores original target/range, supports replace or append, and retains rich clipboard snapshot/restore. Refuses a vanished/changed target. | `accessibility` |
+| `selection.paste` | `{text,insertion?,prefix?,after?,keepOnClipboard?}`; `insertion:true` restores the original caret (or collapses an actual selection to its end) without replacing text. `prefix` is added only to the pasted text; the retained clipboard contains the original text. Unsupported/unverifiable cursor ranges fail without pasting. `preserveCapture:true` leaves a previously captured target available for ongoing work. `after` keeps its existing newline-based behavior and cannot be combined with `insertion`. | `accessibility` |
+| `selection.capabilities` | `{}` → `{insertion:true,prefix:true,preserveCapture:true}`. Check before using insertion to avoid unsafe behavior on older hosts. | `accessibility` |
 | `microphone.devices` | `{}` → `[{id,name}]`, without recording or prompting. | `microphone` |
 | `microphone.start` | `{deviceUID?,path}` starts a **fresh Nook-owned capture session**, 16 kHz mono PCM16 WAV at a new path inside this plugin's private data. Chosen mic falls back to default. One recording at a time. | `microphone` |
 | `microphone.stop` | `{}` → `{duration,peak}`; closes WAV before replying. Digital silence has peak 0. Disable/crash releases capture. PCM is spooled directly to private plugin data instead of base64 RPC frames. | `microphone` |
@@ -678,7 +679,8 @@ New generic host contracts (JavaScript `nook.host.call(method, params)`, helper 
 `ai.complete {prompt,provider?,model?,effort?,requestID?}` delegates to the Commands provider helper;
 Codex partial results emit `aiDelta {requestID,text}` to the caller. No provider implementation is linked into
 Nook's AI router. The long provider RPC has a 150-second ceiling; ordinary helper RPC retains its 15-second limit.
-The Commands package must be installed, enabled and approved. `secrets.*` remains namespaced Keychain storage;
+The Commands package must be installed, enabled and approved. The host rejects legacy Dictation paste requests
+that omit `insertion:true`, preventing replacement while an older helper is being updated. `secrets.*` remains namespaced Keychain storage;
 verified first-party Commands/Dictation migration packages share the host's Groq/OpenAI account vault. Existing
 `.secrets` values are read-only migration input; new writes use Keychain. Custom/developer packages never obtain
 shared account credentials merely by choosing these IDs.

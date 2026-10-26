@@ -10,7 +10,7 @@ const pluginDir = name => path.join(root, ['commands','dictation','mixer','agent
 const rejections = []; process.on('unhandledRejection', error => rejections.push(error));
 const wait = () => new Promise(resolve => setTimeout(resolve, 20));
 const snap = () => ({ output: { devices: [{uid:'out',name:'Speakers',volume:.5,isDefault:true,muted:false}] }, input: {devices: [{uid:'mic1',name:'Mic 1',volume:.6,isDefault:true}, {uid:'mic2',name:'Mic 2',volume:.5,isDefault:false}]}, apps: [{id:'one',name:'One',volume:.5,playing:true,muted:false},{id:'two',name:'Two',volume:1,playing:true,muted:false}], needsPermission:false });
-const hist = () => [{id:'d1',status:'done',text:'First transcript',date:new Date().toISOString(),duration:4},{id:'d2',status:'done',text:'Second transcript',date:new Date().toISOString(),duration:5},{id:'d3',status:'failed',error:'Offline',date:new Date().toISOString(),duration:0}];
+const hist = () => [{id:'d1',status:'done',text:'First transcript',date:new Date(Date.now()-1000).toISOString(),duration:4},{id:'d2',status:'done',text:'Second transcript',date:new Date(Date.now()-2000).toISOString(),duration:5},{id:'d3',status:'failed',error:'Offline',date:new Date(Date.now()-3000).toISOString(),duration:0}];
 const proxies = () => ({proxies:[{id:'p1',name:'One',host:'localhost',port:8000},{id:'p2',name:'Two',host:'localhost',port:8001}],activeId:null});
 async function create(name, empty=false, fail=false) {
  const html=fs.readFileSync(path.join(pluginDir(name),'index.html'),'utf8');
@@ -79,6 +79,15 @@ async function rovingUnit() {
   if(name==='mixer'){let track=d.querySelector('.track');assert.equal(track.getAttribute('role'),'slider');track.focus();fire(track,'ArrowUp');await wait();assert.ok(calls.some(c=>c[0]==='audio.setDeviceVolume'&&c.at(-1)===.51));assert.equal(d.activeElement.getAttribute('role'),'slider');track=d.activeElement;fire(track,'End');await new Promise(r=>setTimeout(r,80));assert.ok(calls.some(c=>c[0]==='audio.setDeviceVolume'&&c.at(-1)===1));}
   if(name==='cleaner'){rows[0].focus();const check=rows[0].querySelector('input');const before=check.checked;fire(rows[0],'Enter');assert.equal(check.checked,!before);}
   if(name==='dictation'){rows[0].focus();fire(rows[0],'ArrowDown');assert.equal(d.activeElement,rows[1]);fire(rows[1],'Enter',{metaKey:true});await wait();assert.ok(calls.some(c=>c[0]==='dictation.copy'&&c[1]==='d2'));}
+  if(name==='dictation'){
+   await t.emit('dictation',[{id:'failed-paste',status:'failed',text:'Retained transcript',error:'The original cursor is unavailable.',date:new Date().toISOString(),duration:3}]);
+   const failed=d.querySelector('article[data-entry-id="failed-paste"]');assert.ok(failed.textContent.includes('Retained transcript'));
+   const copy=failed.querySelector('button[data-action="copy"]');assert.ok(copy,'A transcript that could not be pasted must remain copyable');copy.click();await wait();assert.ok(calls.some(c=>c[0]==='dictation.copy'&&c[1]==='failed-paste'));
+   await t.emit('dictation',[{id:'ready-paste',status:'done',text:'A transcript',date:new Date().toISOString(),duration:3}]);
+   w.nook.dictation.paste=async()=>{throw Error('The original cursor is unavailable.');};
+   d.querySelector('article[data-entry-id="ready-paste"] button[data-action="paste"]').click();await wait();
+   assert.ok(d.querySelector('article[data-entry-id="ready-paste"] .row-error').textContent.includes('The original cursor is unavailable.'),'Paste errors should explain why insertion was blocked');
+  }
   if(name==='proxy'){rows[0].focus();fire(rows[0],'ArrowDown');assert.equal(d.activeElement,rows[1]);fire(rows[1],'Enter',{metaKey:true});await wait();assert.ok(d.querySelector('.rename-form input'));}
   if(name==='links'){const link=d.querySelector('.link-open');link.focus();fire(link,'Enter',{metaKey:true});await wait();assert.ok(calls.some(c=>c[0]==='clipboard.write'&&c[1].includes('example.com')));}
   if(name==='teleprompter'){const script=d.querySelector('#script');script.focus();fire(script,'Enter',{metaKey:true});await wait();assert.equal(d.querySelector('#play-view').hidden,false);}

@@ -88,6 +88,7 @@ final class PluginHostAPI {
         case "runtime.keepAlive": PluginEngine.shared.keepAlive(id, enabled:p["enabled"] as? Bool ?? false); ok()
         case "microphone.devices", "microphone.start", "microphone.stop", "audioCapture.start", "audioCapture.state", "audioCapture.level", "audioCapture.update", "audioCapture.stop":
             PluginCaptureAPI.shared.call(id,method,p,reply:reply)
+        case "selection.capabilities": reply(["insertion":true,"prefix":true,"preserveCapture":true],nil)
         case "selection.capture":
             let value = p["context"] as? String
             if let value, !value.isEmpty, !self.models.compactMap(\.value).contains(where:{ String(describing:ObjectIdentifier($0)) == value && self.selectionContexts[ObjectIdentifier($0)] != nil }) { reply(nil,"The original text target is no longer available."); return }
@@ -187,14 +188,18 @@ final class PluginHostAPI {
                 catch { reply(nil, error.localizedDescription) }
             }
         case "selection.get", "selection.paste", "accessibility.perform":
+            if method == "selection.paste", let error = PluginLegacyPasteSafety.error(pluginID: id, parameters: p) { return reply(nil, error) }
             guard AXIsProcessTrusted() else { return reply(nil, "Allow Nook in System Settings → Privacy & Security → Accessibility.") }
             if method == "selection.get" || method == "selection.paste" {
+                let insertion = method == "selection.paste" && (p["insertion"] as? Bool ?? false)
+                if insertion && (p["after"] as? Bool ?? false) { return reply(nil, "Choose either insertion or paste-after.") }
                 let targetModel = model(vm)
                 let supplied = p["context"] as? String
                 let explicit = supplied.flatMap { value in self.models.compactMap(\.value).first { String(describing:ObjectIdentifier($0)) == value } }.flatMap { selectionContexts[ObjectIdentifier($0)] }
                 if let supplied, !supplied.isEmpty, explicit == nil { reply(nil,"The original text target is no longer available."); return }
                 let fallback = supplied == nil ? targetModel.flatMap { $0.isOpen ? selectionContexts[ObjectIdentifier($0)] : nil } : nil
-                let context = (method == "selection.paste" ? selectionTargets.removeValue(forKey:id) : nil) ?? explicit ?? fallback ?? AICommandContext.capture()
+                let captured = method == "selection.paste" && !(p["preserveCapture"] as? Bool ?? false) ? selectionTargets.removeValue(forKey:id) : nil
+                let context = (supplied?.isEmpty == false ? explicit : captured) ?? captured ?? explicit ?? fallback ?? AICommandContext.capture()
                 if method == "selection.get" { selectionTargets[id] = context }
                 if method == "selection.get", let selection = context.selection { reply(selection,nil); return }
                 targetModel?.close()
@@ -202,9 +207,9 @@ final class PluginHostAPI {
                     context.application?.activate()
                     try? await Task.sleep(nanoseconds: 100_000_000)
                     guard PluginPermissions.shared.approved(manifest), Features.shared.tabEnabled(id), AXIsProcessTrusted() else { return reply(nil, "Plugin access was revoked.") }
-                    guard context.restoreTarget() else { return reply(nil, "The original text target changed or is unavailable. Focus it and reopen Nook.") }
+                    guard context.restoreTarget(insertion: insertion) else { return reply(nil, insertion ? "The original cursor is unavailable. Focus a text field and try again; your transcript is saved in history." : "The original text target changed or is unavailable. Focus it and reopen Nook.") }
                     if method == "selection.get" { reply(await SelectionGrabber.selectedText(), nil) }
-                    else { SelectionGrabber.paste(str("text"), after:p["after"] as? Bool ?? false, keepOnClipboard: p["keepOnClipboard"] as? Bool ?? false); ok() }
+                    else { SelectionGrabber.paste(str("text"), after:p["after"] as? Bool ?? false, keepOnClipboard: p["keepOnClipboard"] as? Bool ?? false, prefix: p["prefix"] as? String ?? ""); ok() }
                 }
             }
             else {

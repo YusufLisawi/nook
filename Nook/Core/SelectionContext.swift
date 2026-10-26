@@ -8,16 +8,17 @@ struct AICommandContext {
     let clipboard: String
     let selection: String?
     private let element: AXUIElement?
-    private let range: AXValue?
+    private let range: CFRange?
+    private let originalRange: CFRange?
 
     static func capture() -> Self {
         let app = NSWorkspace.shared.frontmostApplication
         let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
         if app?.processIdentifier == ProcessInfo.processInfo.processIdentifier {
-            return Self(application: nil, clipboard: clipboard, selection: nil, element: nil, range: nil)
+            return Self(application: nil, clipboard: clipboard, selection: nil, element: nil, range: nil, originalRange: nil)
         }
         guard AXIsProcessTrusted(), let app, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            return Self(application: app, clipboard: clipboard, selection: nil, element: nil, range: nil)
+            return Self(application: app, clipboard: clipboard, selection: nil, element: nil, range: nil, originalRange: nil)
         }
         let axApp = AXUIElementCreateApplication(app.processIdentifier)
         // Bound synchronous AX work so an unresponsive external app cannot hold up the launcher frame.
@@ -26,7 +27,7 @@ struct AICommandContext {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(axApp, kAXFocusedUIElementAttribute as CFString, &value) == .success,
               let value, CFGetTypeID(value) == AXUIElementGetTypeID() else {
-            return Self(application: app, clipboard: clipboard, selection: nil, element: nil, range: nil)
+            return Self(application: app, clipboard: clipboard, selection: nil, element: nil, range: nil, originalRange: nil)
         }
         let element = value as! AXUIElement
         AXUIElementSetMessagingTimeout(element, 0.004)
@@ -37,35 +38,64 @@ struct AICommandContext {
             return result
         }
         let selected = attribute(kAXSelectedTextAttribute) as? String
-        var range: AXValue?
-        if let raw = attribute(kAXSelectedTextRangeAttribute), CFGetTypeID(raw) == AXValueGetTypeID() { range = (raw as! AXValue) }
-        if let selected, !selected.isEmpty {
-            return Self(application: app, clipboard: clipboard, selection: selected, element: element, range: range)
+        var range: CFRange?
+        if let raw = attribute(kAXSelectedTextRangeAttribute), CFGetTypeID(raw) == AXValueGetTypeID() {
+            var value = CFRange(location: 0, length: 0)
+            if AXValueGetValue(unsafeBitCast(raw, to: AXValue.self), .cfRange, &value) { range = value }
         }
-        let role = attribute(kAXRoleAttribute) as? String ?? ""
-        if ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField"].contains(role),
-           let text = attribute(kAXValueAttribute) as? String, !text.isEmpty {
-            var all = CFRange(location: 0, length: (text as NSString).length)
-            return Self(application: app, clipboard: clipboard, selection: text, element: element, range: AXValueCreate(.cfRange, &all))
+        var fullText: String?
+        if selected?.isEmpty != false {
+            let role = attribute(kAXRoleAttribute) as? String ?? ""
+            if ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField"].contains(role) {
+                fullText = attribute(kAXValueAttribute) as? String
+            }
         }
-        return Self(application: app, clipboard: clipboard, selection: nil, element: element, range: range)
+        let plan = SelectionInsertion.capture(selected: selected, fullText: fullText, range: range)
+        return Self(application: app, clipboard: clipboard, selection: plan.selection, element: element,
+                    range: plan.commandRange, originalRange: plan.originalRange)
     }
 
     /// Return false rather than pasting into an unrelated application if the original app has gone away.
-    func restoreTarget() -> Bool {
+    func restoreTarget(insertion: Bool = false) -> Bool {
         guard let application, !application.isTerminated else { return false }
         application.activate()
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == application.processIdentifier else { return false }
+        if insertion, element == nil { return false }
         if let element {
             AXUIElementSetMessagingTimeout(element, 0.2)
-            _ = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
             let axApp = AXUIElementCreateApplication(application.processIdentifier)
             AXUIElementSetMessagingTimeout(axApp, 0.2)
-            var focused: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(axApp, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
-                  let focused, CFEqual(focused, element) else { return false }
-            if let range, selection != nil,
-               AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, range) != .success { return false }
+            func isFocused() -> Bool {
+                var focused: CFTypeRef?
+                return AXUIElementCopyAttributeValue(axApp, kAXFocusedUIElementAttribute as CFString, &focused) == .success &&
+                    focused.map { CFEqual($0, element) } == true
+            }
+            // Avoid disturbing an already focused caret. AI Commands retain their existing refocus behavior.
+            if !insertion || !isFocused() {
+                _ = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+            }
+            guard isFocused() else { return false }
+            if insertion {
+                guard var point = SelectionInsertion.insertionPoint(originalRange) else { return false }
+                func currentRange() -> CFRange? {
+                    var actual: CFTypeRef?
+                    var value = CFRange(location: 0, length: 0)
+                    guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &actual) == .success,
+                          let actual, CFGetTypeID(actual) == AXValueGetTypeID(),
+                          AXValueGetValue(unsafeBitCast(actual, to: AXValue.self), .cfRange, &value) else { return nil }
+                    return value
+                }
+                // Some editors expose a readable but non-settable range. If the caret is already
+                // correct, leaving it in place is safe and avoids excluding those editors.
+                if SelectionInsertion.matches(currentRange(), point: point) { return true }
+                guard let value = AXValueCreate(.cfRange, &point),
+                      AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, value) == .success else { return false }
+                return SelectionInsertion.matches(currentRange(), point: point)
+            }
+            if var range, selection != nil {
+                guard let value = AXValueCreate(.cfRange, &range),
+                      AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, value) == .success else { return false }
+            }
             // Don't overwrite text the user changed while the model was working.
             if let selection {
                 var current: CFTypeRef?
